@@ -29,11 +29,20 @@ class SubjectProgress {
     required this.dueSoon,
   });
 
-  /// Deterministic color derived from the subject code —
-  /// same code always gets the same color, no matter list order.
   Color get color {
     final hash = code.codeUnits.fold(0, (acc, c) => acc * 31 + c);
     return subjectPalette[hash.abs() % subjectPalette.length];
+  }
+
+  factory SubjectProgress.fromJson(Map<String, dynamic> json) {
+    return SubjectProgress(
+      name:      json['name'] as String,
+      code:      json['code'] as String,
+      progress:  (json['progress'] as num).toDouble(),
+      completed: json['completed'] as int,
+      remaining: json['remaining'] as int,
+      dueSoon:   json['due_soon'] as int,
+    );
   }
 }
 
@@ -64,50 +73,44 @@ class SemesterProgressModel {
     required this.subjects,
   });
 
-  static const SemesterProgressModel sample = SemesterProgressModel(
-    semesterName: 'Sem 4',
-    dateRange: 'March – July 2026',
-    overallProgress: 0.65,
-    completedTasks: 10,
-    totalTasks: 20,
-    currentWeek: 8,
-    totalWeeks: 14,
-    timelineProgress: 0.57,
-    weeksRemaining: 6,
-    finalExamDate: '14 July',
-    subjects: [
-      SubjectProgress(
-        name: 'CT124 System Proposal',
-        code: 'CT124',
-        progress: 0.65,
-        completed: 7,
-        remaining: 4,
-        dueSoon: 1,
-      ),
-      SubjectProgress(
-        name: 'Research Methods',
-        code: 'RM302',
-        progress: 0.40,
-        completed: 2,
-        remaining: 3,
-        dueSoon: 1,
-      ),
-      SubjectProgress(
-        name: 'Mobile Development',
-        code: 'MOB401',
-        progress: 0.25,
-        completed: 1,
-        remaining: 3,
-        dueSoon: 0,
-      ),
-      SubjectProgress(
-        name: 'Software Engineering',
-        code: 'SE305',
-        progress: 0.10,
-        completed: 0,
-        remaining: 4,
-        dueSoon: 1,
-      ),
-    ],
-  );
+  factory SemesterProgressModel.fromJson(Map<String, dynamic> json) {
+    return SemesterProgressModel(
+      semesterName:     json['semester_name'] as String,
+      dateRange:        json['date_range'] as String,
+      overallProgress:  (json['overall_progress'] as num).toDouble(),
+      completedTasks:   json['completed_tasks'] as int,
+      totalTasks:       json['total_tasks'] as int,
+      currentWeek:      json['current_week'] as int,
+      totalWeeks:       json['total_weeks'] as int,
+      timelineProgress: (json['timeline_progress'] as num).toDouble(),
+      weeksRemaining:   json['weeks_remaining'] as int,
+      finalExamDate:    json['final_exam_date'] as String,
+      subjects: (json['subjects'] as List<dynamic>)
+          .map((s) => SubjectProgress.fromJson(s as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  // Sample data
+
+  factory SemesterProgressModel.mockData() {
+    return const SemesterProgressModel(
+      semesterName: 'Sem 4',
+      dateRange: 'March – July 2026',
+      overallProgress: 0.65,
+      completedTasks: 10,
+      totalTasks: 20,
+      currentWeek: 8,
+      totalWeeks: 14,
+      timelineProgress: 0.57,
+      weeksRemaining: 6,
+      finalExamDate: '14 July',
+      subjects: [
+        SubjectProgress(name: 'CT124 System Proposal', code: 'CT124',  progress: 0.65, completed: 7, remaining: 4, dueSoon: 1),
+        SubjectProgress(name: 'Research Methods',      code: 'RM302',  progress: 0.40, completed: 2, remaining: 3, dueSoon: 1),
+        SubjectProgress(name: 'Mobile Development',    code: 'MOB401', progress: 0.25, completed: 1, remaining: 3, dueSoon: 0),
+        SubjectProgress(name: 'Software Engineering',  code: 'SE305',  progress: 0.10, completed: 0, remaining: 4, dueSoon: 1),
+      ],
+    );
+  }
 }

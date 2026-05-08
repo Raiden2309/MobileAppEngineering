@@ -1,0 +1,55 @@
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
+class ApiService {
+  static const String baseUrl = 'http://localhost:8000';
+
+  static String? loginToken;
+
+  static void setToken(String token) {
+    loginToken = token;
+  }
+
+  static void clearToken() {
+    loginToken = null;
+  }
+
+  static Map<String, String> get headers => {
+    'Content-Type': 'application/json',
+    if (loginToken != null) 'Authorization': 'Bearer $loginToken',
+  };
+
+  static Future<Map<String, dynamic>> get(String endpoint) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> post(String endpoint, Map<String, dynamic> body) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> delete(String endpoint) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+    );
+    return jsonDecode(response.body);
+  }
+}

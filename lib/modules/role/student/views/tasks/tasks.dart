@@ -4,7 +4,7 @@ import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../models/tasks_model.dart';
 
-// ── Data ──────────────────────────────────────────────────────────────────────
+// Data
 
 final List<SubjectGroup> subjectGroups = [
   SubjectGroup(
@@ -13,11 +13,11 @@ final List<SubjectGroup> subjectGroups = [
     totalTasks: 11,
     completedTasks: 7,
     tasks: [
-      Task(name: 'Complete system proposal introduction', estimatedTime: 'Est. 1.5 hrs', status: TaskStatus.completed, statusLabel: 'Completed'),
-      Task(name: 'Create system context diagram',         estimatedTime: 'Est. 1 hr',   status: TaskStatus.completed, statusLabel: 'Completed'),
-      Task(name: 'Write use case diagrams',              estimatedTime: 'Est. 2 hrs',  status: TaskStatus.inProgress, statusLabel: 'In Progress'),
-      Task(name: 'Prepare functional requirements',      estimatedTime: 'Est. 1 hr',   status: TaskStatus.dueSoon,   statusLabel: 'Due Today'),
-      Task(name: 'Write non-functional requirements',    estimatedTime: 'Est. 1 hr',   status: TaskStatus.toDo,      statusLabel: 'To Do'),
+      Task(name: 'Complete system proposal introduction', estimatedTime: 'Est. 1.5 hrs', status: TaskStatus.completed),
+      Task(name: 'Create system context diagram',         estimatedTime: 'Est. 1 hr',   status: TaskStatus.completed),
+      Task(name: 'Write use case diagrams',               estimatedTime: 'Est. 2 hrs',  status: TaskStatus.inProgress),
+      Task(name: 'Prepare functional requirements',       estimatedTime: 'Est. 1 hr',   status: TaskStatus.dueSoon),
+      Task(name: 'Write non-functional requirements',     estimatedTime: 'Est. 1 hr',   status: TaskStatus.toDo),
     ],
   ),
   SubjectGroup(
@@ -26,10 +26,10 @@ final List<SubjectGroup> subjectGroups = [
     totalTasks: 5,
     completedTasks: 2,
     tasks: [
-      Task(name: 'Review affinity analysis notes', estimatedTime: 'Est. 45 min', status: TaskStatus.completed, statusLabel: 'Completed'),
-      Task(name: 'Literature review draft',        estimatedTime: 'Est. 2 hrs',  status: TaskStatus.completed, statusLabel: 'Completed'),
-      Task(name: 'Prepare survey questions',       estimatedTime: 'Est. 1.5 hrs',status: TaskStatus.dueSoon,   statusLabel: 'Due in 2 days'),
-      Task(name: 'Analyse qualitative data',       estimatedTime: 'Est. 3 hrs',  status: TaskStatus.toDo,      statusLabel: 'To Do'),
+      Task(name: 'Review affinity analysis notes', estimatedTime: 'Est. 45 min',  status: TaskStatus.completed),
+      Task(name: 'Literature review draft',         estimatedTime: 'Est. 2 hrs',   status: TaskStatus.completed),
+      Task(name: 'Prepare survey questions',        estimatedTime: 'Est. 1.5 hrs', status: TaskStatus.dueSoon),
+      Task(name: 'Analyse qualitative data',        estimatedTime: 'Est. 3 hrs',   status: TaskStatus.toDo),
     ],
   ),
   SubjectGroup(
@@ -38,9 +38,9 @@ final List<SubjectGroup> subjectGroups = [
     totalTasks: 4,
     completedTasks: 1,
     tasks: [
-      Task(name: 'Set up Flutter project',  estimatedTime: 'Est. 30 min', status: TaskStatus.completed, statusLabel: 'Completed'),
-      Task(name: 'Build login screen UI',   estimatedTime: 'Est. 2 hrs',  status: TaskStatus.inProgress, statusLabel: 'In Progress'),
-      Task(name: 'Integrate Firebase auth', estimatedTime: 'Est. 3 hrs',  status: TaskStatus.toDo,      statusLabel: 'To Do'),
+      Task(name: 'Set up Flutter project',  estimatedTime: 'Est. 30 min', status: TaskStatus.completed),
+      Task(name: 'Build login screen UI',   estimatedTime: 'Est. 2 hrs',  status: TaskStatus.inProgress),
+      Task(name: 'Integrate Firebase auth', estimatedTime: 'Est. 3 hrs',  status: TaskStatus.toDo),
     ],
   ),
   SubjectGroup(
@@ -49,13 +49,13 @@ final List<SubjectGroup> subjectGroups = [
     totalTasks: 4,
     completedTasks: 0,
     tasks: [
-      Task(name: 'Design class diagram',   estimatedTime: 'Est. 2 hrs', status: TaskStatus.toDo,    statusLabel: 'To Do'),
-      Task(name: 'Write unit test cases',  estimatedTime: 'Est. 2 hrs', status: TaskStatus.dueSoon, statusLabel: 'Due in 3 days'),
+      Task(name: 'Design class diagram',  estimatedTime: 'Est. 2 hrs', status: TaskStatus.toDo),
+      Task(name: 'Write unit test cases', estimatedTime: 'Est. 2 hrs', status: TaskStatus.dueSoon),
     ],
   ),
 ];
 
-// ── MyTasksPage ───────────────────────────────────────────────────────────────
+// MyTasksPage
 
 class MyTasksPage extends StatefulWidget {
   const MyTasksPage({super.key});

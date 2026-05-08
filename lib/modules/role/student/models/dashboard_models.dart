@@ -1,0 +1,210 @@
+// Enums
+
+enum TaskStatus { done, inProgress, dueToday, upcoming }
+
+// Models
+
+class DashboardModel {
+  final DashboardSummary summary;
+  final DashboardStats stats;
+  final CurrentTask? currentTask;
+  final WorkloadPlan workloadPlan;
+  final List<TaskItem> todayTasks;
+
+  const DashboardModel({
+    required this.summary,
+    required this.stats,
+    required this.currentTask,
+    required this.workloadPlan,
+    required this.todayTasks,
+  });
+
+  factory DashboardModel.fromJson(Map<String, dynamic> json) {
+    return DashboardModel(
+      summary:      DashboardSummary.fromJson(json['summary']),
+      stats:        DashboardStats.fromJson(json['stats']),
+      currentTask:  json['current_task'] != null
+          ? CurrentTask.fromJson(json['current_task'])
+          : null,
+      workloadPlan: WorkloadPlan.fromJson(json['workload_plan']),
+      todayTasks:   (json['today_tasks'] as List<dynamic>)
+          .map((t) => TaskItem.fromJson(t))
+          .toList(),
+    );
+  }
+
+  factory DashboardModel.mockData() {
+    return DashboardModel(
+      summary: DashboardSummary(
+        userName: 'John',
+        taskCountToday: 4,
+        date: DateTime(2026, 5, 8),
+      ),
+      stats: const DashboardStats(
+        tasksDone:   10,
+        totalTasks:  20,
+        dueSoon:     3,
+        dueSoonDays: 3,
+        overdue:     1,
+        currentWeek: 8,
+        totalWeeks:  14,
+      ),
+      currentTask: const CurrentTask(
+        title:    'Write use case diagrams',
+        subtitle: 'CT124 System Proposal · 2 hrs',
+        status:   TaskStatus.inProgress,
+      ),
+      workloadPlan: const WorkloadPlan(
+        planLabel: "Today's Plan",
+        tasks:     [],
+      ),
+      todayTasks: const [
+        TaskItem(title: 'Review affinity analysis notes', subtitle: 'Research Methods · 45 min',      status: TaskStatus.done,       checked: true),
+        TaskItem(title: 'Write use case diagrams',        subtitle: 'CT124 System Proposal · 2 hrs',  status: TaskStatus.inProgress),
+        TaskItem(title: 'Prepare functional requirements',subtitle: 'CT124 System Proposal · 1 hr',   status: TaskStatus.dueToday),
+        TaskItem(title: 'Prepare survey questions',       subtitle: 'Research Methods · 1.5 hrs',     status: TaskStatus.upcoming),
+      ],
+    );
+  }
+}
+
+// Dashboard greeting
+
+class DashboardSummary {
+  final String userName;
+  final int taskCountToday;
+  final DateTime date;
+
+  const DashboardSummary({
+    required this.userName,
+    required this.taskCountToday,
+    required this.date,
+  });
+
+  factory DashboardSummary.fromJson(Map<String, dynamic> json) {
+    return DashboardSummary(
+      userName:       json['user_name'] as String,
+      taskCountToday: json['task_count_today'] as int,
+      date:           DateTime.parse(json['date'] as String),
+    );
+  }
+}
+
+// Stat cards
+
+class DashboardStats {
+  final int tasksDone;
+  final int totalTasks;
+  final int dueSoon;
+  final int dueSoonDays;
+  final int overdue;
+  final int currentWeek;
+  final int totalWeeks;
+
+  const DashboardStats({
+    required this.tasksDone,
+    required this.totalTasks,
+    required this.dueSoon,
+    required this.dueSoonDays,
+    required this.overdue,
+    required this.currentWeek,
+    required this.totalWeeks,
+  });
+
+  factory DashboardStats.fromJson(Map<String, dynamic> json) {
+    return DashboardStats(
+      tasksDone:    json['tasks_done'] as int,
+      totalTasks:   json['total_tasks'] as int,
+      dueSoon:      json['due_soon'] as int,
+      dueSoonDays:  json['due_soon_days'] as int,
+      overdue:      json['overdue'] as int,
+      currentWeek:  json['current_week'] as int,
+      totalWeeks:   json['total_weeks'] as int,
+    );
+  }
+}
+
+// Current task reminder
+
+class CurrentTask {
+  final String title;
+  final String subtitle;
+  final TaskStatus status;
+  final DateTime? dueAt;
+
+  const CurrentTask({
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    this.dueAt,
+  });
+
+  factory CurrentTask.fromJson(Map<String, dynamic> json) {
+    return CurrentTask(
+      title:    json['title'] as String,
+      subtitle: json['subtitle'] as String,
+      status:   TaskStatus.values.byName(json['status'] as String),
+      dueAt:    json['due_at'] != null
+          ? DateTime.parse(json['due_at'] as String)
+          : null,
+    );
+  }
+}
+
+// Workload monitor
+
+class WorkloadPlan {
+  final String planLabel;
+  final List<TaskItem> tasks;
+
+  const WorkloadPlan({
+    required this.planLabel,
+    required this.tasks,
+  });
+
+  bool get isEmpty => tasks.isEmpty;
+
+  factory WorkloadPlan.fromJson(Map<String, dynamic> json) {
+    return WorkloadPlan(
+      planLabel: json['plan_label'] as String,
+      tasks: (json['tasks'] as List<dynamic>)
+          .map((t) => TaskItem.fromJson(t))
+          .toList(),
+    );
+  }
+}
+
+// Today's tasks
+
+class TaskItem {
+  final String title;
+  final String subtitle;
+  final TaskStatus status;
+  final bool checked;
+
+  const TaskItem({
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    this.checked = false,
+  });
+
+  factory TaskItem.fromJson(Map<String, dynamic> json) {
+    return TaskItem(
+      title:    json['title'] as String,
+      subtitle: json['subtitle'] as String,
+      status:   TaskStatus.values.byName(json['status'] as String),
+      checked:  json['checked'] as bool? ?? false,
+    );
+  }
+
+  TaskItem copyWith({bool? checked}) {
+    return TaskItem(
+      title:    title,
+      subtitle: subtitle,
+      status:   status,
+      checked:  checked ?? this.checked,
+    );
+  }
+}
+

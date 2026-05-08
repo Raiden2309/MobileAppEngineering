@@ -1,54 +1,59 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class AuthService {
-  static const _storage = FlutterSecureStorage();
-  static const _tokenKey = 'auth_token';
-  static const _setupKey = 'is_setup_complete';
-
-  static const _roleKey = 'user_role';
+  static const storage = FlutterSecureStorage();
+  static const tokenKey = 'auth_token';
+  static const setupKey = 'is_setup_complete';
+  static const roleKey = 'user_role';
 
   static Future<void> saveRole(String role) async {
-    await _storage.write(key: _roleKey, value: role);
+    await storage.write(key: roleKey, value: role);
   }
 
   static Future<String?> getRole() async {
-    return await _storage.read(key: _roleKey);
+    return await storage.read(key: roleKey);
   }
 
   // --- Auth ---
   static Future<void> saveToken(String token) async {
-    await _storage.write(key: _tokenKey, value: token);
+    await storage.write(key: tokenKey, value: token);
   }
 
   static Future<bool> isLoggedIn() async {
-    final token = await _storage.read(key: _tokenKey);
+    final token = await storage.read(key: tokenKey);
     return token != null && token.isNotEmpty;
   }
 
   static Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    return await storage.read(key: tokenKey);
   }
 
   static Future<void> clearToken() async {
-    await _storage.delete(key: _tokenKey);
+    await storage.delete(key: tokenKey);
   }
 
   // --- Setup ---
   static Future<void> completeSetup() async {
-    await _storage.write(key: _setupKey, value: 'true');
+    await storage.write(key: setupKey, value: 'true');
   }
 
   static Future<bool> isSetupComplete() async {
-    final value = await _storage.read(key: _setupKey);
+    final value = await storage.read(key: setupKey);
     return value == 'true';
   }
 
   static Future<void> clearSetup() async {
-    await _storage.delete(key: _setupKey);
+    await storage.delete(key: setupKey);
   }
 
   // --- Logout (clears token but NOT setup) ---
   static Future<void> logout() async {
-    await _storage.delete(key: _tokenKey);
+    await storage.delete(key: tokenKey);
+  }
+
+  static Future<void> clearAll() async {
+    await storage.delete(key: tokenKey);
+    await storage.delete(key: roleKey);
+    await storage.delete(key: setupKey);
   }
 }

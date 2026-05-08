@@ -118,12 +118,15 @@ class SplashScreenState extends State<SplashScreen>
 
     if (mounted) {
       Widget destination;
-      if (!loggedIn) {
-        destination = const LoginPage();
-      } else if (!setupDone) {
-        destination = const RoleSetupPage();
-      } else {
+      if (loggedIn) {
+        // has JWT token → skip everything
         destination = const CentralStudentNavigation();
+      } else if (setupDone) {
+        // no token but setup done → go to login
+        destination = const LoginPage();
+      } else {
+        // no token, no setup → must setup first
+        destination = const RoleSetupPage();
       }
 
       Navigator.of(context).pushReplacement(

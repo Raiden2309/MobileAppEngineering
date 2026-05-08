@@ -8,15 +8,13 @@ import '../../../../../shared/styles/font_styles.dart';
 import '../../models/semester_progress_model.dart';
 
 class SemesterProgressPage extends StatelessWidget {
-  final SemesterProgressModel model;
+  final SemesterProgressModel? model;
 
-  const SemesterProgressPage({
-    super.key,
-    this.model = SemesterProgressModel.sample,
-  });
+  const SemesterProgressPage({super.key, this.model});
 
   @override
   Widget build(BuildContext context) {
+    final data = model ?? SemesterProgressModel.mockData();
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -41,17 +39,17 @@ class SemesterProgressPage extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${model.semesterName} · ${model.dateRange}',
+              '${data.semesterName} · ${data.dateRange}',
               style: TextStyle(color: AppColors.black, fontSize: 13),
             ),
 
             const SizedBox(height: 20),
 
-            OverallProgressCard(model: model),
+            OverallProgressCard(model: data),
 
             const SizedBox(height: 14),
 
-            TimelineCard(model: model),
+            TimelineCard(model: data),
 
             const SizedBox(height: 24),
 
@@ -65,7 +63,7 @@ class SemesterProgressPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            ...model.subjects.map((s) => SubjectProgressCard(subject: s)),
+            ...data.subjects.map((s) => SubjectProgressCard(subject: s)),
           ],
         ),
       ),

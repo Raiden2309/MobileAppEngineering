@@ -10,15 +10,14 @@ class RegisterPage extends StatefulWidget {
 }
 
 class RegisterPageState extends State<RegisterPage> {
-  bool showPassword = true;
+  bool showPassword        = true;
   bool showConfirmPassword = true;
 
-  // Instantiate the controller
   final RegisterController controller = RegisterController();
 
   @override
   void dispose() {
-    controller.dispose(); // clean up
+    controller.dispose();
     super.dispose();
   }
 
@@ -39,6 +38,9 @@ class RegisterPageState extends State<RegisterPage> {
             colorScheme: Theme.of(context).colorScheme.copyWith(
               primary: AppColors.black,
               onPrimary: AppColors.white,
+            ),
+            checkboxTheme: const CheckboxThemeData(
+              side: BorderSide(color: AppColors.black),
             ),
             textButtonTheme: TextButtonThemeData(
               style: TextButton.styleFrom(foregroundColor: AppColors.black),
@@ -71,10 +73,7 @@ class RegisterPageState extends State<RegisterPage> {
               constraints: const BoxConstraints(maxWidth: 460),
               child: SafeArea(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 32,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -82,30 +81,34 @@ class RegisterPageState extends State<RegisterPage> {
                         child: SizedBox(
                           width: 80,
                           height: 80,
-                          child: Image.asset(
-                            'assets/images/transparent_logo.png',
-                          ),
+                          child: Image.asset('assets/images/transparent_logo.png'),
                         ),
                       ),
                       const SizedBox(height: 24),
                       const Text(
                         'Register',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Join us today',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        'Create your account',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 24),
 
-                      // Email field — wired up
+                      // Name
+                      TextField(
+                        controller: controller.nameController,
+                        cursorColor: AppColors.black,
+                        keyboardType: TextInputType.name,
+                        decoration: InputDecoration(
+                          labelText: 'Full Name',
+                          errorText: controller.nameError,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Email
                       TextField(
                         controller: controller.emailController,
                         cursorColor: AppColors.black,
@@ -117,64 +120,52 @@ class RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Password field — wired up
+                      // Password
                       TextField(
                         controller: controller.passwordController,
                         cursorColor: AppColors.black,
                         obscureText: showPassword,
                         decoration: InputDecoration(
-                          errorText: controller.passwordError,
                           labelText: 'Password',
+                          errorText: controller.passwordError,
+                          border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             mouseCursor: SystemMouseCursors.click,
                             hoverColor: AppColors.transparent,
                             splashColor: AppColors.transparent,
                             highlightColor: AppColors.transparent,
-                            icon: Icon(
-                              showPassword
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                            ),
-                            onPressed: () =>
-                                setState(() => showPassword = !showPassword),
+                            icon: Icon(showPassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () => setState(() => showPassword = !showPassword),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Confirm password field — wired up
+                      // Confirm password
                       TextField(
                         controller: controller.confirmPasswordController,
                         cursorColor: AppColors.black,
                         obscureText: showConfirmPassword,
                         decoration: InputDecoration(
+                          labelText: 'Confirm Password',
                           errorText: controller.confirmPasswordError,
-                          labelText: 'Confirm pass',
+                          border: const OutlineInputBorder(),
                           suffixIcon: IconButton(
                             mouseCursor: SystemMouseCursors.click,
                             hoverColor: AppColors.transparent,
                             splashColor: AppColors.transparent,
                             highlightColor: AppColors.transparent,
-                            icon: Icon(
-                              showConfirmPassword
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                            ),
-                            onPressed: () => setState(
-                              () => showConfirmPassword = !showConfirmPassword,
-                            ),
+                            icon: Icon(showConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                            onPressed: () => setState(() => showConfirmPassword = !showConfirmPassword),
                           ),
                         ),
                       ),
                       const SizedBox(height: 24),
 
-                      // Register button — calls controller
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            enabledMouseCursor: SystemMouseCursors.click,
-                          ),
+                          style: ElevatedButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
                           onPressed: () => controller.register(
                             context,
                             onError: () => setState(() {}),
@@ -186,18 +177,12 @@ class RegisterPageState extends State<RegisterPage> {
 
                       const Row(
                         children: [
-                          Expanded(child: Divider(color: AppColors.black)),
+                          Expanded(child: Divider()),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'or',
-                              style: TextStyle(
-                                color: AppColors.black,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text('or', style: TextStyle(color: AppColors.black, fontWeight: FontWeight.bold)),
                           ),
-                          Expanded(child: Divider(color: AppColors.black)),
+                          Expanded(child: Divider()),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -205,12 +190,10 @@ class RegisterPageState extends State<RegisterPage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            enabledMouseCursor: SystemMouseCursors.click,
-                          ),
+                          style: OutlinedButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
                           onPressed: () {},
                           icon: const Icon(Icons.g_mobiledata, size: 24),
-                          label: const Text('Sign in with Google'),
+                          label: const Text('Sign up with Google'),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -224,15 +207,12 @@ class RegisterPageState extends State<RegisterPage> {
                           ),
                           child: const Text.rich(
                             TextSpan(
-                              text: "Already have an account? ",
+                              text: 'Already have an account? ',
                               style: TextStyle(fontSize: 14),
                               children: [
                                 TextSpan(
                                   text: 'Login',
-                                  style: TextStyle(
-                                    color: Color(0xFF111184),
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: TextStyle(color: AppColors.darkIndigoBlue, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),

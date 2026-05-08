@@ -20,7 +20,7 @@ class StudyPlanPageState extends State<StudyPlanPage> {
   @override
   void initState() {
     super.initState();
-    weekPlan = WeekPlan.mock();
+    weekPlan = WeekPlan.mockData();
     final now = DateTime.now();
     selectedDayIndex = weekPlan.days.indexWhere(
           (d) =>
@@ -157,7 +157,7 @@ class StudyPlanPageState extends State<StudyPlanPage> {
 
               // ── Regenerate button (stays fixed) ────
               GestureDetector(
-                onTap: () => setState(() => weekPlan = WeekPlan.mock()),
+                onTap: () => setState(() => weekPlan = WeekPlan.mockData()),
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
