@@ -141,13 +141,11 @@ class TaskCard extends StatelessWidget {
                 Text(
                   task.title,
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.black,
-                    decoration: task.checked
-                        ? TextDecoration.lineThrough
-                        : null,
-                    decorationColor: AppColors.black,
+                    fontSize: FontStyles.titleMedium,
+                    fontWeight: FontStyles.weightMedium,
+                    color: task.checked ? AppColors.legendText : AppColors.black,
+                    decoration: task.checked ? TextDecoration.lineThrough : null,
+                    decorationColor: AppColors.legendText,
                   ),
                 ),
                 const SizedBox(height: 4),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../../shared/styles/app_colors.dart';
+import '../../../../../../shared/styles/font_styles.dart';
 import '../../../models/study_plan_model.dart';
 
 class StudySchedule extends StatelessWidget {
@@ -20,14 +21,14 @@ class StudySchedule extends StatelessWidget {
               Icon(
                 Icons.event_available_rounded,
                 size: 44,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: AppColors.white.withValues(alpha: 0.4),
               ),
               const SizedBox(height: 12),
               Text(
                 'No sessions planned for this day',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.55),
-                  fontSize: 14,
+                  color: AppColors.legendText,
+                  fontSize: FontStyles.titleSmall,
                 ),
               ),
             ],
@@ -47,6 +48,8 @@ class StudySchedule extends StatelessWidget {
   }
 }
 
+// ── ScheduleRow ───────────────────────────────────────────
+
 class ScheduleRow extends StatelessWidget {
   final StudyBlock block;
   final bool isLast;
@@ -54,7 +57,7 @@ class ScheduleRow extends StatelessWidget {
   const ScheduleRow({super.key, required this.block, required this.isLast});
 
   Color get dotColor {
-    if (block.type == BlockType.blocked) return Colors.white30;
+    if (block.type == BlockType.blocked) return AppColors.legendText;
     if (block.type == BlockType.breakSlot) return AppColors.nectarine;
     switch (block.status) {
       case BlockStatus.completed:
@@ -64,7 +67,7 @@ class ScheduleRow extends StatelessWidget {
       case BlockStatus.dueSoon:
         return AppColors.red;
       default:
-        return Colors.white;
+        return AppColors.white;
     }
   }
 
@@ -83,7 +86,7 @@ class ScheduleRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Time label
+          // ── Time label ─────────────────────────────
           SizedBox(
             width: 48,
             child: Padding(
@@ -91,16 +94,17 @@ class ScheduleRow extends StatelessWidget {
               child: Text(
                 block.startTime,
                 textAlign: TextAlign.right,
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+                style: const TextStyle(
+                  color: AppColors.legendText,
+                  fontSize: FontStyles.titleSmall,
+                  fontWeight: FontStyles.weightMedium,
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          // Timeline column
+
+          // ── Timeline column ────────────────────────
           SizedBox(
             width: 18,
             child: Column(
@@ -127,7 +131,7 @@ class ScheduleRow extends StatelessWidget {
                     child: Center(
                       child: Container(
                         width: 1.5,
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: AppColors.white.withValues(alpha: AppColors.glassDividerOpacity),
                       ),
                     ),
                   ),
@@ -135,7 +139,8 @@ class ScheduleRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          // Card
+
+          // ── Block card ─────────────────────────────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -152,12 +157,15 @@ class ScheduleRow extends StatelessWidget {
   }
 }
 
+// ── BlockCard ─────────────────────────────────────────────
+
 class BlockCard extends StatelessWidget {
   final StudyBlock block;
   final Color accentColor;
   final String subtitleText;
 
-  const BlockCard({super.key,
+  const BlockCard({
+    super.key,
     required this.block,
     required this.accentColor,
     required this.subtitleText,
@@ -168,19 +176,20 @@ class BlockCard extends StatelessWidget {
     final isBlocked = block.type == BlockType.blocked;
 
     return Container(
-      // Use a fixed width for the bar (e.g., 4px) via gradient stops
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.1)),
+        borderRadius: BorderRadius.circular(AppColors.glassTileBorderRadius),
+        border: Border.all(
+          color: AppColors.white.withValues(alpha: AppColors.glassBorderOpacity),
+        ),
         gradient: LinearGradient(
-          // This creates a hard stop at the 4px mark
-          stops: const [0.012, 0.012],
-          colors: [accentColor, Colors.white],
+          stops: const [0.02, 0.02],
+          colors: [
+            accentColor,
+            AppColors.white.withValues(alpha: AppColors.glassTileOpacity),
+          ],
         ),
       ),
       child: Padding(
-        // Increase left padding to account for the "bar" space
         padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,17 +197,17 @@ class BlockCard extends StatelessWidget {
             Text(
               block.title,
               style: TextStyle(
-                color: isBlocked ? Colors.grey.shade500 : Colors.black87,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+                color: isBlocked ? AppColors.legendText : AppColors.black,
+                fontSize: FontStyles.titleMedium,
+                fontWeight: FontStyles.weightMedium,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               subtitleText,
-              style: TextStyle(
-                color: isBlocked ? Colors.grey.shade400 : Colors.grey.shade600,
-                fontSize: 12,
+              style: const TextStyle(
+                color: AppColors.legendText,
+                fontSize: FontStyles.titleSmall,
               ),
             ),
           ],

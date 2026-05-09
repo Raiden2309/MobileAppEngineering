@@ -57,7 +57,7 @@ class SemesterProgressPage extends StatelessWidget {
               'Subjects',
               style: TextStyle(
                 color: AppColors.black,
-                fontSize: 18,
+                fontSize: FontStyles.titleMedium,
                 fontWeight: FontStyles.weightMedium,
               ),
             ),

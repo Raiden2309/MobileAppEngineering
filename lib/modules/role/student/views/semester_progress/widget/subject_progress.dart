@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
+import '../../../../../../shared/styles/font_styles.dart';
 import '../../../models/semester_progress_model.dart';
 
 class SubjectProgressCard extends StatelessWidget {
@@ -14,16 +15,12 @@ class SubjectProgressCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.black),
-      ),
+      decoration: AppColors.glassCard(),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row
+          // ── Header row ────────────────────────────
           Row(
             children: [
               Container(
@@ -37,16 +34,16 @@ class SubjectProgressCard extends StatelessWidget {
                   subject.name,
                   style: const TextStyle(
                     color: AppColors.black,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                    fontWeight: FontStyles.weightMedium,
+                    fontSize: FontStyles.titleMedium,
                   ),
                 ),
               ),
               Text(
                 subject.code,
-                style: TextStyle(
-                  color: AppColors.black,
-                  fontSize: 12,
+                style: const TextStyle(
+                  color: AppColors.legendText,
+                  fontSize: FontStyles.titleSmall,
                 ),
               ),
             ],
@@ -54,23 +51,18 @@ class SubjectProgressCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // Progress bar row
+          // ── Progress bar ──────────────────────────
           Row(
             children: [
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.black, width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: subject.progress,
-                      backgroundColor: const Color(0xFFE5E7EB),
-                      valueColor: AlwaysStoppedAnimation<Color>(color),
-                      minHeight: 6,
-                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: subject.progress,
+                    backgroundColor: Colors.white.withValues(
+                        alpha: AppColors.glassTileOpacity),
+                    valueColor: AlwaysStoppedAnimation<Color>(color),
+                    minHeight: 6,
                   ),
                 ),
               ),
@@ -78,9 +70,9 @@ class SubjectProgressCard extends StatelessWidget {
               Text(
                 '$pct%',
                 style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
+                  color: AppColors.black,
+                  fontWeight: FontStyles.weightHeavy,
+                  fontSize: FontStyles.titleSmall,
                 ),
               ),
             ],
@@ -88,19 +80,19 @@ class SubjectProgressCard extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // Stats row
+          // ── Stats row ─────────────────────────────
           Row(
             children: [
               StatChip(
                 value: subject.completed,
                 label: 'Completed',
-                valueColor: AppColors.greenSheenDark,
+                valueColor: AppColors.lime,
               ),
               const SizedBox(width: 8),
               StatChip(
                 value: subject.remaining,
                 label: 'Remaining',
-                valueColor: AppColors.mikadoYellowDark,
+                valueColor: AppColors.mikadoYellow,
               ),
               const SizedBox(width: 8),
               StatChip(
@@ -123,7 +115,8 @@ class StatChip extends StatelessWidget {
   final String label;
   final Color valueColor;
 
-  const StatChip({super.key,
+  const StatChip({
+    super.key,
     required this.value,
     required this.label,
     required this.valueColor,
@@ -134,27 +127,23 @@ class StatChip extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.black),
-        ),
+        decoration: AppColors.glassTile(borderRadius: 10),
         child: Column(
           children: [
             Text(
               '$value',
               style: TextStyle(
                 color: valueColor,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
+                fontWeight: FontStyles.weightHeavy,
+                fontSize: FontStyles.titleLarge,
               ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: TextStyle(
+              style: const TextStyle(
                 color: AppColors.black,
-                fontSize: 10,
+                fontSize: FontStyles.titleTiny,
               ),
             ),
           ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/study_plan/widget/date_selection.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../study_plan/widget/study_schedule.dart';
 import '../../../../../shared/styles/app_colors.dart';
@@ -72,8 +73,7 @@ class StudyPlanPageState extends State<StudyPlanPage> {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text('✨', style: TextStyle(fontSize: FontStyles.titleSmall)),
-                    SizedBox(width: 6),
+                    Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),                    SizedBox(width: 6),
                     Text(
                       'AI-generated · Last updated today',
                       style: TextStyle(
@@ -88,71 +88,12 @@ class StudyPlanPageState extends State<StudyPlanPage> {
               const SizedBox(height: 20),
 
               // ── Day selector (stays fixed) ─────────
-              SizedBox(
-                height: 78,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 7,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final day = weekPlan.days[i];
-                    final isSelected = i == selectedDayIndex;
-                    final hasBlocks = day.blocks.isNotEmpty;
-
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedDayIndex = i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 180),
-                        width: 54,
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isSelected ? Colors.black : Colors.white.withValues(alpha: 0.2),
-                            width: isSelected ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              dayLabels[i],
-                              style: TextStyle(
-                                color: isSelected ? Colors.black54 : Colors.white.withValues(alpha: 0.6),
-                                fontSize: FontStyles.titleSmall,
-                                fontWeight: FontStyles.weightMedium,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              '${day.date.day}',
-                              style: TextStyle(
-                                color: isSelected ? Colors.black : Colors.white,
-                                fontSize: FontStyles.titleLarge,
-                                fontWeight: FontStyles.titleWeight,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              width: 5,
-                              height: 5,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: hasBlocks
-                                    ? (isSelected
-                                    ? AppColors.californiaBlue
-                                    : Colors.white.withValues(alpha: 0.55))
-                                    : Colors.transparent,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              DateSelection(
+                weekPlan: weekPlan,
+                selectedDayIndex: selectedDayIndex,
+                onDaySelected: (i) => setState(() => selectedDayIndex = i),
               ),
+
               const SizedBox(height: 14),
 
               // ── Regenerate button (stays fixed) ────
@@ -161,20 +102,16 @@ class StudyPlanPageState extends State<StudyPlanPage> {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
-                  ),
+                  decoration:AppColors.glassCard(),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.refresh_rounded, color: AppColors.californiaBlue, size: 18),
+                      Icon(Icons.refresh_rounded, color: AppColors.black, size: 18),
                       SizedBox(width: 8),
                       Text(
                         "Regenerate this week's plan",
                         style: TextStyle(
-                          color: AppColors.californiaBlue,
+                          color: AppColors.black,
                           fontWeight: FontStyles.weightMedium,
                           fontSize: FontStyles.titleSmall,
                         ),

@@ -13,11 +13,7 @@ class TimelineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.black),
-      ),
+      decoration: AppColors.glassCard(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -38,14 +34,14 @@ class TimelineCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.greenSheen,
+                  color: AppColors.lime,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   'Week ${model.currentWeek} of ${model.totalWeeks}',
                   style: const TextStyle(
                     color: AppColors.black,
-                    fontSize: 12,
+                    fontSize: FontStyles.titleSmall,
                     fontWeight: FontStyles.weightMedium,
                   ),
                 ),
@@ -54,15 +50,16 @@ class TimelineCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     value: model.timelineProgress,
-                    backgroundColor: AppColors.white,
+                    backgroundColor: Colors.white.withValues(alpha: AppColors.glassTileOpacity),
                     valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.greenSheen,
+                      AppColors.lime,
                     ),
                     minHeight: 8,
                   ),
@@ -72,9 +69,9 @@ class TimelineCard extends StatelessWidget {
               Text(
                 '${(model.timelineProgress * 100).round()}%',
                 style: const TextStyle(
-                  color: AppColors.greenSheen,
-                  fontWeight: FontStyles.weightMedium,
-                  fontSize: 14,
+                  color: AppColors.black,
+                  fontWeight: FontStyles.weightHeavy,
+                  fontSize: FontStyles.titleSmall,
                 ),
               ),
             ],
@@ -82,7 +79,7 @@ class TimelineCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             '${model.weeksRemaining} weeks remaining · Final exams: ${model.finalExamDate}',
-            style: TextStyle(color: AppColors.black, fontSize: 12),
+            style: TextStyle(color: AppColors.black, fontSize: FontStyles.titleSmall),
           ),
         ],
       ),

@@ -45,7 +45,7 @@ final List<SubjectGroup> subjectGroups = [
   ),
   SubjectGroup(
     name: 'Software Engineering',
-    colorKey: 'teal',
+    colorKey: 'lime',
     totalTasks: 4,
     completedTasks: 0,
     tasks: [
@@ -61,10 +61,10 @@ class MyTasksPage extends StatefulWidget {
   const MyTasksPage({super.key});
 
   @override
-  State<MyTasksPage> createState() => _MyTasksPageState();
+  State<MyTasksPage> createState() => MyTasksPageState();
 }
 
-class _MyTasksPageState extends State<MyTasksPage> {
+class MyTasksPageState extends State<MyTasksPage> {
   String activeFilter = 'all';
 
   static const filters = [
@@ -75,7 +75,7 @@ class _MyTasksPageState extends State<MyTasksPage> {
     ('dueSoon',    'Due Soon'),
   ];
 
-  List<Task> _filterTasks(List<Task> tasks) {
+  List<Task> filterTasks(List<Task> tasks) {
     if (activeFilter == 'all') return tasks;
     return tasks.where((t) {
       switch (activeFilter) {
@@ -96,20 +96,35 @@ class _MyTasksPageState extends State<MyTasksPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // ── Header ────────────────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              Text('My Tasks',
-                  style: TextStyle(fontSize: FontStyles.titleLarge, fontWeight: FontStyles.titleWeight, color: AppColors.black)),
+              Text(
+                'My Tasks',
+                style: TextStyle(
+                  fontSize: FontStyles.titleLarge,
+                  fontWeight: FontStyles.weightHeavy,
+                  color: AppColors.black,
+                ),
+              ),
               SizedBox(height: 4),
-              Text('Semester 4 · $completedTasks of $totalTasks completed',
-                  style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.white)),
+              Text(
+                'Semester 4 · $completedTasks of $totalTasks completed',
+                style: TextStyle(
+                  fontSize: FontStyles.titleSmall,
+                  color: AppColors.black,
+                ),
+              ),
             ],
           ),
         ),
+
         const SizedBox(height: 12),
+
+        // ── Filter chips ──────────────────────────────────
         SizedBox(
           height: 36,
           child: ListView.separated(
@@ -125,12 +140,16 @@ class _MyTasksPageState extends State<MyTasksPage> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.white : AppColors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
+                  decoration: isActive
+                      ? AppColors.glassBadge()
+                      : BoxDecoration(
+                    color: Colors.white.withValues(
+                        alpha: AppColors.glassTileOpacity),
+                    borderRadius: BorderRadius.circular(
+                        AppColors.glassBadgeBorderRadius),
                     border: Border.all(
-                      color: isActive ? AppColors.black : AppColors.white.withOpacity(0.4),
-                      width: 1,
+                      color: Colors.white.withValues(
+                          alpha: AppColors.glassBorderOpacity),
                     ),
                   ),
                   child: Text(
@@ -138,7 +157,9 @@ class _MyTasksPageState extends State<MyTasksPage> {
                     style: TextStyle(
                       fontSize: FontStyles.titleSmall,
                       fontWeight: FontStyles.weightMedium,
-                      color: isActive ? AppColors.summerCampBlue : AppColors.white,
+                      color: isActive
+                          ? AppColors.black
+                          : AppColors.black,
                     ),
                   ),
                 ),
@@ -146,13 +167,16 @@ class _MyTasksPageState extends State<MyTasksPage> {
             },
           ),
         ),
+
         const SizedBox(height: 16),
+
+        // ── Task list ─────────────────────────────────────
         Expanded(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
               ...subjectGroups.map((group) {
-                final filtered = _filterTasks(group.tasks);
+                final filtered = filterTasks(group.tasks);
                 if (filtered.isEmpty) return const SizedBox.shrink();
                 return SubjectGroupSection(
                   group: SubjectGroup(
@@ -164,27 +188,37 @@ class _MyTasksPageState extends State<MyTasksPage> {
                   ),
                 );
               }),
+
               const SizedBox(height: 8),
-              SizedBox(
+
+              // ── Add task button ────────────────────────
+              Container(
                 width: double.infinity,
+                decoration: AppColors.glassCard(),
                 child: OutlinedButton.icon(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Opening Add Task…')),
                     );
                   },
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(Icons.add, size: 18, color: AppColors.black),
                   label: const Text('Add new task'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.white,
-                    side: const BorderSide(color: AppColors.white, width: 1.2),
-                    backgroundColor: AppColors.white.withOpacity(0.12),
+                    foregroundColor: AppColors.black,
+                    side: BorderSide.none,
+                    backgroundColor: AppColors.transparent,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    textStyle: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightMedium),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: FontStyles.titleSmall,
+                      fontWeight: FontStyles.weightMedium,
+                    ),
                   ),
                 ),
               ),
+
               const SizedBox(height: 24),
             ],
           ),

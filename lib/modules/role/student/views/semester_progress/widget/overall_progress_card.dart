@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
@@ -15,11 +15,7 @@ class OverallProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.black),
-      ),
+      decoration: AppColors.glassCard(),
       child: Row(
         children: [
           RingProgress(progress: model.overallProgress),
@@ -27,11 +23,11 @@ class OverallProgressCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'OVERALL PROGRESS',
                 style: TextStyle(
                   color: AppColors.black,
-                  fontSize: 11,
+                  fontSize: FontStyles.titleSmall,
                   fontWeight: FontStyles.weightMedium,
                   letterSpacing: 1.2,
                 ),
@@ -40,8 +36,8 @@ class OverallProgressCard extends StatelessWidget {
               Text(
                 '${(model.overallProgress * 100).round()}%',
                 style: const TextStyle(
-                  color: AppColors.greenSheenDark,
-                  fontSize: 36,
+                  color: AppColors.lime,
+                  fontSize: FontStyles.titleGreeting,
                   fontWeight: FontStyles.weightHeavy,
                   height: 1,
                 ),
@@ -49,7 +45,10 @@ class OverallProgressCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 '${model.completedTasks} of ${model.totalTasks} tasks completed',
-                style: TextStyle(color: AppColors.black, fontSize: 13),
+                style: const TextStyle(
+                  color: AppColors.black,
+                  fontSize: FontStyles.titleSmall,
+                ),
               ),
             ],
           ),
@@ -58,6 +57,8 @@ class OverallProgressCard extends StatelessWidget {
     );
   }
 }
+
+// ── RingProgress ──────────────────────────────────────────
 
 class RingProgress extends StatelessWidget {
   final double progress;
@@ -75,8 +76,8 @@ class RingProgress extends StatelessWidget {
           child: Text(
             '${(progress * 100).round()}%',
             style: const TextStyle(
-              color: AppColors.greenSheen,
-              fontSize: 13,
+              color: AppColors.lime,
+              fontSize: FontStyles.titleSmall,
               fontWeight: FontStyles.weightHeavy,
             ),
           ),
@@ -85,6 +86,8 @@ class RingProgress extends StatelessWidget {
     );
   }
 }
+
+// ── RingPainter ───────────────────────────────────────────
 
 class RingPainter extends CustomPainter {
   final double progress;
@@ -97,14 +100,16 @@ class RingPainter extends CustomPainter {
     final radius = (size.width / 2) - 5;
     const strokeWidth = 5.0;
 
+    // Track
     final trackPaint = Paint()
-      ..color = AppColors.greenSheen
+      ..color = Colors.white.withValues(alpha: AppColors.glassTileOpacity)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, trackPaint);
 
+    // Progress arc
     final progressPaint = Paint()
-      ..color = AppColors.greenSheen
+      ..color = AppColors.lime
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
