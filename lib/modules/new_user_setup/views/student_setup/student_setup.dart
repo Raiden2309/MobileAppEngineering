@@ -6,10 +6,12 @@ import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_set
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_semester.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_subjects.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/central_student_navigation.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/student_dashboard.dart';
+import 'package:provider/provider.dart';
 
 import '../../../../shared/styles/app_colors.dart';
 import '../../../auth/services/auth_service.dart';
+import '../../models/student_model.dart';
+import '../../provider/student_provider.dart';
 
 class StudentSetupPage extends StatefulWidget {
   const StudentSetupPage({super.key});
@@ -20,7 +22,7 @@ class StudentSetupPage extends StatefulWidget {
 
 class StudentSetupPageState extends State<StudentSetupPage> {
   int currentStep = 0;
-  final SetupController controller = SetupController();
+  late final SetupController controller = SetupController();
 
   void nextStep() => setState(() => currentStep++);
   void prevStep() => setState(() => currentStep--);
@@ -31,39 +33,61 @@ class StudentSetupPageState extends State<StudentSetupPage> {
     super.dispose();
   }
 
-  Widget buildStep() {
+  Future<void> onSetupDone(BuildContext context) async {
+    final studentModel = StudentModel(
+      id: '',
+      name: controller.nameController.text,
+      email: '',
+      programme: controller.programmeController.text,
+      semester: controller.semester,
+      year: controller.year,
+      semStart: controller.semStart,
+      semEnd: controller.semEnd,
+      dayStart: controller.dayStart,
+      dayEnd: controller.dayEnd,
+      blockedSlots: controller.blockedSlots.toList(),
+      subjects: List<Map<String, String>>.from(controller.subjects),
+    );
+
+    if (!context.mounted) return;
+    await context.read<StudentProvider>().save(studentModel);
+
+    await AuthService.completeSetup();
+    if (!context.mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const CentralStudentNavigation()),
+    );
+  }
+
+  Widget buildStep(BuildContext context) {
     switch (currentStep) {
       case 0: return StudentProfile(controller: controller, onNext: nextStep);
       case 1: return StudentSchedule(controller: controller, onNext: nextStep, onBack: prevStep);
       case 2: return StudentSemester(controller: controller, onNext: nextStep, onBack: prevStep);
       case 3: return StudentSubjects(controller: controller, onNext: nextStep, onBack: prevStep);
-      case 4: return StudentGenerateProfile(
-        onDone: () async {
-          await AuthService.completeSetup();
-          if (!context.mounted) return;
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const CentralStudentNavigation()),
-          );
-        },
-      );
-      default: return const SizedBox();
+      case 4: return StudentGenerateProfile(onDone: () => onSetupDone(context));
+      default: return const SizedBox.shrink();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        constraints: const BoxConstraints.expand(),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.californiaBlue, AppColors.greenSheen],
+    return ChangeNotifierProvider(
+      create: (_) => StudentProvider(),
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [AppColors.californiaBlue, AppColors.greenSheen],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: buildStep(),
+          child: SafeArea(
+            child: Builder(
+              builder: buildStep,
+            ),
+          ),
         ),
       ),
     );

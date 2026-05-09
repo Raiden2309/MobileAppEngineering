@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/current_task_popup.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/stat_card.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_today.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/todays_plan.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/workload_monitor.dart';
 import '../../controllers/dashboard/student_dashboard_controller.dart';
 import 'widgets/dashboard_greeting.dart';
@@ -29,6 +30,7 @@ class StudentDashboardState extends State<StudentDashboard> {
             const TaskStatisticsSection(),
             const WorkloadMonitor(),
             const TaskToday(),
+            const TodaysPlan(),
           ],
         ),
       ),

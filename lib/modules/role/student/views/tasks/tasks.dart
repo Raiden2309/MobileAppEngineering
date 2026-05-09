@@ -93,119 +93,103 @@ class _MyTasksPageState extends State<MyTasksPage> {
     const totalTasks = 20;
     const completedTasks = 10;
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.californiaBlue, AppColors.greenSheen],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text('My Tasks',
-                        style: TextStyle(fontSize: FontStyles.titleLarge, fontWeight: FontStyles.titleWeight, color: AppColors.black)),
-                    SizedBox(height: 4),
-                    Text('Semester 4 · $completedTasks of $totalTasks completed',
-                        style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.white)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // ── Filter chips ──
-              SizedBox(
-                height: 36,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    final (key, label) = filters[i];
-                    final isActive = activeFilter == key;
-                    return GestureDetector(
-                      onTap: () => setState(() => activeFilter = key),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isActive ? AppColors.white : AppColors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isActive ? AppColors.black : AppColors.white.withOpacity(0.4),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: FontStyles.titleSmall,
-                            fontWeight: FontStyles.weightMedium,
-                            color: isActive ? AppColors.summerCampBlue : AppColors.white,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              // ── Task list ──
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    ...subjectGroups.map((group) {
-                      final filtered = _filterTasks(group.tasks);
-                      if (filtered.isEmpty) return const SizedBox.shrink();
-                      return SubjectGroupSection(
-                        group: SubjectGroup(
-                          name: group.name,
-                          colorKey: group.colorKey,
-                          totalTasks: group.totalTasks,
-                          completedTasks: group.completedTasks,
-                          tasks: filtered,
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Opening Add Task…')),
-                          );
-                        },
-                        icon: const Icon(Icons.add, size: 18),
-                        label: const Text('Add new task'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.white,
-                          side: const BorderSide(color: AppColors.white, width: 1.2),
-                          backgroundColor: AppColors.white.withOpacity(0.12),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          textStyle: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightMedium),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
-              ),
+            children: const [
+              Text('My Tasks',
+                  style: TextStyle(fontSize: FontStyles.titleLarge, fontWeight: FontStyles.titleWeight, color: AppColors.black)),
+              SizedBox(height: 4),
+              Text('Semester 4 · $completedTasks of $totalTasks completed',
+                  style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.white)),
             ],
           ),
         ),
-      ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 36,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: filters.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, i) {
+              final (key, label) = filters[i];
+              final isActive = activeFilter == key;
+              return GestureDetector(
+                onTap: () => setState(() => activeFilter = key),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.white : AppColors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isActive ? AppColors.black : AppColors.white.withOpacity(0.4),
+                      width: 1,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: FontStyles.titleSmall,
+                      fontWeight: FontStyles.weightMedium,
+                      color: isActive ? AppColors.summerCampBlue : AppColors.white,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              ...subjectGroups.map((group) {
+                final filtered = _filterTasks(group.tasks);
+                if (filtered.isEmpty) return const SizedBox.shrink();
+                return SubjectGroupSection(
+                  group: SubjectGroup(
+                    name: group.name,
+                    colorKey: group.colorKey,
+                    totalTasks: group.totalTasks,
+                    completedTasks: group.completedTasks,
+                    tasks: filtered,
+                  ),
+                );
+              }),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Opening Add Task…')),
+                    );
+                  },
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add new task'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.white,
+                    side: const BorderSide(color: AppColors.white, width: 1.2),
+                    backgroundColor: AppColors.white.withOpacity(0.12),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    textStyle: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightMedium),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

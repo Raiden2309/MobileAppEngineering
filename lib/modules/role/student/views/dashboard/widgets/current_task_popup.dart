@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
+import '../../../../../../shared/styles/font_styles.dart';
 
 class CurrentTaskPopup extends StatelessWidget {
   const CurrentTaskPopup({super.key});
@@ -10,17 +11,13 @@ class CurrentTaskPopup extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 24),
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.black),
-      ),
-      child: const Column(
+      decoration: AppColors.glassCard(),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Current Task Reminder', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-          SizedBox(height: 8),
-          Text('No tasks yet.', style: TextStyle(fontSize: 13, color: Colors.grey)),
+          Text('Current Task Reminder', style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.titleWeight)),
+          const SizedBox(height: 8),
+          const Text('No tasks yet.', style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.legendText)),
         ],
       ),
     );

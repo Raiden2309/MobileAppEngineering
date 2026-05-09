@@ -1,41 +1,43 @@
 import 'package:flutter/material.dart';
-import 'tasks/tasks.dart';
 import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
 import '../../../../shared/widgets/student_header.dart';
-import 'dashboard/student_dashboard.dart';
-import 'study_plan/study_plan.dart';
-import 'semester_progress/semester_progress.dart';
 
-class CentralStudentNavigation extends StatefulWidget {
-  const CentralStudentNavigation({super.key});
+class PlaceholderPage extends StatelessWidget {
+  final String title;
+  const PlaceholderPage({super.key, required this.title});
 
   @override
-  State<CentralStudentNavigation> createState() =>
-      CentralStudentNavigationState();
+  Widget build(BuildContext context) {
+    return Center(
+      child: Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+    );
+  }
 }
 
-class CentralStudentNavigationState extends State<CentralStudentNavigation> {
-  void goToTab(int index) {
-    setState(() {
-      currentNavIndex = index;
-    });
-  }
+class CentralLecturerNavigation extends StatefulWidget {
+  const CentralLecturerNavigation({super.key});
 
+  @override
+  State<CentralLecturerNavigation> createState() =>
+      CentralLecturerNavigationState();
+}
+
+class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
   int currentNavIndex = 0;
 
   final List<Widget> pages = const [
-    StudentDashboard(),
-    MyTasksPage(),
-    StudyPlanPage(),
-    SemesterProgressPage(),
+    PlaceholderPage(title: 'Lecturer Dashboard'),
+    PlaceholderPage(title: 'My Classes'),
+    PlaceholderPage(title: 'Assignments'),
+    PlaceholderPage(title: 'Profile'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBody: true,
+      backgroundColor: AppColors.californiaBlue,
+      extendBody: false,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -45,7 +47,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
           ),
         ),
         child: SafeArea(
-          bottom: false,
+          bottom: true,
           child: Column(
             children: [
               const Padding(
@@ -53,13 +55,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
                 child: StudentHeader(),
               ),
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 66),
-                  child: IndexedStack(
-                    index: currentNavIndex,
-                    children: pages,
-                  ),
-                ),
+                child: ClipRect(child: pages[currentNavIndex]),
               ),
             ],
           ),

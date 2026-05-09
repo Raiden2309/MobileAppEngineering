@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../../../shared/styles/app_colors.dart';
+import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/dashboard/student_dashboard_controller.dart';
 
 class DashboardGreeting extends StatelessWidget {
@@ -14,26 +16,26 @@ class DashboardGreeting extends StatelessWidget {
           margin: const EdgeInsets.only(top: 16),
           child: Text(
             'Good Morning, ${controller.userName}',
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.black, letterSpacing: 0.5, height: 1.5),
+            style: const TextStyle(fontSize: FontStyles.titleGreeting, fontWeight: FontStyles.titleWeight, color: AppColors.black, letterSpacing: 0.5, height: 1),
           ),
         ),
         Container(
           margin: const EdgeInsets.only(top: 4),
           child: Text(
             'You have ${controller.amountOfTasks} tasks scheduled for today',
-            style: const TextStyle(fontSize: 15, color: Colors.black, letterSpacing: 0.5, height: 1.5),
+            style: const TextStyle(fontSize: FontStyles.titleMedium, color: AppColors.black, letterSpacing: 0.5, height: 2),
           ),
         ),
         Container(
           margin: const EdgeInsets.only(top: 4),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(color: const Color(0xFF1E1E2E), borderRadius: BorderRadius.circular(32)),
+          decoration: AppColors.glassCard(),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_month, color: Colors.white, size: 18),
+              const Icon(Icons.calendar_month, color: AppColors.black, size: 18),
               const SizedBox(width: 8),
-              Text(controller.getFormattedDate(), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+              Text(controller.getFormattedDate(), style: const TextStyle(color: Colors.black, fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightMedium)),
             ],
           ),
         ),

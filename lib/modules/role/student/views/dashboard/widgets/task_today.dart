@@ -88,14 +88,7 @@ class TaskTodayState extends State<TaskToday> {
                 onTap: () {
                   context
                       .findAncestorStateOfType<CentralStudentNavigationState>()
-                      ?.setState(() {
-                        context
-                                .findAncestorStateOfType<
-                                  CentralStudentNavigationState
-                                >()
-                                ?.currentNavIndex =
-                            1;
-                      });
+                      ?.goToTab(1);
                 },
                 child: const Text(
                   'See all',
@@ -132,16 +125,12 @@ class TaskCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.black),
-      ),
+      decoration: AppColors.glassTile(),
       child: Row(
         children: [
           TaskCheckbox(
             checked: task.checked,
-            accent: AppColors.greenSheen,
+            accent: AppColors.lime,
             onTap: onToggle,
           ),
           const SizedBox(width: 14),
@@ -164,7 +153,7 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   task.subtitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  style: const TextStyle(fontSize: 12, color: AppColors.legendText),
                 ),
               ],
             ),
@@ -197,14 +186,18 @@ class TaskCheckbox extends StatelessWidget {
         width: 32,
         height: 32,
         decoration: BoxDecoration(
-          color: checked ? accent.withOpacity(0.15) : Colors.transparent,
+          color: checked
+              ? accent.withValues(alpha: AppColors.glassIconOpacity)
+              : AppColors.transparent,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: checked ? accent : AppColors.black,
+            color: AppColors.black,
             width: 2,
           ),
         ),
-        child: checked ? Icon(Icons.check, color: accent, size: 18) : null,
+        child: checked
+            ? Icon(Icons.check, color: accent, size: 18)
+            : null,
       ),
     );
   }
@@ -218,33 +211,25 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      TaskStatus.done => ('Done', AppColors.completed, AppColors.greenSheen),
-      TaskStatus.inProgress => (
-        'In Progress',
-        AppColors.inProgress,
-        AppColors.mikadoYellow,
-      ),
-      TaskStatus.dueToday => (
-        'Due Today',
-        AppColors.dueSoon,
-        AppColors.nectarine,
-      ),
-      TaskStatus.upcoming => (
-        'Upcoming',
-        AppColors.toDo,
-        AppColors.californiaBlue,
-      ),
+      TaskStatus.done       => ('Done',        AppColors.completed,  AppColors.greenSheen),
+      TaskStatus.inProgress => ('In Progress', AppColors.inProgress, AppColors.mikadoYellow),
+      TaskStatus.dueToday   => ('Due Today',   AppColors.dueSoon,    AppColors.nectarine),
+      TaskStatus.upcoming   => ('Upcoming',    AppColors.toDo,       AppColors.californiaBlue),
     };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppColors.glassBadgeBorderRadius),
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: fg),
+        style: TextStyle(
+          fontSize: FontStyles.titleSmall,
+          fontWeight: FontStyles.weightMedium,
+          color: fg,
+        ),
       ),
     );
   }

@@ -24,22 +24,18 @@ class WorkloadMonitor extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.black),
-          ),
+          decoration: AppColors.glassCard(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
+            children: [
+              const Text(
                 'Today\'s Plan',
-                style: TextStyle(fontSize: 16, fontWeight: FontStyles.titleWeight),
+                style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.titleWeight),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(
                 'No tasks yet.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
+                style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.legendText),
               ),
             ],
           ),

@@ -24,6 +24,9 @@ class ApiService {
       Uri.parse('$baseUrl$endpoint'),
       headers: headers,
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('GET $endpoint failed: ${response.statusCode}');
+    }
     return jsonDecode(response.body);
   }
 
@@ -33,6 +36,9 @@ class ApiService {
       headers: headers,
       body: jsonEncode(body),
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('POST $endpoint failed: ${response.statusCode}');
+    }
     return jsonDecode(response.body);
   }
 
@@ -42,6 +48,9 @@ class ApiService {
       headers: headers,
       body: jsonEncode(body),
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('PUT $endpoint failed: ${response.statusCode}');
+    }
     return jsonDecode(response.body);
   }
 
@@ -50,6 +59,9 @@ class ApiService {
       Uri.parse('$baseUrl$endpoint'),
       headers: headers,
     );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('DELETE $endpoint failed: ${response.statusCode}');
+    }
     return jsonDecode(response.body);
   }
 }

@@ -71,10 +71,10 @@ class SetupController extends ChangeNotifier {
 
   @override
   void dispose() {
-    super.dispose();
     nameController.dispose();
     programmeController.dispose();
     newSubjectController.dispose();
+    super.dispose();
   }
 
   final Map<String, String?> errors = {};

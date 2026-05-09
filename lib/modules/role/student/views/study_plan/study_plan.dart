@@ -38,7 +38,7 @@ class StudyPlanPageState extends State<StudyPlanPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Fixed header ──────────────────────────────
+        // Fixed header
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Column(
