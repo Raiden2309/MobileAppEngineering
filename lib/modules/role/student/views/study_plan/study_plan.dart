@@ -1,45 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/study_plan/widget/date_selection.dart';
 import '../../../../../shared/styles/font_styles.dart';
+import '../../controllers/study_plan_controller.dart';
 import '../study_plan/widget/study_schedule.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../models/study_plan_model.dart';
 
 class StudyPlanPage extends StatefulWidget {
-  const StudyPlanPage({super.key});
+  final StudyPlanController controller;
+
+  const StudyPlanPage({super.key, required this.controller});
 
   @override
   State<StudyPlanPage> createState() => StudyPlanPageState();
 }
 
 class StudyPlanPageState extends State<StudyPlanPage> {
-  late WeekPlan weekPlan;
-  late int selectedDayIndex;
-
   static const dayLabels = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+
+  StudyPlanController get controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
-    weekPlan = WeekPlan.mockData();
-    final now = DateTime.now();
-    selectedDayIndex = weekPlan.days.indexWhere(
-          (d) =>
-      d.date.day == now.day &&
-          d.date.month == now.month &&
-          d.date.year == now.year,
-    );
-    if (selectedDayIndex < 0) selectedDayIndex = 0;
+    controller.addListener(_onControllerUpdate);
+  }
+
+  void _onControllerUpdate() => setState(() {});
+
+  @override
+  void dispose() {
+    controller.removeListener(_onControllerUpdate);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final weekPlan = controller.plan ?? WeekPlan.mockData();
+    final selectedDayIndex = controller.selectedDayIndex;
     final selectedPlan = weekPlan.days[selectedDayIndex];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Fixed header
+        // ── Fixed header ──────────────────────────────
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Column(
@@ -64,16 +68,20 @@ class StudyPlanPageState extends State<StudyPlanPage> {
               ),
               const SizedBox(height: 14),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                  border:
+                  Border.all(color: Colors.white.withValues(alpha: 0.25)),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),                    SizedBox(width: 6),
+                    Icon(Icons.auto_awesome_rounded,
+                        color: Colors.white, size: 14),
+                    SizedBox(width: 6),
                     Text(
                       'AI-generated · Last updated today',
                       style: TextStyle(
@@ -87,26 +95,29 @@ class StudyPlanPageState extends State<StudyPlanPage> {
               ),
               const SizedBox(height: 20),
 
-              // ── Day selector (stays fixed) ─────────
+              // ── Day selector ───────────────────────
               DateSelection(
                 weekPlan: weekPlan,
                 selectedDayIndex: selectedDayIndex,
-                onDaySelected: (i) => setState(() => selectedDayIndex = i),
+                onDaySelected: (i) {
+                  controller.selectDay(i);
+                },
               ),
 
               const SizedBox(height: 14),
 
-              // ── Regenerate button (stays fixed) ────
+              // ── Regenerate button ──────────────────
               GestureDetector(
-                onTap: () => setState(() => weekPlan = WeekPlan.mockData()),
+                onTap: () => controller.regenerate(),
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration:AppColors.glassCard(),
+                  decoration: AppColors.glassCard(),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.refresh_rounded, color: AppColors.black, size: 18),
+                      Icon(Icons.refresh_rounded,
+                          color: AppColors.black, size: 18),
                       SizedBox(width: 8),
                       Text(
                         "Regenerate this week's plan",

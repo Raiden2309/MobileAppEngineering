@@ -5,16 +5,17 @@ import 'package:mae_assignment_frontend/modules/role/student/views/semester_prog
 import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/timeline_progress_card.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
+import '../../controllers/semester_progress_controller.dart';
 import '../../models/semester_progress_model.dart';
 
 class SemesterProgressPage extends StatelessWidget {
-  final SemesterProgressModel? model;
+  final SemesterProgressController controller;
 
-  const SemesterProgressPage({super.key, this.model});
+  const SemesterProgressPage({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
-    final data = model ?? SemesterProgressModel.mockData();
+    final data = controller.data ?? SemesterProgressModel.mockData();
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(

@@ -2,7 +2,7 @@ import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
 
-import '../styles/font_styles.dart';
+import '../../styles/font_styles.dart';
 
 class BottomNavBar extends StatelessWidget {
   final int currentIndex;

@@ -31,7 +31,7 @@ Color chipFg(TaskStatus status) {
   }
 }
 
-// ── TaskCard ──────────────────────────────────────────────────────────────────
+// TaskCard
 
 class TaskCard extends StatefulWidget {
   final Task task;

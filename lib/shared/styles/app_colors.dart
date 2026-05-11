@@ -37,7 +37,10 @@ class AppColors {
   static const Color pink       = Color(0xFFFF6B9D);
   static const Color lime       = Color(0xFF95D44A);
 
-  // ── Glass style ───────────────────────────────────────
+  // Burnout Bg
+
+  static const darkNavyBlue = Color(0xFF16213E);
+  // Glass style
 
   static const double glassOpacity            = 0.12;
   static const double glassIconOpacity        = 0.15;

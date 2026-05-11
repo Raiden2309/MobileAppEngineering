@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
-import '../../../controllers/dashboard/student_dashboard_controller.dart';
+import '../../../controllers/student_dashboard_controller.dart';
 
 class DashboardGreeting extends StatelessWidget {
   final StudentDashboardController controller;

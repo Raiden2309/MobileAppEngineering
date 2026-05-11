@@ -4,7 +4,7 @@ import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/wid
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_today.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/todays_plan.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/workload_monitor.dart';
-import '../../controllers/dashboard/student_dashboard_controller.dart';
+import '../../controllers/student_dashboard_controller.dart';
 import 'widgets/dashboard_greeting.dart';
 
 class StudentDashboard extends StatefulWidget {

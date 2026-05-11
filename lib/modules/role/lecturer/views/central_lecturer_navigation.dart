@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/styles/app_colors.dart';
-import '../../../../shared/widgets/bottom_nav.dart';
-import '../../../../shared/widgets/student_header.dart';
+import '../../../../shared/widgets/student/bottom_nav.dart';
+import '../../../../shared/widgets/student/student_header.dart';
 
 class PlaceholderPage extends StatelessWidget {
   final String title;
@@ -52,7 +52,7 @@ class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
             children: [
               const Padding(
                 padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
-                child: StudentHeader(),
+                child: Text('Header Placeholder'),
               ),
               Expanded(
                 child: ClipRect(child: pages[currentNavIndex]),
