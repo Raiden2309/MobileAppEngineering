@@ -45,6 +45,7 @@ dependencies:
   flutter_spinkit: ^5.2.2
   http: ^1.6.0
   image_picker: ^1.2.2
+  google_generative_ai: ^0.4.7
 
 flutter_native_splash:
   color: "#3DA5D9"          # Closest solid for the native flash
