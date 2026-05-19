@@ -4,10 +4,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'modules/auth/providers/auth_provider.dart';
 import 'shared/widgets/splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/material.dart';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsFlutterBinding.ensureInitialized();
 
   const storage = FlutterSecureStorage();
   await storage.write(key: 'auth_token',        value: 'test_token_abc123');
@@ -17,6 +20,7 @@ void main() async {
 
   final authProvider = AuthProvider();
   await authProvider.loadFromStorage();
+  await Firebase.initializeApp();
 
   runApp(
     ChangeNotifierProvider.value(
