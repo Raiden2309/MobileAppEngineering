@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/study_plan/widget/date_selection.dart';
+import 'package:mae_assignment/modules/role/student/views/study_plan/widget/date_selection.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../controllers/study_plan_controller.dart';
 import '../study_plan/widget/study_schedule.dart';

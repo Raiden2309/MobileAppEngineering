@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/controllers/student_setup_controller.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_generate_profile.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_profile.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_schedule.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_semester.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/steps/student_subjects.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/central_student_navigation.dart';
+import 'package:mae_assignment/modules/new_user_setup/controllers/student_setup_controller.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/student_setup/steps/student_generate_profile.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/student_setup/steps/student_profile.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/student_setup/steps/student_schedule.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/student_setup/steps/student_semester.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/student_setup/steps/student_subjects.dart';
+import 'package:mae_assignment/modules/role/student/views/central_student_navigation.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../shared/styles/app_colors.dart';

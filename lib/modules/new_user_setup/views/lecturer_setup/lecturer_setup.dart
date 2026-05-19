@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/controllers/lecturer_setup_controller.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/lecturer_setup/steps/lecturer_profile.dart';
+import 'package:mae_assignment/modules/new_user_setup/controllers/lecturer_setup_controller.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/lecturer_setup/steps/lecturer_profile.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../shared/styles/app_colors.dart';

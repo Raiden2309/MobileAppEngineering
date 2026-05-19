@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/student_setup.dart';
+import 'package:mae_assignment/modules/new_user_setup/views/student_setup/student_setup.dart';
 
 import '../../auth/services/auth_service.dart';
 

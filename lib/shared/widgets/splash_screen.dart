@@ -102,16 +102,20 @@ class SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> startSequence() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    // Reduced from 200
+    await Future.delayed(const Duration(milliseconds: 100));
 
     revealController.forward();
     logoFadeController.forward();
 
-    await Future.delayed(const Duration(milliseconds: 1200));
+    // Reduced from 1200
+    await Future.delayed(const Duration(milliseconds: 600));
+
     logoSlideController.forward();
     textController.forward();
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Reduced from 800
+    await Future.delayed(const Duration(milliseconds: 400));
 
     final bool loggedIn = await AuthService.isLoggedIn();
     final bool setupDone = await AuthService.isSetupComplete();

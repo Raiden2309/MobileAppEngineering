@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/auth/views/register_page.dart';
+import 'package:mae_assignment/modules/auth/views/register_page.dart';
 
 
 import '../../../shared/styles/app_colors.dart';

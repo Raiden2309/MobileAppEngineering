@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/settings/student_settings.dart';
+import 'package:mae_assignment/modules/role/student/views/settings/student_settings.dart';
 import '../controllers/burnout_alert_controller.dart';
 import '../controllers/semester_progress_controller.dart';
 import '../controllers/student_settings_controller.dart';

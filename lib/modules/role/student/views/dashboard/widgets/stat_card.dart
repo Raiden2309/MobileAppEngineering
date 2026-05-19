@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment/shared/styles/app_colors.dart';
 
 import '../../../../../../shared/styles/font_styles.dart';
 

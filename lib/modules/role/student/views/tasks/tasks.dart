@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/tasks/widget/task_card.dart';
+import 'package:mae_assignment/modules/role/student/views/tasks/widget/task_card.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../controllers/tasks_controller.dart';

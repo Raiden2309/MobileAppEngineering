@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'modules/auth/providers/auth_provider.dart';
 import 'shared/widgets/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter/material.dart';
+
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -12,7 +12,6 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final authProvider = AuthProvider();
-  await authProvider.loadFromStorage();
   await Firebase.initializeApp();
 
   runApp(
@@ -21,6 +20,7 @@ void main() async {
       child: const MyApp(),
     ),
   );
+  FlutterNativeSplash.remove();
 }
 
 class MyApp extends StatelessWidget {

@@ -1,62 +1,56 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/new_user_setup/views/role_setup.dart';
-import 'package:provider/provider.dart';
-import '../../../shared/services/api_service.dart';
-import '../providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginController {
-  final emailController    = TextEditingController();
-  final passwordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   String? emailError;
   String? passwordError;
 
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+  }
+
   Future<void> login(BuildContext context, {required VoidCallback onError}) async {
-    final email    = emailController.text.trim();
+    // Clear previous errors
+    emailError = null;
+    passwordError = null;
+    onError(); // Tells the screen to rebuild and hide errors
+
+    final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    emailError    = null;
-    passwordError = null;
-
     if (email.isEmpty) {
-      emailError = 'Email is required';
+      emailError = 'Email cannot be empty';
       onError();
       return;
     }
     if (password.isEmpty) {
-      passwordError = 'Password is required';
+      passwordError = 'Password cannot be empty';
       onError();
       return;
     }
 
     try {
-      final response = await ApiService.post('/auth/login', {
-        'email':    email,
-        'password': password,
-      });
-
-      final token = response['token'] as String;
-      final role  = response['role'] as String;
-
-      if (!context.mounted) return;
-      final auth = context.read<AuthProvider>();
-      await auth.login(token, role);
-      await auth.loadUser(); // fetch and store user data in memory
-
-      if (!context.mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RoleSetupPage()),
+      // Connect to Firebase
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
-    } catch (e) {
-      emailError    = 'Invalid credentials';
-      passwordError = 'Invalid credentials';
-      onError();
+      // Note: We don't need to navigate here manually because your
+      // AuthProvider is listening to Firebase and will switch screens automatically!
+    } on FirebaseAuthException catch (e) {
+      // Show specific Firebase errors on the UI
+      if (e.code == 'user-not-found' || e.code == 'invalid-email') {
+        emailError = 'Invalid email or user not found';
+      } else if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+        passwordError = 'Incorrect password';
+      } else {
+        passwordError = e.message;
+      }
+      onError(); // Tell the screen to show the new error text
     }
-  }
-
-  void dispose() {
-    emailController.dispose();
-    passwordController.dispose();
   }
 }

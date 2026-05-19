@@ -1,47 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/user.dart';
-import '../services/auth_service.dart';
-import '../../../shared/services/api_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class AuthProvider with ChangeNotifier {
-  String? token;
-  String? role;
-  User?   user;
+class AuthProvider extends ChangeNotifier {
+  User? currentUser;
 
-  bool get isLoggedIn => token != null;
-
-  Future<void> loadFromStorage() async {
-    token = await AuthService.getToken();
-    role  = await AuthService.getRole();
-    if (token != null) ApiService.setToken(token!);
-    notifyListeners();
-  }
-
-  Future<void> login(String newToken, String newRole) async {
-    await AuthService.saveToken(newToken);
-    await AuthService.saveRole(newRole);
-    token = newToken;
-    role  = newRole;
-    ApiService.setToken(newToken);
-    notifyListeners();
-  }
-
-  Future<void> loadUser() async {
-    try {
-      final json = await ApiService.get('/auth/me');
-      user = User.fromJson(json);
+  AuthProvider() {
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      currentUser = user;
       notifyListeners();
-    } catch (e) {
-      // handle silently
-    }
+    });
   }
 
-  Future<void> logout() async {
-    await AuthService.clearAll();
-    ApiService.clearToken();
-    token = null;
-    role  = null;
-    user  = null;
-    notifyListeners();
-  }
+  bool get isAuthenticated => currentUser != null;
 }

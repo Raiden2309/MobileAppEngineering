@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/overall_progress_card.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/subject_progress.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/timeline_progress_card.dart';
+import 'package:mae_assignment/modules/role/student/views/semester_progress/widget/overall_progress_card.dart';
+import 'package:mae_assignment/modules/role/student/views/semester_progress/widget/subject_progress.dart';
+import 'package:mae_assignment/modules/role/student/views/semester_progress/widget/timeline_progress_card.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../controllers/semester_progress_controller.dart';
