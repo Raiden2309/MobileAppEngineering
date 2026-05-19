@@ -42,6 +42,18 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  static Future<Map<String, dynamic>> patch(String endpoint, Map<String, dynamic> body) async {
+    final response = await http.patch(
+      Uri.parse('$baseUrl$endpoint'),
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('PATCH $endpoint failed: ${response.statusCode}');
+    }
+    return jsonDecode(response.body);
+  }
+
   static Future<Map<String, dynamic>> put(String endpoint, Map<String, dynamic> body) async {
     final response = await http.put(
       Uri.parse('$baseUrl$endpoint'),

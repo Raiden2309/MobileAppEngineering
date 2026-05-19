@@ -1,4 +1,7 @@
+import 'package:mae_assignment_frontend/modules/role/student/models/semester_details_model.dart';
+
 class StudentSettingsModel {
+  final int userId;
   final String userName;
   final String semester;
   final int year;
@@ -11,8 +14,10 @@ class StudentSettingsModel {
   final bool burnoutWarnings;
   final bool weeklyResetSummary;
   final String appVersion;
+  final List<SemesterModel> semesters;
 
   const StudentSettingsModel({
+    required this.userId,
     required this.userName,
     required this.semester,
     required this.year,
@@ -25,10 +30,12 @@ class StudentSettingsModel {
     required this.burnoutWarnings,
     required this.weeklyResetSummary,
     this.appVersion = 'v1.0',
+    this.semesters = const [],
   });
 
   factory StudentSettingsModel.fromJson(Map<String, dynamic> json) {
     return StudentSettingsModel(
+      userId:             json['user_id'] as int,
       userName:           json['user_name'] as String,
       semester:           json['semester'] as String,
       year:               json['year'] as int,
@@ -41,6 +48,9 @@ class StudentSettingsModel {
       burnoutWarnings:    json['burnout_warnings'] as bool,
       weeklyResetSummary: json['weekly_reset_summary'] as bool,
       appVersion:         json['app_version'] as String? ?? 'v1.0',
+      semesters: (json['semesters'] as List<dynamic>? ?? [])
+          .map((e) => SemesterModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -49,8 +59,10 @@ class StudentSettingsModel {
     bool? slotEndPrompts,
     bool? burnoutWarnings,
     bool? weeklyResetSummary,
+    List<SemesterModel>? semesters,
   }) {
     return StudentSettingsModel(
+      userId:             userId,
       userName:           userName,
       semester:           semester,
       year:               year,
@@ -63,12 +75,13 @@ class StudentSettingsModel {
       burnoutWarnings:    burnoutWarnings    ?? this.burnoutWarnings,
       weeklyResetSummary: weeklyResetSummary ?? this.weeklyResetSummary,
       appVersion:         appVersion,
+      semesters:          semesters          ?? this.semesters,
     );
   }
 
-  // remember to remove mock data
   factory StudentSettingsModel.mockData() {
-    return const StudentSettingsModel(
+    return StudentSettingsModel(
+      userId:             1,
       userName:           'Alex',
       semester:           '4',
       year:               2,
@@ -81,6 +94,22 @@ class StudentSettingsModel {
       burnoutWarnings:    true,
       weeklyResetSummary: false,
       appVersion:         'v1.0',
+      semesters: const [
+        SemesterModel(
+          name: 'Semester 4 · Year 2',
+          studyHoursStart: '8 AM',
+          studyHoursEnd: '10 PM',
+          subjectCount: 4,
+          isCurrent: true,
+        ),
+        SemesterModel(
+          name: 'Semester 3 · Year 2',
+          studyHoursStart: '9 AM',
+          studyHoursEnd: '9 PM',
+          subjectCount: 5,
+          isCurrent: false,
+        ),
+      ],
     );
   }
 }

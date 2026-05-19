@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
+import '../../../../auth/views/change_password.dart';
 import '../../controllers/student_settings_controller.dart';
 import '../../models/student_settings_models.dart';
 import '../../providers/navigation_provider.dart';
+import 'bottom_sheet_widgets/blocked_times_sheet.dart';
+import 'bottom_sheet_widgets/semester_sheet.dart';
+import 'bottom_sheet_widgets/study_hours_sheet.dart';
+import 'bottom_sheet_widgets/subjects_sheet.dart';
 
 class StudentSettingsPage extends StatelessWidget {
   final StudentSettingsController controller;
@@ -74,16 +79,10 @@ class SettingsBody extends StatelessWidget {
             title: 'Account',
             children: [
               SettingsRow(
-                icon: Icons.edit_rounded,
-                iconBg: AppColors.greenSheen.withValues(alpha: 0.2),
-                label: 'Edit Profile',
-                onTap: () {},
-              ),
-              SettingsRow(
                 icon: Icons.lock_rounded,
                 iconBg: AppColors.californiaBlue.withValues(alpha: 0.2),
                 label: 'Change Password',
-                onTap: () {},
+                onTap: () => ChangePassword.startChangePassword(context, userId: data.userId),
               ),
             ],
           ),
@@ -96,26 +95,29 @@ class SettingsBody extends StatelessWidget {
                 iconBg: AppColors.mikadoYellow.withValues(alpha: 0.2),
                 label: 'Study Hours',
                 value: '${data.studyHoursStart} – ${data.studyHoursEnd}',
-                onTap: () {},
+                onTap: () => StudyHoursSheet.show(context, controller),
               ),
               SettingsRow(
                 icon: Icons.block_rounded,
                 iconBg: AppColors.red.withValues(alpha: 0.2),
                 label: 'Blocked Times',
                 value: '${data.blockedSlotsCount} slots',
-                onTap: () {},
+                onTap: () => BlockedTimesSheet.show(context, controller),
               ),
               SettingsRow(
                 icon: Icons.menu_book_rounded,
                 iconBg: AppColors.softPurple.withValues(alpha: 0.2),
-                label: 'Subjects & Semester',
+                label: 'Subjects',
                 value: '${data.subjectCount} subjects',
-                onTap: () {},
+                onTap: () => SubjectsSheet.show(context, controller),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          NewSemesterCard(controller: controller),
+          NewSemesterCard(
+            controller: controller,
+            navigationProvider: navigationProvider,
+          ),
           const SizedBox(height: 16),
           SettingsGroup(
             title: 'Notifications',
@@ -259,7 +261,7 @@ class SettingsGroup extends StatelessWidget {
             style: TextStyle(
               fontSize: FontStyles.titleTiny,
               fontWeight: FontStyles.weightMedium,
-              color: AppColors.white.withValues(alpha: 0.5),
+              color: AppColors.legendText,
               letterSpacing: 0.8,
             ),
           ),
@@ -339,7 +341,7 @@ class SettingsRow extends StatelessWidget {
                 value!,
                 style: TextStyle(
                   fontSize: FontStyles.titleSmall,
-                  color: AppColors.white.withValues(alpha: 0.5),
+                  color: AppColors.legendText,
                 ),
               ),
             const SizedBox(width: 6),
@@ -401,10 +403,10 @@ class ToggleRow extends StatelessWidget {
             Switch(
               value: value,
               onChanged: (_) => onToggle(),
-              activeColor: AppColors.greenSheen,
-              activeTrackColor: AppColors.greenSheen.withValues(alpha: 0.3),
+              activeThumbColor: AppColors.lime,
+              activeTrackColor: AppColors.lime.withValues(alpha: 0.3),
               inactiveThumbColor: AppColors.white.withValues(alpha: 0.4),
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.1),
+              inactiveTrackColor: AppColors.white.withValues(alpha: 0.1),
             ),
           ],
         ),
@@ -415,8 +417,12 @@ class ToggleRow extends StatelessWidget {
 
 class NewSemesterCard extends StatelessWidget {
   final StudentSettingsController controller;
+  final NavigationProvider navigationProvider;
 
-  const NewSemesterCard({required this.controller});
+  const NewSemesterCard({
+    required this.controller,
+    required this.navigationProvider,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -426,11 +432,11 @@ class NewSemesterCard extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(
-            'NEW SEMESTER',
+            'SEMESTER',
             style: TextStyle(
               fontSize: FontStyles.titleTiny,
               fontWeight: FontStyles.weightMedium,
-              color: AppColors.white.withValues(alpha: 0.5),
+              color: AppColors.legendText,
               letterSpacing: 0.8,
             ),
           ),
@@ -441,17 +447,106 @@ class NewSemesterCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Starting a new semester? Set up your programme, blocked times, and subjects, then let the AI generate a fresh schedule from scratch.',
-                style: TextStyle(
-                  fontSize: FontStyles.titleSmall,
-                  color: AppColors.white.withValues(alpha: 0.6),
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 14),
+              ...controller.data!.semesters.map((semester) => Column(
+                children: [
+                  GestureDetector(
+                    onTap: () => controller.selectSemester(semester.name),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: AppColors.glassTile(),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: semester.isCurrent
+                                  ? AppColors.greenSheen.withValues(alpha: 0.2)
+                                  : AppColors.white.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                            ),
+                            child: Icon(
+                              semester.isCurrent
+                                  ? Icons.check_circle_rounded
+                                  : Icons.calendar_month_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  semester.name,
+                                  style: const TextStyle(
+                                    fontSize: FontStyles.titleSmall,
+                                    fontWeight: FontStyles.weightMedium,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                                Text(
+                                  '${semester.subjectCount} subjects · ${semester.studyHoursStart} – ${semester.studyHoursEnd}',
+                                  style: TextStyle(
+                                    fontSize: FontStyles.titleTiny,
+                                    color: AppColors.legendText,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (semester.isCurrent)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.lime.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                'Current',
+                                style: TextStyle(
+                                  fontSize: FontStyles.titleTiny,
+                                  color: AppColors.greenSheenDark,
+                                  fontWeight: FontStyles.weightMedium,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(width: 8),
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.white.withValues(
+                                  alpha: semester.isCurrent ? 0.6 : 0.35,
+                                ),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: semester.isCurrent
+                                ? Center(
+                              child: Container(
+                                width: 10,
+                                height: 10,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            )
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              )),
               GestureDetector(
-                onTap: () {},
+                onTap: () => SemesterSheet.show(context, controller),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: AppColors.glassTile(),
@@ -461,15 +556,15 @@ class NewSemesterCard extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.greenSheen.withValues(alpha: 0.2),
+                          color: AppColors.californiaBlue.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
                         ),
-                        child: const Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.white),
+                        child: const Icon(Icons.add_rounded, size: 16, color: AppColors.white),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'Set Up New Semester',
+                          'Add New Semester',
                           style: TextStyle(
                             fontSize: FontStyles.titleSmall,
                             fontWeight: FontStyles.weightMedium,
@@ -477,49 +572,7 @@ class NewSemesterCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
-                        color: AppColors.white.withValues(alpha: 0.4),
-                      ),
                     ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.greenSheen, AppColors.californiaBlue],
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {},
-                      borderRadius: BorderRadius.circular(12),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.auto_awesome_rounded, size: 16, color: AppColors.black),
-                            SizedBox(width: 8),
-                            Text(
-                              'Generate New Schedule',
-                              style: TextStyle(
-                                fontSize: FontStyles.titleSmall,
-                                fontWeight: FontStyles.titleWeight,
-                                color: AppColors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ),

@@ -4,6 +4,7 @@ import 'package:mae_assignment_frontend/modules/auth/views/register_page.dart';
 
 import '../../../shared/styles/app_colors.dart';
 import '../controllers/login_controller.dart';
+import 'change_password.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,6 +24,12 @@ class LoginPageState extends State<LoginPage> {
   void dispose() {
     controller.dispose(); // clean up
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    controller.loadSavedCredentials().then((_) => setState(() {}));
   }
 
   @override
@@ -154,7 +161,7 @@ class LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           TextButton(
-                            onPressed: () {},
+                            onPressed: () => ChangePassword.startForgotPassword(context),
                             style: TextButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
                             child: const Text('Forgot password?'),
                           ),
