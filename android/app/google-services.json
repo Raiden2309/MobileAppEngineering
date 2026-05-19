@@ -1,8 +1,8 @@
 {
   "project_info": {
-    "project_number": "291012477513",
-    "project_id": "firstproject-a1c4e",
-    "storage_bucket": "firstproject-a1c4e.firebasestorage.app"
+    "project_number": "959547635123",
+    "project_id": "unplug-1da00",
+    "storage_bucket": "unplug-1da00.firebasestorage.app"
   },
   "client": [
     {
@@ -45,7 +45,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:291012477513:android:0bc631d5a3c5f203a33598",
+        "mobilesdk_app_id": "1:959547635123:android:42a444ad00576741a307c6",
         "android_client_info": {
           "package_name": "com.example.mae_assignment"
         }
@@ -53,7 +53,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCx9RrmeKREW86D8D0UhKpSkw9BfuZyn-o"
+          "current_key": "AIzaSyBr57HNmjc5XxdzoAZYtNddSu5HiW37Tsc"
         }
       ],
       "services": {

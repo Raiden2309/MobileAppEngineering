@@ -59,30 +59,31 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyB5rrzMgL1X6KviRyTU0DNUz1Dm4Th-i8I',
-    appId: '1:291012477513:ios:f59f942892c04967a33598',
-    messagingSenderId: '291012477513',
-    projectId: 'firstproject-a1c4e',
-    storageBucket: 'firstproject-a1c4e.firebasestorage.app',
-    iosBundleId: 'com.example.maeAssignmentFrontend',
+    apiKey: 'AIzaSyA_Zafch7_t5UpLIRoosncN8a8EX8BndKc',
+    appId: '1:959547635123:web:eabac85a7ec48c1ba307c6',
+    messagingSenderId: '959547635123',
+    projectId: 'unplug-1da00',
+    authDomain: 'unplug-1da00.firebaseapp.com',
+    storageBucket: 'unplug-1da00.firebasestorage.app',
+    measurementId: 'G-Q24CVQC7G1',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyB5rrzMgL1X6KviRyTU0DNUz1Dm4Th-i8I',
-    appId: '1:291012477513:ios:f59f942892c04967a33598',
-    messagingSenderId: '291012477513',
-    projectId: 'firstproject-a1c4e',
-    storageBucket: 'firstproject-a1c4e.firebasestorage.app',
+    apiKey: 'AIzaSyD9eowS6-Q66vqtYhr3aOMYqjlssIpuqnA',
+    appId: '1:959547635123:ios:6425e936d409a189a307c6',
+    messagingSenderId: '959547635123',
+    projectId: 'unplug-1da00',
+    storageBucket: 'unplug-1da00.firebasestorage.app',
     iosBundleId: 'com.example.maeAssignmentFrontend',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCMevWGocaFZMEJAzSi7TqhloK0C8SNlmE',
-    appId: '1:291012477513:web:d9a7e046f0d0110aa33598',
-    messagingSenderId: '291012477513',
-    projectId: 'firstproject-a1c4e',
-    authDomain: 'firstproject-a1c4e.firebaseapp.com',
-    storageBucket: 'firstproject-a1c4e.firebasestorage.app',
-    measurementId: 'G-4QW2QV2NLH',
+    apiKey: 'AIzaSyA_Zafch7_t5UpLIRoosncN8a8EX8BndKc',
+    appId: '1:959547635123:web:267c4112c3f392f9a307c6',
+    messagingSenderId: '959547635123',
+    projectId: 'unplug-1da00',
+    authDomain: 'unplug-1da00.firebaseapp.com',
+    storageBucket: 'unplug-1da00.firebasestorage.app',
+    measurementId: 'G-RZK794W2XW',
   );
 }
