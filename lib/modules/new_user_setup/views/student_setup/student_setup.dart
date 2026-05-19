@@ -55,7 +55,18 @@ class StudentSetupPageState extends State<StudentSetupPage> {
     await AuthService.completeSetup();
     if (!context.mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const CentralStudentNavigation()),
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 500),
+        pageBuilder: (_, __, ___) => const CentralStudentNavigation(),
+        transitionsBuilder: (_, animation, __, child) {
+          return ScaleTransition(
+            scale: Tween<double>(begin: 1.1, end: 1.0).animate(
+              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+            ),
+            child: FadeTransition(opacity: animation, child: child),
+          );
+        },
+      ),
     );
   }
 

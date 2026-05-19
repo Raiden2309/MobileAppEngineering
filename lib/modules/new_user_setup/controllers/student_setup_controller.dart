@@ -12,7 +12,7 @@ class SetupController extends ChangeNotifier {
   int year = 1;
   DateTime? semStart;
   DateTime? semEnd;
-  DateTime? examDate;
+  List<DateTime> examDates = [];
 
   final List<Map<String, String>> subjects = [
     {'name': 'CT124 System Proposal', 'color': '#2dd4bf'},

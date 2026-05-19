@@ -55,6 +55,7 @@ class StudentSettingsModel {
   }
 
   StudentSettingsModel copyWith({
+    String? userName,
     bool? taskReminders,
     bool? slotEndPrompts,
     bool? burnoutWarnings,
@@ -63,19 +64,19 @@ class StudentSettingsModel {
   }) {
     return StudentSettingsModel(
       userId:             userId,
-      userName:           userName,
+      userName:           userName            ?? this.userName,
       semester:           semester,
       year:               year,
       subjectCount:       subjectCount,
       studyHoursStart:    studyHoursStart,
       studyHoursEnd:      studyHoursEnd,
       blockedSlotsCount:  blockedSlotsCount,
-      taskReminders:      taskReminders      ?? this.taskReminders,
-      slotEndPrompts:     slotEndPrompts     ?? this.slotEndPrompts,
-      burnoutWarnings:    burnoutWarnings    ?? this.burnoutWarnings,
-      weeklyResetSummary: weeklyResetSummary ?? this.weeklyResetSummary,
+      taskReminders:      taskReminders       ?? this.taskReminders,
+      slotEndPrompts:     slotEndPrompts      ?? this.slotEndPrompts,
+      burnoutWarnings:    burnoutWarnings     ?? this.burnoutWarnings,
+      weeklyResetSummary: weeklyResetSummary  ?? this.weeklyResetSummary,
       appVersion:         appVersion,
-      semesters:          semesters          ?? this.semesters,
+      semesters:          semesters           ?? this.semesters,
     );
   }
 

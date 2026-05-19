@@ -1,31 +1,37 @@
 import 'package:flutter/material.dart';
-
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/widgets/setup_widgets.dart';
 import '../../../controllers/student_setup_controller.dart';
-
 
 class StudentSemester extends StatefulWidget {
   final SetupController controller;
   final VoidCallback onNext;
   final VoidCallback onBack;
 
-  const StudentSemester({super.key, required this.controller, required this.onNext, required this.onBack});
+  const StudentSemester({
+    super.key,
+    required this.controller,
+    required this.onNext,
+    required this.onBack,
+  });
 
   @override
   State<StudentSemester> createState() => StudentSemesterState();
-
 }
 
 class StudentSemesterState extends State<StudentSemester> {
+  final List<DateTime?> _examDates = [null];
+
   void handleNext(BuildContext context) {
-    if (widget.controller.validate(widget.controller.programmeController.text, 'programme',
+    if (widget.controller.validate(
+      widget.controller.programmeController.text,
+      'programme',
       emptyMessage: 'Please enter your programme',
     )) {
+      widget.controller.examDates = _examDates.whereType<DateTime>().toList();
       widget.onNext();
     }
   }
-
   Future<void> pickDate(BuildContext context, bool isStart) async {
     final picked = await showDatePicker(
       context: context,
@@ -50,7 +56,24 @@ class StudentSemesterState extends State<StudentSemester> {
     }
   }
 
-  String formatDate(DateTime? d) => d == null ? 'Pick date' : '${d.day}/${d.month}/${d.year}';
+  Future<void> _pickExamDate(int index) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.black),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) setState(() => _examDates[index] = picked);
+  }
+
+  String formatDate(DateTime? d) =>
+      d == null ? 'Pick date' : '${d.day}/${d.month}/${d.year}';
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +81,8 @@ class StudentSemesterState extends State<StudentSemester> {
     return SetupScaffold(
       step: 2,
       title: 'Your Semester',
-      subtitle: 'Add your current semester details so we can track your progress correctly.',
+      subtitle:
+      'Add your current semester details so we can track your progress correctly.',
       onNext: () => handleNext(context),
       onBack: widget.onBack,
       child: Column(
@@ -74,6 +98,7 @@ class StudentSemesterState extends State<StudentSemester> {
             ),
           ),
           const SizedBox(height: 14),
+
           Row(
             children: [
               Expanded(
@@ -110,6 +135,7 @@ class StudentSemesterState extends State<StudentSemester> {
             ],
           ),
           const SizedBox(height: 14),
+
           Row(
             children: [
               Expanded(
@@ -118,7 +144,10 @@ class StudentSemesterState extends State<StudentSemester> {
                   children: [
                     const SetupLabel('Start Date'),
                     const SizedBox(height: 6),
-                    DateTile(label: formatDate(c.semStart), onTap: () => pickDate(context, true)),
+                    DateTile(
+                      label: formatDate(c.semStart),
+                      onTap: () => pickDate(context, true),
+                    ),
                   ],
                 ),
               ),
@@ -129,12 +158,53 @@ class StudentSemesterState extends State<StudentSemester> {
                   children: [
                     const SetupLabel('End Date'),
                     const SizedBox(height: 6),
-                    DateTile(label: formatDate(c.semEnd), onTap: () => pickDate(context, false)),
+                    DateTile(
+                      label: formatDate(c.semEnd),
+                      onTap: () => pickDate(context, false),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 14),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const SetupLabel('Final Exam Dates (Optional)'),
+              GestureDetector(
+                onTap: () => setState(() => _examDates.add(null)),
+                child: const Icon(Icons.add_circle_outline, size: 20),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          ...List.generate(_examDates.length, (i) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  // Move the remove button to the LEFT
+                  if (_examDates.length > 1) ...[
+                    GestureDetector(
+                      onTap: () => setState(() => _examDates.removeAt(i)),
+                      child: const Icon(Icons.remove_circle_outline,
+                          size: 20, color: Colors.redAccent),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Expanded(
+                    child: DateTile(
+                      label: formatDate(_examDates[i]),
+                      onTap: () => _pickExamDate(i),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

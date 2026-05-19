@@ -13,6 +13,7 @@ class StudentModel {
   final TimeOfDay dayEnd;
   final List<String> blockedSlots;
   final List<Map<String, String>> subjects;
+  final List<DateTime> examDates;
 
   const StudentModel({
     required this.id,
@@ -27,6 +28,7 @@ class StudentModel {
     required this.dayEnd,
     required this.blockedSlots,
     required this.subjects,
+    this.examDates = const [],
   });
 
   factory StudentModel.fromJson(Map<String, dynamic> json) => StudentModel(
@@ -50,6 +52,9 @@ class StudentModel {
     subjects: List<Map<String, String>>.from(
       json['subjects'].map((s) => Map<String, String>.from(s)),
     ),
+    examDates: (json['examDates'] as List<dynamic>? ?? [])
+        .map((e) => DateTime.parse(e as String))
+        .toList(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -65,5 +70,6 @@ class StudentModel {
     'dayEnd': {'hour': dayEnd.hour, 'minute': dayEnd.minute},
     'blockedSlots': blockedSlots,
     'subjects': subjects,
+    'examDates': examDates.map((d) => d.toIso8601String()).toList(),
   };
 }

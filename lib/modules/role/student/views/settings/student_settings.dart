@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../../../auth/views/change_password.dart';
@@ -73,7 +74,7 @@ class SettingsBody extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
       child: Column(
         children: [
-          ProfileHeader(data: data, navigationProvider: navigationProvider),
+          ProfileHeader(data: data, navigationProvider: navigationProvider, controller: controller,),
           const SizedBox(height: 24),
           SettingsGroup(
             title: 'Account',
@@ -82,7 +83,10 @@ class SettingsBody extends StatelessWidget {
                 icon: Icons.lock_rounded,
                 iconBg: AppColors.californiaBlue.withValues(alpha: 0.2),
                 label: 'Change Password',
-                onTap: () => ChangePassword.startChangePassword(context, userId: data.userId),
+                onTap: () => ChangePassword.startChangePassword(
+                  context,
+                  userId: data.userId,
+                ),
               ),
             ],
           ),
@@ -178,15 +182,44 @@ class SettingsBody extends StatelessWidget {
   }
 }
 
-class ProfileHeader extends StatelessWidget {
+class ProfileHeader extends StatefulWidget {
   final StudentSettingsModel data;
   final NavigationProvider navigationProvider;
+  final StudentSettingsController controller;
 
   const ProfileHeader({
     super.key,
     required this.data,
     required this.navigationProvider,
+    required this.controller,
   });
+
+  @override
+  State<ProfileHeader> createState() => _ProfileHeaderState();
+}
+
+class _ProfileHeaderState extends State<ProfileHeader> {
+  bool _editingName = false;
+  late final TextEditingController _nameController;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.data.userName);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image == null) return;
+    // widget.controller.updateProfileImage(image); // wire when backend ready
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -208,28 +241,158 @@ class ProfileHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 28),
           child: Column(
             children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: AppColors.glassCard(borderRadius: 36),
-                child: const Icon(
-                  Icons.person_rounded,
-                  size: 36,
-                  color: AppColors.white,
+              // Avatar with pencil
+              GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: AppColors.glassCard(borderRadius: 36),
+                      child: const Icon(
+                        Icons.person_rounded,
+                        size: 36,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: AppColors.californiaBlue,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.white,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          size: 12,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                data.userName,
-                style: const TextStyle(
-                  fontSize: FontStyles.titleLarge,
-                  fontWeight: FontStyles.titleWeight,
-                  color: AppColors.white,
-                ),
-              ),
+
+              // Name with inline edit
+              _editingName
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 160,
+                          height: 36,
+                          child: TextField(
+                            controller: _nameController,
+                            autofocus: true,
+                            textAlign: TextAlign.center,
+                            cursorColor: AppColors.white,
+                            cursorHeight: 20,
+                            style: const TextStyle(
+                              fontSize: FontStyles.titleLarge,
+                              fontWeight: FontStyles.titleWeight,
+                              color: AppColors.white,
+                              height: 1.0,
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 10,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: AppColors.white.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppColors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () {
+                            widget.controller.updateUserName(
+                              _nameController.text.trim(),
+                            );
+                            setState(() => _editingName = false);
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AppColors.lime.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () {
+                            _nameController.text = widget.data.userName;
+                            setState(() => _editingName = false);
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AppColors.red.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.data.userName,
+                          style: const TextStyle(
+                            fontSize: FontStyles.titleLarge,
+                            fontWeight: FontStyles.titleWeight,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () => setState(() => _editingName = true),
+                          child: Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: AppColors.white.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
+                    ),
               const SizedBox(height: 4),
               Text(
-                'Semester ${data.semester} · Year ${data.year} · ${data.subjectCount} subjects',
+                'Semester ${widget.data.semester} · Year ${widget.data.year} · ${widget.data.subjectCount} subjects',
                 style: TextStyle(
                   fontSize: FontStyles.titleSmall,
                   color: AppColors.white.withValues(alpha: 0.6),
@@ -272,17 +435,19 @@ class SettingsGroup extends StatelessWidget {
             children: children
                 .asMap()
                 .entries
-                .map((e) => Column(
-              children: [
-                e.value,
-                if (e.key < children.length - 1)
-                  Divider(
-                    height: 1,
-                    color: AppColors.glassDivider,
-                    indent: 52,
+                .map(
+                  (e) => Column(
+                    children: [
+                      e.value,
+                      if (e.key < children.length - 1)
+                        Divider(
+                          height: 1,
+                          color: AppColors.glassDivider,
+                          indent: 52,
+                        ),
+                    ],
                   ),
-              ],
-            ))
+                )
                 .toList(),
           ),
         ),
@@ -321,7 +486,9 @@ class SettingsRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                borderRadius: BorderRadius.circular(
+                  AppColors.glassIconBorderRadius,
+                ),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -385,7 +552,9 @@ class ToggleRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                borderRadius: BorderRadius.circular(
+                  AppColors.glassIconBorderRadius,
+                ),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -447,108 +616,123 @@ class NewSemesterCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...controller.data!.semesters.map((semester) => Column(
-                children: [
-                  GestureDetector(
-                    onTap: () => controller.selectSemester(semester.name),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: AppColors.glassTile(),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: semester.isCurrent
-                                  ? AppColors.greenSheen.withValues(alpha: 0.2)
-                                  : AppColors.white.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
-                            ),
-                            child: Icon(
-                              semester.isCurrent
-                                  ? Icons.check_circle_rounded
-                                  : Icons.calendar_month_rounded,
-                              size: 16,
-                              color: AppColors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  semester.name,
-                                  style: const TextStyle(
-                                    fontSize: FontStyles.titleSmall,
-                                    fontWeight: FontStyles.weightMedium,
-                                    color: AppColors.white,
-                                  ),
+              ...controller.data!.semesters.map(
+                (semester) => Column(
+                  children: [
+                    GestureDetector(
+                      onTap: () => controller.selectSemester(semester.name),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: AppColors.glassTile(),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: semester.isCurrent
+                                    ? AppColors.greenSheen.withValues(
+                                        alpha: 0.2,
+                                      )
+                                    : AppColors.white.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(
+                                  AppColors.glassIconBorderRadius,
                                 ),
-                                Text(
-                                  '${semester.subjectCount} subjects · ${semester.studyHoursStart} – ${semester.studyHoursEnd}',
+                              ),
+                              child: Icon(
+                                semester.isCurrent
+                                    ? Icons.check_circle_rounded
+                                    : Icons.calendar_month_rounded,
+                                size: 16,
+                                color: AppColors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    semester.name,
+                                    style: const TextStyle(
+                                      fontSize: FontStyles.titleSmall,
+                                      fontWeight: FontStyles.weightMedium,
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${semester.subjectCount} subjects · ${semester.studyHoursStart} – ${semester.studyHoursEnd}',
+                                    style: TextStyle(
+                                      fontSize: FontStyles.titleTiny,
+                                      color: AppColors.legendText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (semester.isCurrent)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.lime.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  'Current',
                                   style: TextStyle(
                                     fontSize: FontStyles.titleTiny,
-                                    color: AppColors.legendText,
+                                    color: AppColors.greenSheenDark,
+                                    fontWeight: FontStyles.weightMedium,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          if (semester.isCurrent)
+                              ),
+                            const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              width: 20,
+                              height: 20,
                               decoration: BoxDecoration(
-                                color: AppColors.lime.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'Current',
-                                style: TextStyle(
-                                  fontSize: FontStyles.titleTiny,
-                                  color: AppColors.greenSheenDark,
-                                  fontWeight: FontStyles.weightMedium,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: AppColors.white.withValues(
+                                    alpha: semester.isCurrent ? 0.6 : 0.35,
+                                  ),
+                                  width: 1.5,
                                 ),
                               ),
+                              child: semester.isCurrent
+                                  ? Center(
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
                             ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.white.withValues(
-                                  alpha: semester.isCurrent ? 0.6 : 0.35,
-                                ),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: semester.isCurrent
-                                ? Center(
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.white,
-                                ),
-                              ),
-                            )
-                                : null,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-              )),
+                    const SizedBox(height: 8),
+                  ],
+                ),
+              ),
               GestureDetector(
                 onTap: () => SemesterSheet.show(context, controller),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: AppColors.glassTile(),
                   child: Row(
                     children: [
@@ -556,10 +740,18 @@ class NewSemesterCard extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.californiaBlue.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                          color: AppColors.californiaBlue.withValues(
+                            alpha: 0.2,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppColors.glassIconBorderRadius,
+                          ),
                         ),
-                        child: const Icon(Icons.add_rounded, size: 16, color: AppColors.white),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          size: 16,
+                          color: AppColors.white,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(

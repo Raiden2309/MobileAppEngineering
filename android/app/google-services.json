@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "291012477513",
+    "project_id": "firstproject-a1c4e",
+    "storage_bucket": "firstproject-a1c4e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:291012477513:android:9cd3bcbcaa22f15aa33598",
+        "android_client_info": {
+          "package_name": "com.example.firebase_backend_integration"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCx9RrmeKREW86D8D0UhKpSkw9BfuZyn-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:291012477513:android:ad4f153c1ca2f803a33598",
+        "android_client_info": {
+          "package_name": "com.example.google_maps_in_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCx9RrmeKREW86D8D0UhKpSkw9BfuZyn-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:291012477513:android:0bc631d5a3c5f203a33598",
+        "android_client_info": {
+          "package_name": "com.example.mae_assignment"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCx9RrmeKREW86D8D0UhKpSkw9BfuZyn-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

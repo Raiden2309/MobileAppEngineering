@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../shared/services/api_service.dart';
 import '../../../auth/controllers/login_controller.dart';
@@ -355,6 +356,13 @@ class StudentSettingsController extends ChangeNotifier {
   void setError(String message) {
     error   = message;
     loading = false;
+    notifyListeners();
+  }
+
+  Future<void> updateUserName(String name) async {
+    data = data?.copyWith(userName: name);
+    await _storage.write(key: _keyUserName, value: name);
+    _tryApiPatch({'name': name});
     notifyListeners();
   }
 }
