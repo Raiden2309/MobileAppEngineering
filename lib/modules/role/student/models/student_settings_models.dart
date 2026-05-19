@@ -15,6 +15,9 @@ class StudentSettingsModel {
   final bool weeklyResetSummary;
   final String appVersion;
   final List<SemesterModel> semesters;
+  final List<Map<String, String>> subjects;
+  final Set<String> blockedSlots;
+  final String? avatarUrl;
 
   const StudentSettingsModel({
     required this.userId,
@@ -31,6 +34,9 @@ class StudentSettingsModel {
     required this.weeklyResetSummary,
     this.appVersion = 'v1.0',
     this.semesters = const [],
+    this.subjects    = const [],
+    this.blockedSlots = const {},
+    this.avatarUrl,
   });
 
   factory StudentSettingsModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +57,12 @@ class StudentSettingsModel {
       semesters: (json['semesters'] as List<dynamic>? ?? [])
           .map((e) => SemesterModel.fromJson(e as Map<String, dynamic>))
           .toList(),
+      subjects: (json['subjects'] as List<dynamic>? ?? [])
+          .map((e) => Map<String, String>.from(e as Map))
+          .toList(),
+      blockedSlots: Set<String>.from(
+          json['blocked_slots'] as List? ?? []),
+      avatarUrl: json['avatar_url'] as String?,
     );
   }
 
@@ -61,6 +73,9 @@ class StudentSettingsModel {
     bool? burnoutWarnings,
     bool? weeklyResetSummary,
     List<SemesterModel>? semesters,
+    List<Map<String, String>>? subjects,
+    Set<String>? blockedSlots,
+    String? avatarUrl,
   }) {
     return StudentSettingsModel(
       userId:             userId,
@@ -77,6 +92,9 @@ class StudentSettingsModel {
       weeklyResetSummary: weeklyResetSummary  ?? this.weeklyResetSummary,
       appVersion:         appVersion,
       semesters:          semesters           ?? this.semesters,
+      subjects:     subjects     ?? this.subjects,
+      blockedSlots: blockedSlots ?? this.blockedSlots,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 
@@ -111,6 +129,19 @@ class StudentSettingsModel {
           isCurrent: false,
         ),
       ],
+      // ADD these two new fields ↓
+      subjects: [
+        {'name': 'Mathematics',        'color': '4F86C6'},
+        {'name': 'Data Structures',    'color': 'F87171'},
+        {'name': 'Operating Systems',  'color': '34D399'},
+        {'name': 'Software Engineering','color': 'FBBF24'},
+      ],
+      blockedSlots: {
+        '0_0', '0_1',   // Mon 8am, 9am
+        '2_2', '2_3',   // Wed 10am, 11am
+        '4_5', '4_6',   // Fri 1pm, 2pm
+      },
+      avatarUrl: null,
     );
   }
 }

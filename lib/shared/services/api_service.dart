@@ -77,4 +77,26 @@ class ApiService {
     }
     return jsonDecode(response.body);
   }
+
+  static Future<Map<String, dynamic>> uploadImage(String endpoint, String filePath) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl$endpoint'),
+    );
+
+    if (loginToken != null) {
+      request.headers['Authorization'] = 'Bearer $loginToken';
+    }
+
+    request.files.add(await http.MultipartFile.fromPath('avatar', filePath));
+
+    final streamed = await request.send();
+    final response = await http.Response.fromStream(streamed);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('UPLOAD $endpoint failed: ${response.statusCode}');
+    }
+
+    return jsonDecode(response.body);
+  }
 }

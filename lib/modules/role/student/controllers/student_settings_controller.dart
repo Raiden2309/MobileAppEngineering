@@ -32,6 +32,7 @@ class StudentSettingsController extends ChangeNotifier {
   static const _keySubjectCount    = 'settings_subject_count';
   static const _keyBlockedCount    = 'settings_blocked_slots_count';
   static const _keyAppVersion      = 'settings_app_version';
+  static const _keyAvatarUrl = 'settings_avatar_url';
 
   TimeOfDay studyStart = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay studyEnd   = const TimeOfDay(hour: 22, minute: 0);
@@ -45,6 +46,8 @@ class StudentSettingsController extends ChangeNotifier {
   bool slotEndPrompts    = false;
   bool burnoutWarnings   = false;
   bool weeklyResetSummary = false;
+
+  String? avatarUrl;
 
   bool    loading = false;
   String? error;
@@ -69,6 +72,7 @@ class StudentSettingsController extends ChangeNotifier {
   void _applyFromApi(Map<String, dynamic> json) {
     data = StudentSettingsModel.fromJson(json);
 
+    avatarUrl = data!.avatarUrl;
     studyStart         = _parseTimeString(data!.studyHoursStart);
     studyEnd           = _parseTimeString(data!.studyHoursEnd);
     taskReminders      = data!.taskReminders;
@@ -110,7 +114,9 @@ class StudentSettingsController extends ChangeNotifier {
     final subjCountRaw = await _storage.read(key: _keySubjectCount);
     final blockedCountRaw = await _storage.read(key: _keyBlockedCount);
     final appVersionRaw = await _storage.read(key: _keyAppVersion);
+    final avatarRaw = await _storage.read(key: _keyAvatarUrl);
 
+    if (avatarRaw != null) avatarUrl = avatarRaw;
     if (start   != null) studyStart      = _parseTimeString(start);
     if (end     != null) studyEnd        = _parseTimeString(end);
     if (slots   != null) blockedSlots    = Set<String>.from(jsonDecode(slots) as List);
@@ -173,6 +179,9 @@ class StudentSettingsController extends ChangeNotifier {
       await _storage.write(key: _keySubjectCount, value: data!.subjectCount.toString());
       await _storage.write(key: _keyBlockedCount, value: data!.blockedSlotsCount.toString());
       await _storage.write(key: _keyAppVersion,   value: data!.appVersion);
+      if (avatarUrl != null) {
+        await _storage.write(key: _keyAvatarUrl, value: avatarUrl!);
+      }
     }
   }
 
@@ -287,6 +296,7 @@ class StudentSettingsController extends ChangeNotifier {
     loading            = false;
     error              = null;
     notifyListeners();
+    avatarUrl = null;
   }
 
   void _tryApiPatch(Map<String, dynamic> body) async {
@@ -338,6 +348,8 @@ class StudentSettingsController extends ChangeNotifier {
     slotEndPrompts     = model.slotEndPrompts;
     burnoutWarnings    = model.burnoutWarnings;
     weeklyResetSummary = model.weeklyResetSummary;
+    subjects           = List.from(model.subjects);
+    blockedSlots       = Set.from(model.blockedSlots);
     semesters          = model.semesters.map((s) => {
       'name':            s.name,
       'isCurrent':       s.isCurrent.toString(),
@@ -346,6 +358,7 @@ class StudentSettingsController extends ChangeNotifier {
       'studyHoursEnd':   s.studyHoursEnd,
     }).toList();
     notifyListeners();
+    avatarUrl = model.avatarUrl;
   }
 
   void setLoading(bool value) {
@@ -364,5 +377,21 @@ class StudentSettingsController extends ChangeNotifier {
     await _storage.write(key: _keyUserName, value: name);
     _tryApiPatch({'name': name});
     notifyListeners();
+  }
+
+  Future<void> updateAvatar(XFile file) async {
+    try {
+      final response = await ApiService.uploadImage(
+        '/student/settings/avatar',
+        file.path,
+      );
+      final remoteUrl = response['avatar_url'] as String;
+      avatarUrl = remoteUrl;
+      data = data?.copyWith(avatarUrl: remoteUrl);
+      await _storage.write(key: _keyAvatarUrl, value: remoteUrl);
+      notifyListeners();
+    } catch (_) {
+      setError('Failed to upload avatar');
+    }
   }
 }

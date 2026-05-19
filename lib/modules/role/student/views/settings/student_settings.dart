@@ -218,7 +218,7 @@ class _ProfileHeaderState extends State<ProfileHeader> {
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
-    // widget.controller.updateProfileImage(image); // wire when backend ready
+    widget.controller.updateProfileImage(image);
   }
 
   @override
@@ -246,15 +246,32 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                 onTap: _pickImage,
                 child: Stack(
                   children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: AppColors.glassCard(borderRadius: 36),
-                      child: const Icon(
-                        Icons.person_rounded,
-                        size: 36,
-                        color: AppColors.white,
-                      ),
+                    ListenableBuilder(
+                      listenable: widget.controller,
+                      builder: (context, _) {
+                        final url = widget.controller.avatarUrl;
+                        return Container(
+                          width: 72,
+                          height: 72,
+                          decoration: AppColors.glassCard(borderRadius: 36),
+                          clipBehavior: Clip.antiAlias,
+                          child: url != null
+                              ? Image.network(
+                            url,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.person_rounded,
+                              size: 36,
+                              color: AppColors.white,
+                            ),
+                          )
+                              : const Icon(
+                            Icons.person_rounded,
+                            size: 36,
+                            color: AppColors.white,
+                          ),
+                        );
+                      },
                     ),
                     Positioned(
                       bottom: 0,
