@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mae_assignment_frontend/modules/new_user_setup/views/lecturer_setup/lecturer_setup.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/student_setup.dart';
 import 'package:mae_assignment_frontend/modules/auth/views/login_page.dart';
 
@@ -258,16 +259,16 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                                 ? null
                                 : () async {
                                     if (selectedIndex == 0) {
-                                      await AuthService.saveRole('student');
+                                      await AuthService.saveRole(1);
                                       Navigator.pushReplacement(
                                         context,
                                         slideRoute(const StudentSetupPage()),
                                       );
                                     } else if (selectedIndex == 1) {
-                                      await AuthService.saveRole('lecturer');
+                                      await AuthService.saveRole(2);
                                       Navigator.pushReplacement(
                                         context,
-                                        slideRoute(const StudentSetupPage()),
+                                        slideRoute(const LecturerSetupPage()),
                                       );
                                     }
                                   },

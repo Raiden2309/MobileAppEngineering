@@ -21,12 +21,12 @@ class LoginController {
 
   // ── Read local token (call this on app start) ────────────
   /// Returns the cached token+role, or null if not logged in.
-  static Future<Map<String, String>?> readLocalSession() async {
+  static Future<({String token, int role})?> readLocalSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_keyToken);
-    final role  = prefs.getString(_keyRole);
+    final role  = prefs.getInt(_keyRole);
     if (token == null || role == null) return null;
-    return {'token': token, 'role': role};
+    return (token: token, role: role);
   }
 
   // ── Pre-fill saved credentials on the login page ─────────
@@ -39,12 +39,12 @@ class LoginController {
   }
 
   // ── Save credentials + session after successful login ────
-  Future<void> _saveSession(String email, String password, String token, String role) async {
+  Future<void> _saveSession(String email, String password, String token, int role) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEmail,    email);
     await prefs.setString(_keyPassword, password);
     await prefs.setString(_keyToken,    token);
-    await prefs.setString(_keyRole,     role);
+    await prefs.setInt(_keyRole,     role);
   }
 
   // ── Wipe everything on logout ────────────────────────────
@@ -82,7 +82,7 @@ class LoginController {
       });
 
       final token = response['token'] as String;
-      final role  = response['role']  as String;
+      final role  = response['role']  as int;
 
       // cache locally
       await _saveSession(email, password, token, role);

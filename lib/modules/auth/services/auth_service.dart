@@ -6,12 +6,14 @@ class AuthService {
   static const setupKey = 'is_setup_complete';
   static const roleKey = 'user_role';
 
-  static Future<void> saveRole(String role) async {
-    await storage.write(key: roleKey, value: role);
+  static Future<void> saveRole(int role) async {
+    await storage.write(key: roleKey, value: role.toString());
   }
 
-  static Future<String?> getRole() async {
-    return await storage.read(key: roleKey);
+  static Future<int?> getRole() async {
+    // final value = await storage.read(key: roleKey);
+    // return value != null ? int.tryParse(value) : null;
+    return 2; // placeholder
   }
 
   // --- Auth ---

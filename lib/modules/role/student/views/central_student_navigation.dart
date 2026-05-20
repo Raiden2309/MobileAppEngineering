@@ -13,7 +13,7 @@ import '../providers/study_plan_provider.dart';
 import '../providers/task_provider.dart';
 import 'tasks/tasks.dart';
 import '../../../../shared/styles/app_colors.dart';
-import '../../../../shared/widgets/student/bottom_nav.dart';
+import '../../../../shared/widgets/bottom_nav.dart';
 import '../../../../shared/widgets/student/student_header.dart';
 import 'dashboard/student_dashboard.dart';
 import 'study_plan/study_plan.dart';

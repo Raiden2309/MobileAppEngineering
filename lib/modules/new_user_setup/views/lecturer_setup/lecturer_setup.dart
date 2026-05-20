@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/controllers/lecturer_setup_controller.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/lecturer_setup/steps/lecturer_profile.dart';
+import 'package:mae_assignment_frontend/modules/new_user_setup/views/lecturer_setup/steps/lecturer_generate_profile.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../shared/styles/app_colors.dart';
@@ -9,15 +10,32 @@ import '../../../role/lecturer/views/central_lecturer_navigation.dart';
 import '../../models/lecturer_model.dart';
 import '../../provider/lecturer_provider.dart';
 
-class LecturerSetupPage extends StatefulWidget {
+// Wrap the real page in a provider shell so the context inside
+// LecturerSetupPage is always a descendant of LecturerProvider.
+class LecturerSetupPage extends StatelessWidget {
   const LecturerSetupPage({super.key});
 
   @override
-  State<LecturerSetupPage> createState() => LecturerSetupPageState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => LecturerProvider(),
+      // Use builder so the child's context is below the provider.
+      builder: (context, _) => const _LecturerSetupPageInner(),
+    );
+  }
 }
 
-class LecturerSetupPageState extends State<LecturerSetupPage> {
+class _LecturerSetupPageInner extends StatefulWidget {
+  const _LecturerSetupPageInner();
+
+  @override
+  State<_LecturerSetupPageInner> createState() =>
+      _LecturerSetupPageInnerState();
+}
+
+class _LecturerSetupPageInnerState extends State<_LecturerSetupPageInner> {
   late final LecturerSetupController controller = LecturerSetupController();
+  bool _generating = false;
 
   @override
   void dispose() {
@@ -25,7 +43,11 @@ class LecturerSetupPageState extends State<LecturerSetupPage> {
     super.dispose();
   }
 
-  Future<void> onSetupDone(BuildContext context) async {
+  void _onFormDone() {
+    setState(() => _generating = true);
+  }
+
+  Future<void> _onGenerateDone() async {
     final lecturerModel = LecturerModel(
       id: '',
       name: controller.nameController.text,
@@ -34,17 +56,22 @@ class LecturerSetupPageState extends State<LecturerSetupPage> {
       classes: [
         LecturerClass(
           name: controller.subjectNameController.text,
-          code: controller.subjectNameController.text.trim().split(' ').first.toUpperCase(),
+          code: controller.subjectNameController.text
+              .trim()
+              .split(' ')
+              .first
+              .toUpperCase(),
           joinCode: controller.generatedJoinCode ?? '',
         ),
       ],
     );
 
-    if (!context.mounted) return;
+    if (!mounted) return;
+    // context here is safely below the ChangeNotifierProvider
     await context.read<LecturerProvider>().save(lecturerModel);
 
     await AuthService.completeSetup();
-    if (!context.mounted) return;
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()),
     );
@@ -52,10 +79,15 @@ class LecturerSetupPageState extends State<LecturerSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => LecturerProvider(),
-      child: Scaffold(
-        body: DecoratedBox(
+    // LecturerGenerateProfile draws its own full-screen gradient,
+    // so only apply the outer gradient for the profile form step.
+    if (_generating) {
+      return Scaffold(body: LecturerGenerateProfile(onDone: _onGenerateDone));
+    }
+
+    return Scaffold(
+      body: SizedBox.expand(
+        child: DecoratedBox(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -64,10 +96,7 @@ class LecturerSetupPageState extends State<LecturerSetupPage> {
             ),
           ),
           child: SafeArea(
-            child: LecturerProfile(
-              controller: controller,
-              onNext: () => onSetupDone(context),
-            ),
+            child: LecturerProfile(controller: controller, onNext: _onFormDone),
           ),
         ),
       ),

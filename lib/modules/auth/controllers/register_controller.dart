@@ -60,7 +60,7 @@ class RegisterController {
       });
 
       final token = response['token'] as String;
-      final role  = response['role']  as String;
+      final role  = response['role']  as int;
 
       if (!context.mounted) return;
       final auth = context.read<AuthProvider>();

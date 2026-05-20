@@ -5,7 +5,7 @@ import '../../../shared/services/api_service.dart';
 
 class AuthProvider with ChangeNotifier {
   String? token;
-  String? role;
+  int? role;
   User?   user;
 
   bool get isLoggedIn => token != null;
@@ -17,7 +17,7 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> login(String newToken, String newRole) async {
+  Future<void> login(String newToken, int newRole) async {
     await AuthService.saveToken(newToken);
     await AuthService.saveRole(newRole);
     token = newToken;

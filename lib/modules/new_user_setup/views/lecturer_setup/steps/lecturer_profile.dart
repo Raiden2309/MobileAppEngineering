@@ -8,7 +8,8 @@ class LecturerProfile extends StatelessWidget {
   final LecturerSetupController controller;
   final VoidCallback onNext;
 
-  const LecturerProfile({super.key, required this.controller, required this.onNext});
+  const LecturerProfile(
+      {super.key, required this.controller, required this.onNext});
 
   void handleNext(BuildContext context) {
     if (!controller.validateAll()) return;
@@ -23,36 +24,71 @@ class LecturerProfile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SetupScaffold(
-      step: 0,
-      title: 'Welcome to Unplug',
-      subtitle: 'Set up your profile and create your first class to get started.',
-      onNext: () => handleNext(context),
-      child: ListenableBuilder(
-        listenable: controller,
-        builder: (context, child) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SetupLabel('Your Name'),
-            SetupInput(
-              controller: controller.nameController,
-              placeholder: 'e.g. Dr. Lim Mei Yee',
-              errorText: controller.getError('name'),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Welcome to Unplug',
+            style: TextStyle(fontSize: 26,
+                fontWeight: FontWeight.w800,
+                color: AppColors.black),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Set up your profile and create your first class to get started.',
+            style: TextStyle(fontSize: 13, color: AppColors.black, height: 1.6),
+          ),
+          const SizedBox(height: 32),
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) =>
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SetupLabel('Your Name'),
+                    SetupInput(
+                      controller: controller.nameController,
+                      placeholder: 'e.g. Dr. Lim Mei Yee',
+                      errorText: controller.getError('name'),
+                    ),
+                    const SizedBox(height: 16),
+                    const SetupLabel('Subject Name'),
+                    SetupInput(
+                      controller: controller.subjectNameController,
+                      placeholder: 'e.g. CT124 System Proposal',
+                      errorText: controller.getError('subjectName'),
+                    ),
+                    const SizedBox(height: 16),
+                    if (controller.generatedJoinCode == null)
+                      GenerateButton(controller: controller)
+                    else
+                      JoinCodeReveal(joinCode: controller.generatedJoinCode!),
+                  ],
+                ),
+          ),
+          const SizedBox(height: 32),
+          GestureDetector(
+            onTap: () => handleNext(context),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.black,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Center(
+                child: Text(
+                  'Go to Dashboard →',
+                  style: TextStyle(color: AppColors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15),
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-            const SetupLabel('Subject Name'),
-            SetupInput(
-              controller: controller.subjectNameController,
-              placeholder: 'e.g. CT124 System Proposal',
-              errorText: controller.getError('subjectName'),
-            ),
-            const SizedBox(height: 16),
-            if (controller.generatedJoinCode == null)
-              GenerateButton(controller: controller)
-            else
-              JoinCodeReveal(joinCode: controller.generatedJoinCode!),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -64,7 +100,9 @@ class GenerateButton extends StatelessWidget {
   const GenerateButton({super.key, required this.controller});
 
   Future<void> handleGenerate() async {
-    if (controller.subjectNameController.text.trim().isEmpty) return;
+    if (controller.subjectNameController.text
+        .trim()
+        .isEmpty) return;
     controller.setGenerating(true);
     await Future.delayed(const Duration(milliseconds: 900));
     final code = controller.subjectNameController.text
@@ -92,7 +130,8 @@ class GenerateButton extends StatelessWidget {
               ? const SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.black),
+            child: CircularProgressIndicator(
+                strokeWidth: 2, color: AppColors.black),
           )
               : const Text(
             'Generate Join Code',
@@ -194,7 +233,7 @@ class JoinCodeReveal extends StatelessWidget {
             ),
             child: const Center(
               child: Text(
-                '📋 Copy Join Code',
+                'Copy Join Code',
                 style: TextStyle(
                   color: AppColors.black,
                   fontWeight: FontWeight.w700,

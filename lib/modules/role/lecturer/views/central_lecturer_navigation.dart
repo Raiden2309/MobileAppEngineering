@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:mae_assignment_frontend/modules/role/lecturer/views/alerts/lecturer_alerts.dart';
+import 'package:mae_assignment_frontend/modules/role/lecturer/views/classes/lecturer_classes.dart';
 import '../../../../shared/styles/app_colors.dart';
-import '../../../../shared/widgets/student/bottom_nav.dart';
-import '../../../../shared/widgets/student/student_header.dart';
+import '../../../../shared/widgets/bottom_nav.dart';
+import '../../../../shared/widgets/lecturer/lecturer_header.dart';
+import 'dashboard/lecturer_dashboard.dart';
+import 'engagement/engagement.dart';
 
 class PlaceholderPage extends StatelessWidget {
   final String title;
@@ -25,19 +29,34 @@ class CentralLecturerNavigation extends StatefulWidget {
 
 class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
   int currentNavIndex = 0;
+  bool hasUnreadAlerts = true;
 
-  final List<Widget> pages = const [
-    PlaceholderPage(title: 'Lecturer Dashboard'),
-    PlaceholderPage(title: 'My Classes'),
-    PlaceholderPage(title: 'Assignments'),
-    PlaceholderPage(title: 'Profile'),
-  ];
+  late final List<Widget> pages;
+
+  @override
+  void initState() {
+    super.initState();
+    pages = [
+      const LecturerDashboard(),
+      const LecturerClassesSection(),
+      const LecturerEngagementPage(),
+      const LecturerAlertsPage(),
+    ];
+  }
+
+  void goToTab(int index) {
+    if (index == currentNavIndex) return;
+    setState(() {
+      currentNavIndex = index;
+      if (index == 3) hasUnreadAlerts = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.californiaBlue,
-      extendBody: false,
+      backgroundColor: Colors.transparent,
+      extendBody: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -47,15 +66,25 @@ class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
           ),
         ),
         child: SafeArea(
-          bottom: true,
+          bottom: false,
           child: Column(
             children: [
-              const Padding(
-                padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
-                child: Text('Header Placeholder'),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: LecturerHeader(
+                  hasUnreadAlerts: hasUnreadAlerts,
+                  onAlertsTapped: () => goToTab(3),
+                  onProfileTapped: () {},
+                ),
               ),
               Expanded(
-                child: ClipRect(child: pages[currentNavIndex]),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 68),
+                  child: IndexedStack(
+                    index: currentNavIndex,
+                    children: pages,
+                  ),
+                ),
               ),
             ],
           ),
@@ -63,7 +92,8 @@ class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentNavIndex,
-        onTap: (i) => setState(() => currentNavIndex = i),
+        onTap: goToTab,
+        role: 2,
       ),
     );
   }

@@ -2,7 +2,7 @@ class User {
   final int    id;
   final String name;
   final String email;
-  final String role;
+  final int    role; // 0 = student, 1 = lecturer
 
   const User({
     required this.id,
@@ -11,14 +11,15 @@ class User {
     required this.role,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id:    json['id']    as int,
-      name:  json['name']  as String,
-      email: json['email'] as String,
-      role:  json['role']  as String,
-    );
-  }
+  bool get isStudent  => role == 0;
+  bool get isLecturer => role == 1;
+
+  factory User.fromJson(Map<String, dynamic> json) => User(
+    id:    json['id']    as int,
+    name:  json['name']  as String,
+    email: json['email'] as String,
+    role:  json['role']  as int,
+  );
 
   Map<String, dynamic> toJson() => {
     'id':    id,

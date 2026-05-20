@@ -3,6 +3,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import '../../modules/auth/services/auth_service.dart';
 import '../../modules/auth/views/login_page.dart';
 import '../../modules/new_user_setup/views/role_setup.dart';
+import '../../modules/role/lecturer/views/central_lecturer_navigation.dart';
 import '../../modules/role/student/views/central_student_navigation.dart';
 import '../styles/app_colors.dart';
 
@@ -113,32 +114,34 @@ class SplashScreenState extends State<SplashScreen>
 
     await Future.delayed(const Duration(milliseconds: 800));
 
-    final bool loggedIn = await AuthService.isLoggedIn();
+    final bool loggedIn  = await AuthService.isLoggedIn();
     final bool setupDone = await AuthService.isSetupComplete();
 
-    if (mounted) {
-      Widget destination;
-      if (loggedIn) {
-        // has JWT token → skip everything
-        destination = const CentralStudentNavigation();
-      } else if (setupDone) {
-        // no token but setup done → go to login
-        destination = const LoginPage();
-      } else {
-        // no token, no setup → must setup first
-        destination = const RoleSetupPage();
-      }
+    if (!mounted) return;
 
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => destination,
-          transitionsBuilder: (_, animation, __, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-          transitionDuration: const Duration(milliseconds: 500),
-        ),
-      );
+    Widget destination;
+
+    if (!loggedIn) {
+      destination = const LoginPage();
+    } else if (!setupDone) {
+      destination = const RoleSetupPage();
+    } else {
+      final int? role = await AuthService.getRole();
+      if (role == 2) {
+        destination = const CentralLecturerNavigation();
+      } else {
+        destination = const CentralStudentNavigation();
+      }
     }
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => destination,
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
+        transitionDuration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   @override
