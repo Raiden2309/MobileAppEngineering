@@ -4,20 +4,10 @@ import 'package:mae_assignment_frontend/modules/role/lecturer/views/classes/lect
 import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
 import '../../../../shared/widgets/lecturer/lecturer_header.dart';
+import '../controllers/lecturer_settings_controller.dart';
+import '../providers/lecturer_settings_provider.dart';
 import 'dashboard/lecturer_dashboard.dart';
 import 'engagement/engagement.dart';
-
-class PlaceholderPage extends StatelessWidget {
-  final String title;
-  const PlaceholderPage({super.key, required this.title});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-    );
-  }
-}
 
 class CentralLecturerNavigation extends StatefulWidget {
   const CentralLecturerNavigation({super.key});
@@ -27,21 +17,37 @@ class CentralLecturerNavigation extends StatefulWidget {
       CentralLecturerNavigationState();
 }
 
-class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
-  int currentNavIndex = 0;
+class CentralLecturerNavigationState
+    extends State<CentralLecturerNavigation> {
+  int  currentNavIndex = 0;
   bool hasUnreadAlerts = true;
 
+  late final LecturerSettingsController _settingsController;
+  late final LecturerSettingsProvider   _settingsProvider;
   late final List<Widget> pages;
 
   @override
   void initState() {
     super.initState();
+
+    _settingsController = LecturerSettingsController();
+    _settingsProvider   = LecturerSettingsProvider(_settingsController);
+
+    // Load mock data for now; swap to _settingsProvider.fetch() when API ready
+    _settingsProvider.loadMock();
+
     pages = [
       const LecturerDashboard(),
       const LecturerClassesSection(),
       const LecturerEngagementPage(),
       const LecturerAlertsPage(),
     ];
+  }
+
+  @override
+  void dispose() {
+    _settingsController.dispose();
+    super.dispose();
   }
 
   void goToTab(int index) {
@@ -72,9 +78,10 @@ class CentralLecturerNavigationState extends State<CentralLecturerNavigation> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                 child: LecturerHeader(
-                  hasUnreadAlerts: hasUnreadAlerts,
-                  onAlertsTapped: () => goToTab(3),
-                  onProfileTapped: () {},
+                  hasUnreadAlerts:    hasUnreadAlerts,
+                  onAlertsTapped:     () => goToTab(3),
+                  settingsController: _settingsController,
+                  settingsProvider:   _settingsProvider,
                 ),
               ),
               Expanded(

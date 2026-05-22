@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import '../../../modules/role/lecturer/controllers/lecturer_settings_controller.dart';
+import '../../../modules/role/lecturer/providers/lecturer_settings_provider.dart';
+import '../../../modules/role/lecturer/views/settings/lecturer_settings.dart';
 import '../../../shared/styles/app_colors.dart';
 import '../../../shared/styles/font_styles.dart';
 
 class LecturerHeader extends StatelessWidget {
   final bool hasUnreadAlerts;
   final VoidCallback onAlertsTapped;
-  final VoidCallback onProfileTapped;
+  final LecturerSettingsController settingsController;
+  final LecturerSettingsProvider settingsProvider;
 
   const LecturerHeader({
     super.key,
     required this.hasUnreadAlerts,
     required this.onAlertsTapped,
-    required this.onProfileTapped,
+    required this.settingsController,
+    required this.settingsProvider,
   });
 
   @override
@@ -37,6 +42,7 @@ class LecturerHeader extends StatelessWidget {
           ),
           Row(
             children: [
+              // Alerts
               GestureDetector(
                 onTap: onAlertsTapped,
                 child: Stack(
@@ -44,8 +50,10 @@ class LecturerHeader extends StatelessWidget {
                     CircleAvatar(
                       backgroundColor: AppColors.white,
                       child: Icon(
-                          Icons.notifications_outlined, color: AppColors.black,
-                          size: 22),
+                        Icons.notifications_outlined,
+                        color: AppColors.black,
+                        size: 22,
+                      ),
                     ),
                     if (hasUnreadAlerts)
                       Positioned(
@@ -57,8 +65,10 @@ class LecturerHeader extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.red,
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.white,
-                                width: 1.5),
+                            border: Border.all(
+                              color: AppColors.white,
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
@@ -66,12 +76,34 @@ class LecturerHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              // Profile
+
+              // Profile → Settings
               GestureDetector(
-                onTap: onProfileTapped,
-                child: CircleAvatar(
-                  backgroundColor: AppColors.white,
-                  child: Image.asset('assets/images/person.png', width: 24),
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => LecturerSettingsPage(
+                      controller: settingsController,
+                      navigationProvider: settingsProvider,
+                    ),
+                  ),
+                ),
+                child: ListenableBuilder(
+                  listenable: settingsController,
+                  builder: (context, _) {
+                    final url = settingsController.avatarUrl;
+                    return CircleAvatar(
+                      backgroundColor: AppColors.white,
+                      backgroundImage:
+                      url != null ? NetworkImage(url) : null,
+                      child: url == null
+                          ? Image.asset(
+                        'assets/images/person.png',
+                        width: 24,
+                      )
+                          : null,
+                    );
+                  },
                 ),
               ),
             ],
