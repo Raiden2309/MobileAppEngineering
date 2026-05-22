@@ -38,7 +38,7 @@ dependencies:
   flutter_native_splash: ^2.4.7
   provider: ^6.1.5+1
   firebase_core: ^4.7.0
-  cloud_firestore: ^6.3.0
+  cloud_firestore: ^6.4.1
   firebase_auth: ^6.4.0
   curved_navigation_bar: ^1.0.6
   smooth_page_indicator: ^2.0.1
@@ -50,6 +50,7 @@ dependencies:
   firebase_messaging: ^16.2.2
   shared_preferences: ^2.5.5
   google_generative_ai: ^0.4.7
+  google_sign_in: ^7.2.0
 
 flutter_native_splash:
   color: "#3DA5D9"          # Closest solid for the native flash

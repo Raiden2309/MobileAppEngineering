@@ -1,10 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/role_setup.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/services/api_service.dart';
 import '../providers/auth_provider.dart';
+import 'package:mae_assignment_frontend/modules/role/lecturer/views/central_lecturer_navigation.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/central_student_navigation.dart';
 
 class LoginController {
   final emailController    = TextEditingController();
@@ -13,21 +17,9 @@ class LoginController {
   String? emailError;
   String? passwordError;
 
-  // ── Keys ────────────────────────────────────────────────
+  // Keys used for local SharedPreferences backup caching
   static const _keyEmail    = 'cached_email';
   static const _keyPassword = 'cached_password';
-  static const _keyToken    = 'cached_token';
-  static const _keyRole     = 'cached_role';
-
-  // ── Read local token (call this on app start) ────────────
-  /// Returns the cached token+role, or null if not logged in.
-  static Future<({String token, int role})?> readLocalSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_keyToken);
-    final role  = prefs.getInt(_keyRole);
-    if (token == null || role == null) return null;
-    return (token: token, role: role);
-  }
 
   // ── Pre-fill saved credentials on the login page ─────────
   Future<void> loadSavedCredentials() async {
@@ -38,25 +30,21 @@ class LoginController {
     if (password != null) passwordController.text = password;
   }
 
-  // ── Save credentials + session after successful login ────
-  Future<void> _saveSession(String email, String password, String token, int role) async {
+  // ── Save credentials locally ─────────────────────────────
+  Future<void> _saveLocalCredentials(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyEmail,    email);
     await prefs.setString(_keyPassword, password);
-    await prefs.setString(_keyToken,    token);
-    await prefs.setInt(_keyRole,     role);
   }
 
-  // ── Wipe everything on logout ────────────────────────────
+  // - Clear Session -
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyEmail);
     await prefs.remove(_keyPassword);
-    await prefs.remove(_keyToken);
-    await prefs.remove(_keyRole);
   }
 
-  // ── Login ────────────────────────────────────────────────
+  // ── Login Flow ───────────────────────────────────────────
   Future<void> login(BuildContext context, {required VoidCallback onError}) async {
     final email    = emailController.text.trim();
     final password = passwordController.text.trim();
@@ -76,30 +64,73 @@ class LoginController {
     }
 
     try {
-      final response = await ApiService.post('/auth/login', {
-        'email':    email,
-        'password': password,
-      });
+      // 1. Authenticate the email and password with Firebase Auth
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
 
-      final token = response['token'] as String;
-      final role  = response['role']  as int;
+      final String? uid = userCredential.user?.uid;
+      if (uid == null) throw Exception("User identification failed.");
 
-      // cache locally
-      await _saveSession(email, password, token, role);
+      // 2. Fetch the user's role profile document directly from Cloud Firestore
+      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      if (!userDoc.exists) {
+        emailError = 'User profile data not found in database.';
+        onError();
+        return;
+      }
+
+      // Grab the exact numerical role (1 = student, 2 = lecturer)
+      final int role = userDoc.get('role') as int;
+
+      // 3. Keep local storage up to date
+      await _saveLocalCredentials(email, password);
 
       if (!context.mounted) return;
+
+      // 4. Update state globally using AuthProvider
       final auth = context.read<AuthProvider>();
-      await auth.login(token, role);
-      await auth.loadUser();
+      await auth.login(uid, role);
+      // Temporarily bypass loadUser() if it still references ApiService
+      // await auth.loadUser();
 
       if (!context.mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RoleSetupPage()),
-      );
+
+      // 5. Smart Routing based on registration status or role
+      if (role == 0) {
+        // Fallback safety flow if they registered via Google but bypassed role picking
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RoleSetupPage()),
+        );
+      } else if (role == 1) {
+        // ROUTE DIRECTLY TO STUDENT WORKSPACE
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CentralStudentNavigation()),
+        );
+      } else if (role == 2) {
+        // ROUTE DIRECTLY TO LECTURER WORKSPACE
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()),
+        );
+      }
+
+    } on FirebaseAuthException catch (firebaseError) {
+      // Handle login-specific errors gracefully without crashing
+      if (firebaseError.code == 'user-not-found' || firebaseError.code == 'wrong-password' || firebaseError.code == 'invalid-credential') {
+        emailError    = 'Invalid email or password.';
+        passwordError = 'Invalid email or password.';
+      } else {
+        emailError = firebaseError.message ?? 'Authentication failed.';
+      }
+      onError();
     } catch (e) {
-      emailError    = 'Invalid credentials';
-      passwordError = 'Invalid credentials';
+      emailError = 'An unexpected server error occurred.';
       onError();
     }
   }

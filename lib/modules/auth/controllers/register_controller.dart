@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../shared/services/api_service.dart';
-import '../../new_user_setup/views/role_setup.dart';
+// Hides Firebase's AuthProvider to prevent naming clashes
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+// Imports Firestore for your database
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../providers/auth_provider.dart';
+import '../../new_user_setup/views/role_setup.dart';
 
 class RegisterController {
   final nameController            = TextEditingController();
@@ -15,7 +19,12 @@ class RegisterController {
   String? passwordError;
   String? confirmPasswordError;
 
-  Future<void> register(BuildContext context, {required VoidCallback onError}) async {
+  // Make sure selectedRole is passed in from your UI
+  Future<void> register(
+      BuildContext context, {
+        required int selectedRole,
+        required VoidCallback onError,
+      }) async {
     final name            = nameController.text.trim();
     final email           = emailController.text.trim();
     final password        = passwordController.text.trim();
@@ -51,29 +60,60 @@ class RegisterController {
       onError();
       return;
     }
+    if (selectedRole != 1 && selectedRole != 2) {
+      emailError = 'Please select a valid role.';
+      onError();
+      return;
+    }
 
     try {
-      final response = await ApiService.post('/auth/register', {
-        'name':     name,
-        'email':    email,
-        'password': password,
+      // 1. Create the user in Firebase Auth
+      final UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final String? uid = userCredential.user?.uid;
+      if (uid == null) throw Exception("User ID generation failed.");
+
+      // 2. Save directly to Firestore (Notice: NO 'response' variables used here)
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'uid': uid,
+        'name': name,
+        'email': email,
+        'role': selectedRole,
+        'createdAt': FieldValue.serverTimestamp(),
       });
 
-      final token = response['token'] as String;
-      final role  = response['role']  as int;
-
       if (!context.mounted) return;
+
+      // 3. Log them in locally using their new Firebase UID
       final auth = context.read<AuthProvider>();
-      await auth.login(token, role);
-      await auth.loadUser();
+      await auth.login(uid, selectedRole);
+
+      // Temporarily bypass loadUser() until we migrate the ApiService call inside it
+      // await auth.loadUser();
 
       if (!context.mounted) return;
+
+      // 4. Send them to the next screen
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const RoleSetupPage()),
       );
+
+    } on FirebaseAuthException catch (firebaseError) {
+      if (firebaseError.code == 'email-already-in-use') {
+        emailError = 'This email is already registered.';
+      } else if (firebaseError.code == 'weak-password') {
+        passwordError = 'The password provided is too weak.';
+      } else {
+        emailError = firebaseError.message ?? 'Registration failed.';
+      }
+      onError();
     } catch (e) {
-      emailError = 'Registration failed. Please try again.';
+      emailError = 'An unexpected error occurred. Please try again.';
       onError();
     }
   }

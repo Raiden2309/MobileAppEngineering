@@ -11,10 +11,10 @@ class AuthService {
   }
 
   static Future<int?> getRole() async {
-    // final value = await storage.read(key: roleKey);
-    // return value != null ? int.tryParse(value) : null;
-    return 2; // placeholder
+    final value = await storage.read(key: roleKey);
+    return value != null ? int.tryParse(value) : null;
   }
+
 
   // --- Auth ---
   static Future<void> saveToken(String token) async {

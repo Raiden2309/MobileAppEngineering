@@ -41,24 +41,6 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCMevWGocaFZMEJAzSi7TqhloK0C8SNlmE',
-    appId: '1:291012477513:web:58dfcb9792bec201a33598',
-    messagingSenderId: '291012477513',
-    projectId: 'firstproject-a1c4e',
-    authDomain: 'firstproject-a1c4e.firebaseapp.com',
-    storageBucket: 'firstproject-a1c4e.firebasestorage.app',
-    measurementId: 'G-QNBNN1SR9P',
-  );
-
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCx9RrmeKREW86D8D0UhKpSkw9BfuZyn-o',
-    appId: '1:291012477513:android:0bc631d5a3c5f203a33598',
-    messagingSenderId: '291012477513',
-    projectId: 'firstproject-a1c4e',
-    storageBucket: 'firstproject-a1c4e.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyA_Zafch7_t5UpLIRoosncN8a8EX8BndKc',
     appId: '1:959547635123:web:eabac85a7ec48c1ba307c6',
     messagingSenderId: '959547635123',
@@ -68,12 +50,33 @@ class DefaultFirebaseOptions {
     measurementId: 'G-Q24CVQC7G1',
   );
 
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBr57HNmjc5XxdzoAZYtNddSu5HiW37Tsc',
+    appId: '1:959547635123:android:42a444ad00576741a307c6',
+    messagingSenderId: '959547635123',
+    projectId: 'unplug-1da00',
+    storageBucket: 'unplug-1da00.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyD9eowS6-Q66vqtYhr3aOMYqjlssIpuqnA',
+    appId: '1:959547635123:ios:6425e936d409a189a307c6',
+    messagingSenderId: '959547635123',
+    projectId: 'unplug-1da00',
+    storageBucket: 'unplug-1da00.firebasestorage.app',
+    androidClientId: '959547635123-duvr6o4nvkcclpkkcipfuc1ksiqbienh.apps.googleusercontent.com',
+    iosClientId: '959547635123-18klk4v4djmoi0cas83i2a535bhauec0.apps.googleusercontent.com',
+    iosBundleId: 'com.example.maeAssignmentFrontend',
+  );
+
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyD9eowS6-Q66vqtYhr3aOMYqjlssIpuqnA',
     appId: '1:959547635123:ios:6425e936d409a189a307c6',
     messagingSenderId: '959547635123',
     projectId: 'unplug-1da00',
     storageBucket: 'unplug-1da00.firebasestorage.app',
+    androidClientId: '959547635123-duvr6o4nvkcclpkkcipfuc1ksiqbienh.apps.googleusercontent.com',
+    iosClientId: '959547635123-18klk4v4djmoi0cas83i2a535bhauec0.apps.googleusercontent.com',
     iosBundleId: 'com.example.maeAssignmentFrontend',
   );
 
@@ -86,4 +89,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'unplug-1da00.firebasestorage.app',
     measurementId: 'G-RZK794W2XW',
   );
+
 }
