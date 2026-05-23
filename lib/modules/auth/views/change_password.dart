@@ -68,7 +68,7 @@ class FlowScaffold extends StatelessWidget {
                   onTap: () => Navigator.pop(context),
                   child: const Icon(
                     Icons.arrow_back_ios_new_rounded,
-                    color: AppColors.white,
+                    color: AppColors.black,
                   ),
                 ),
               ),
@@ -84,11 +84,11 @@ class FlowScaffold extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.white.withValues(alpha: 0.92),
                         borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-                        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+                        border: Border.all(color: AppColors.black.withValues(alpha: 0.4)),
                       ),
                       child: const Icon(
                         Icons.lock_rounded,
-                        color: AppColors.white,
+                        color: AppColors.black,
                         size: 22,
                       ),
                     ),
@@ -98,7 +98,7 @@ class FlowScaffold extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: FontStyles.titleLarge,
                         fontWeight: FontStyles.titleWeight,
-                        color: AppColors.white,
+                        color: AppColors.black,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -106,7 +106,7 @@ class FlowScaffold extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: FontStyles.titleSmall,
-                        color: AppColors.white.withValues(alpha: 0.6),
+                        color: AppColors.black.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -171,36 +171,29 @@ class GlassField extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.white.withValues(alpha: 0.92),
             borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-            border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+            border: Border.all(
+              color: hasError ? AppColors.red : AppColors.white.withValues(alpha: 0.4),
+              width: hasError ? 1.5 : 1.0,
+            ),
           ),
           child: TextField(
             controller: controller,
             obscureText: obscure,
             keyboardType: keyboardType,
             style: const TextStyle(
-              color: AppColors.white,
+              color: AppColors.black,
               fontSize: FontStyles.titleSmall,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.35),
+                color: AppColors.black.withValues(alpha: 0.35),
                 fontSize: FontStyles.titleSmall,
               ),
               suffixIcon: suffix,
               border: InputBorder.none,
-              enabledBorder: hasError
-                  ? OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-                borderSide: const BorderSide(color: AppColors.red),
-              )
-                  : InputBorder.none,
-              focusedBorder: hasError
-                  ? OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-                borderSide: const BorderSide(color: AppColors.red, width: 1.5),
-              )
-                  : InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 16,
@@ -255,7 +248,7 @@ class PrimaryButton extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: AppColors.white,
+              color: AppColors.black,
             ),
           )
               : Text(
@@ -263,7 +256,7 @@ class PrimaryButton extends StatelessWidget {
             style: const TextStyle(
               fontSize: FontStyles.titleSmall,
               fontWeight: FontStyles.titleWeight,
-              color: AppColors.white,
+              color: AppColors.black,
             ),
           ),
         ),
@@ -439,9 +432,8 @@ class OtpPageState extends State<OtpPage> {
               'Resend code',
               style: TextStyle(
                 fontSize: FontStyles.titleSmall,
-                color: AppColors.white.withValues(alpha: 0.6),
-                decoration: TextDecoration.underline,
-                decorationColor: AppColors.white.withValues(alpha: 0.6),
+                color: AppColors.black,
+                decorationColor: AppColors.black.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -450,6 +442,3 @@ class OtpPageState extends State<OtpPage> {
     );
   }
 }
-
-
-

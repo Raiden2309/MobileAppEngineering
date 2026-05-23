@@ -8,7 +8,7 @@ class AppColors {
   static const Color nectarine = Color(0xFFEA7317);
   static const Color white = Color(0xFFE5E7EB);
   static const Color black = Color(0xFF000000);
-  static const Color red = Color(0xFFF44336);
+  static const Color red = Color(0xFFA71704);
   static const Color darkIndigoBlue = Color(0xFF111184);
   static const Color transparent = Color(0x00000000);
 
