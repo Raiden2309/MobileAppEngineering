@@ -168,7 +168,7 @@ class RegisterPageState extends State<RegisterPage> {
                           style: ElevatedButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
                           onPressed: () => controller.register(
                             context,
-                            selectedRole: 1,
+                            selectedRole: 0,
                             onError: () => setState(() {}),
                           ),
                           child: const Text('Register'),

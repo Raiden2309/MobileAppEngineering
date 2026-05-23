@@ -38,7 +38,6 @@ class AppColors {
   static const Color lime       = Color(0xFF95D44A);
 
   // Burnout Bg
-
   static const darkNavyBlue = Color(0xFF16213E);
   // Glass style
 

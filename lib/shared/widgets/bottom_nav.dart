@@ -13,7 +13,7 @@ class BottomNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
-    this.role = 2,
+    required this.role
   });
 
   static Widget item(IconData icon, String label, bool isActive) {

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mae_assignment_frontend/modules/auth/views/reset_password.dart';
+import 'package:mae_assignment_frontend/modules/auth/views/widget/otp_box.dart';
 import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/styles/font_styles.dart';
 import '../controllers/change_password_controller.dart';
@@ -79,7 +81,11 @@ class FlowScaffold extends StatelessWidget {
                     Container(
                       width: 48,
                       height: 48,
-                      decoration: AppColors.glassCard(borderRadius: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.white.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+                        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+                      ),
                       child: const Icon(
                         Icons.lock_rounded,
                         color: AppColors.white,
@@ -162,7 +168,11 @@ class GlassField extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Container(
-          decoration: AppColors.glassCard(),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+          ),
           child: TextField(
             controller: controller,
             obscureText: obscure,
@@ -233,7 +243,11 @@ class PrimaryButton extends StatelessWidget {
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: AppColors.glassCard(),
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+        ),
         child: Center(
           child: loading
               ? const SizedBox(
@@ -437,162 +451,5 @@ class OtpPageState extends State<OtpPage> {
   }
 }
 
-class OtpBox extends StatelessWidget {
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final ValueChanged<String> onChanged;
-  final bool hasError;
 
-  const OtpBox({
-    super.key,
-    required this.controller,
-    required this.focusNode,
-    required this.onChanged,
-    this.hasError = false,
-  });
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 56,
-      decoration: AppColors.glassCard(),
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        style: const TextStyle(
-          color: AppColors.white,
-          fontSize: FontStyles.titleLarge,
-          fontWeight: FontStyles.titleWeight,
-        ),
-        decoration: InputDecoration(
-          counterText: '',
-          border: InputBorder.none,
-          enabledBorder: hasError
-              ? OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-            borderSide: const BorderSide(color: AppColors.red),
-          )
-              : InputBorder.none,
-          focusedBorder: hasError
-              ? OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-            borderSide: const BorderSide(color: AppColors.red, width: 1.5),
-          )
-              : InputBorder.none,
-        ),
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-class ResetPasswordPage extends StatefulWidget {
-  final ChangePasswordController controller;
-  final Object request;
-
-  const ResetPasswordPage({
-    super.key,
-    required this.controller,
-    required this.request,
-  });
-
-  @override
-  State<ResetPasswordPage> createState() => ResetPasswordPageState();
-}
-
-class ResetPasswordPageState extends State<ResetPasswordPage> {
-  final passController = TextEditingController();
-  final confirmController = TextEditingController();
-  bool obscurePass = true;
-  bool obscureConfirm = true;
-  bool loading = false;
-  String? passError;
-  String? confirmError;
-
-  Future<void> submit() async {
-    setState(() {
-      passError = null;
-      confirmError = null;
-      loading = true;
-    });
-
-    final error = await widget.controller.updatePassword(
-      password: passController.text,
-      confirm: confirmController.text,
-      request: widget.request,
-    );
-
-    setState(() => loading = false);
-
-    if (error != null) {
-      final isConfirmError = error.contains('match') || error.contains('confirm');
-      setState(() {
-        if (isConfirmError) {
-          confirmError = error;
-        } else {
-          passError = error;
-        }
-      });
-      return;
-    }
-
-    if (!mounted) return;
-    Navigator.popUntil(context, (route) => route.isFirst);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FlowScaffold(
-      title: 'New Password',
-      subtitle: 'Choose a strong password for your account.',
-      children: [
-        GlassField(
-          label: 'New Password',
-          hint: '••••••••',
-          controller: passController,
-          obscure: obscurePass,
-          errorText: passError,
-          suffix: IconButton(
-            icon: Icon(
-              obscurePass
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              color: AppColors.white.withValues(alpha: 0.5),
-              size: 18,
-            ),
-            onPressed: () => setState(() => obscurePass = !obscurePass),
-          ),
-        ),
-        const SizedBox(height: 16),
-        GlassField(
-          label: 'Confirm Password',
-          hint: '••••••••',
-          controller: confirmController,
-          obscure: obscureConfirm,
-          errorText: confirmError,
-          suffix: IconButton(
-            icon: Icon(
-              obscureConfirm
-                  ? Icons.visibility_off_rounded
-                  : Icons.visibility_rounded,
-              color: AppColors.white.withValues(alpha: 0.5),
-              size: 18,
-            ),
-            onPressed: () => setState(() => obscureConfirm = !obscureConfirm),
-          ),
-        ),
-        const SizedBox(height: 24),
-        PrimaryButton(
-          label: 'Update Password',
-          loading: loading,
-          onTap: submit,
-        ),
-      ],
-    );
-  }
-}

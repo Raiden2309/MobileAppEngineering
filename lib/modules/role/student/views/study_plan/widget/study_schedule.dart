@@ -41,6 +41,7 @@ class StudySchedule extends StatelessWidget {
       children: List.generate(dayPlan.blocks.length, (i) {
         return ScheduleRow(
           block: dayPlan.blocks[i],
+          isFirst: i == 0,
           isLast: i == dayPlan.blocks.length - 1,
         );
       }),
@@ -48,13 +49,17 @@ class StudySchedule extends StatelessWidget {
   }
 }
 
-// ── ScheduleRow ───────────────────────────────────────────
-
 class ScheduleRow extends StatelessWidget {
   final StudyBlock block;
+  final bool isFirst;
   final bool isLast;
 
-  const ScheduleRow({super.key, required this.block, required this.isLast});
+  const ScheduleRow({
+    super.key,
+    required this.block,
+    required this.isFirst,
+    required this.isLast,
+  });
 
   Color get dotColor {
     if (block.type == BlockType.blocked) return AppColors.legendText;
@@ -82,15 +87,17 @@ class ScheduleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const double dotSize = 10;
+    const double dotTopOffset = 15;
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Time label ─────────────────────────────
           SizedBox(
             width: 48,
             child: Padding(
-              padding: const EdgeInsets.only(top: 13),
+              padding: const EdgeInsets.only(top: dotTopOffset - 2),
               child: Text(
                 block.startTime,
                 textAlign: TextAlign.right,
@@ -104,43 +111,47 @@ class ScheduleRow extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // ── Timeline column ────────────────────────
           SizedBox(
             width: 18,
-            child: Column(
+            child: Stack(
+              alignment: Alignment.topCenter,
               children: [
-                const SizedBox(height: 15),
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      if (block.type != BlockType.blocked)
-                        BoxShadow(
-                          color: dotColor.withValues(alpha: 0.5),
-                          blurRadius: 6,
-                          spreadRadius: 1,
-                        ),
-                    ],
+                if (!isFirst)
+                  Positioned(
+                    top: 0,
+                    height: dotTopOffset,
+                    child: Container(width: 1.5, color: AppColors.black),
                   ),
-                ),
                 if (!isLast)
-                  Expanded(
-                    child: Center(
-                      child: Container(
-                        width: 1.5,
-                        color: AppColors.white.withValues(alpha: AppColors.glassDividerOpacity),
-                      ),
+                  Positioned(
+                    top: dotTopOffset + dotSize,
+                    bottom: 0,
+                    child: Container(width: 1.5, color: AppColors.black),
+                  ),
+                Positioned(
+                  top: dotTopOffset,
+                  child: Container(
+                    width: dotSize,
+                    height: dotSize,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        if (block.type != BlockType.blocked)
+                          BoxShadow(
+                            color: dotColor.withValues(alpha: 0.5),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                      ],
                     ),
                   ),
+                ),
               ],
             ),
           ),
           const SizedBox(width: 10),
 
-          // ── Block card ─────────────────────────────
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 10),
@@ -156,8 +167,6 @@ class ScheduleRow extends StatelessWidget {
     );
   }
 }
-
-// ── BlockCard ─────────────────────────────────────────────
 
 class BlockCard extends StatelessWidget {
   final StudyBlock block;
@@ -178,14 +187,12 @@ class BlockCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(AppColors.glassTileBorderRadius),
-        border: Border.all(
-          color: AppColors.white.withValues(alpha: AppColors.glassBorderOpacity),
-        ),
+        border: Border.all(color: AppColors.black),
         gradient: LinearGradient(
           stops: const [0.02, 0.02],
           colors: [
             accentColor,
-            AppColors.white.withValues(alpha: AppColors.glassTileOpacity),
+            AppColors.white,
           ],
         ),
       ),

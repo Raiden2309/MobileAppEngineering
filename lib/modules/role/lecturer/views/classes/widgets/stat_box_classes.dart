@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 
@@ -20,8 +19,9 @@ class StatBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.black.withValues(alpha: 0.05),
+        color: AppColors.white.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.black.withValues(alpha: 0.3)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,

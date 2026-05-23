@@ -16,28 +16,16 @@ class LecturerClassesSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'My Classes',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontStyles.weightHeavy,
-                      color: AppColors.black,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: FontStyles.titleSmall,
-                      fontWeight: FontStyles.weightMedium,
-                      color: AppColors.black.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
+              const Text(
+                'My Classes',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontStyles.weightHeavy,
+                  color: AppColors.black,
+                  letterSpacing: 0.5,
+                ),
               ),
+
               const SizedBox(height: 4),
               Text(
                 'Semester 4 · 3 active classes',
@@ -92,7 +80,6 @@ class LecturerClassesSection extends StatelessWidget {
             ),
           ),
         ),
-
       ],
     );
   }

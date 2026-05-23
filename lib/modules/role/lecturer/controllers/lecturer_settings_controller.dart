@@ -162,7 +162,6 @@ class LecturerSettingsController extends ChangeNotifier {
   // ── Auth ───────────────────────────────────────────────────────────────────
 
   Future<void> signOut(BuildContext context) async {
-    await LoginController.clearSession();
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(

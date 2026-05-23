@@ -15,7 +15,11 @@ class OverallProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: AppColors.glassCard(),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+      ),
       child: Row(
         children: [
           RingProgress(progress: model.overallProgress),
@@ -100,7 +104,14 @@ class RingPainter extends CustomPainter {
     final radius = (size.width / 2) - 5;
     const strokeWidth = 5.0;
 
-    // Track
+    // Border ring (drawn behind track)
+    final borderPaint = Paint()
+      ..color = AppColors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth + 2;
+    canvas.drawCircle(center, radius, borderPaint);
+
+  // Track background
     final trackPaint = Paint()
       ..color = Colors.white.withValues(alpha: AppColors.glassTileOpacity)
       ..style = PaintingStyle.stroke

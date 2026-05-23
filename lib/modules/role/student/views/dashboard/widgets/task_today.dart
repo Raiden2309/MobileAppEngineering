@@ -125,7 +125,11 @@ class TaskCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: AppColors.glassTile(),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+      ),
       child: Row(
         children: [
           TaskCheckbox(

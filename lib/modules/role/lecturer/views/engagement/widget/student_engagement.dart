@@ -16,12 +16,12 @@ class StudentRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.white,
+        color: AppColors.white.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
-          // Avatar
           Container(
             width: 38,
             height: 38,
@@ -41,8 +41,6 @@ class StudentRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Name + meta
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,14 +64,11 @@ class StudentRow extends StatelessWidget {
               ],
             ),
           ),
-
-          // Workload chip
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: chipColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),

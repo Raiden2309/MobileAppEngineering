@@ -11,7 +11,11 @@ class CurrentTaskPopup extends StatelessWidget {
       width: double.infinity,
       margin: const EdgeInsets.only(top: 24),
       padding: const EdgeInsets.all(20),
-      decoration: AppColors.glassCard(),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

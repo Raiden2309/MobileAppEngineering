@@ -29,7 +29,6 @@ class LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    controller.loadSavedCredentials().then((_) => setState(() {}));
   }
 
   @override

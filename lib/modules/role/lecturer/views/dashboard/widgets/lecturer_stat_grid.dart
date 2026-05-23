@@ -105,7 +105,11 @@ class _StatCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        decoration: AppColors.glassCard(),
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
           child: Row(
@@ -140,7 +144,18 @@ class _StatCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Icon(icon, color: accent, size: 20),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: accent.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Icon(icon, color: accent, size: 20),
+              ),
             ],
           ),
         ),

@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/lecturer_setup/lecturer_setup.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/student_setup/student_setup.dart';
@@ -260,12 +261,20 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                                 : () async {
                                     if (selectedIndex == 0) {
                                       await AuthService.saveRole(1);
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(AuthService.getCurrentUserId())
+                                          .update({'role': 1});
                                       Navigator.pushReplacement(
                                         context,
                                         slideRoute(const StudentSetupPage()),
                                       );
                                     } else if (selectedIndex == 1) {
                                       await AuthService.saveRole(2);
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(AuthService.getCurrentUserId())
+                                          .update({'role': 2});
                                       Navigator.pushReplacement(
                                         context,
                                         slideRoute(const LecturerSetupPage()),

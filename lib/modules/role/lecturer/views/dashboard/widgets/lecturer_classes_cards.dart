@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 
-class LecturerClasses extends StatelessWidget {
-  const LecturerClasses({super.key});
+class LecturerClassesCards extends StatelessWidget {
+  final VoidCallback? onSeeAll;
+  const LecturerClassesCards({super.key, this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
@@ -21,33 +22,33 @@ class LecturerClasses extends StatelessWidget {
                 color: AppColors.black,
               ),
             ),
-            Text(
-              'See all',
-              style: TextStyle(
-                fontSize: FontStyles.titleSmall,
-                fontWeight: FontStyles.weightMedium,
-                color: AppColors.black.withValues(alpha: 0.7),
+            GestureDetector(
+              onTap: onSeeAll,
+              child: Text(
+                'See all',
+                style: TextStyle(
+                  fontSize: FontStyles.titleSmall,
+                  fontWeight: FontStyles.weightMedium,
+                  color: AppColors.black.withValues(alpha: 0.7),
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         const _ClassRow(
-          emoji: '🖥️',
           name: 'CT124 System Proposal',
           meta: '28 students · 62% avg completion',
           accentColor: AppColors.californiaBlue,
         ),
         const SizedBox(height: 8),
         const _ClassRow(
-          emoji: '🔬',
           name: 'Research Methods',
           meta: '24 students · 54% avg completion',
           accentColor: AppColors.mikadoYellow,
         ),
         const SizedBox(height: 8),
         const _ClassRow(
-          emoji: '📱',
           name: 'Mobile Development',
           meta: '20 students · 59% avg completion',
           accentColor: AppColors.softPurple,
@@ -59,13 +60,11 @@ class LecturerClasses extends StatelessWidget {
 }
 
 class _ClassRow extends StatelessWidget {
-  final String emoji;
   final String name;
   final String meta;
   final Color accentColor;
 
   const _ClassRow({
-    required this.emoji,
     required this.name,
     required this.meta,
     required this.accentColor,
@@ -75,7 +74,11 @@ class _ClassRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: AppColors.glassTile(),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+      ),
       child: Row(
         children: [
           Container(
@@ -86,7 +89,14 @@ class _ClassRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(11),
             ),
             child: Center(
-              child: Text(emoji, style: const TextStyle(fontSize: 18)),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),

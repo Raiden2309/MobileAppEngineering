@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/engagement/widget/completion_bar.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/engagement/widget/engagement_status_card.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/engagement/widget/student_engagement.dart';
+import 'package:mae_assignment_frontend/modules/role/lecturer/views/engagement/widget/subject_completion_card.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 
@@ -281,36 +282,7 @@ class LecturerEngagementPageState extends State<LecturerEngagementPage> {
                 ),
                 const SizedBox(height: 20),
 
-                // ── Subject completion bars ───────────
-                SectionHeader(title: 'Subject Completion'),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: AppColors.glassCard(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Average completion rate of tasks students have tagged under each of your subjects.',
-                        style: TextStyle(
-                          fontSize: FontStyles.titleTiny,
-                          color: AppColors.black.withValues(alpha: 0.5),
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      CompletionBar(
-                          label: 'CT124', value: 0.62, color: AppColors.californiaBlue),
-                      const SizedBox(height: 10),
-                      CompletionBar(
-                          label: 'RM302', value: 0.54, color: AppColors.mikadoYellow),
-                      const SizedBox(height: 10),
-                      CompletionBar(
-                          label: 'MOB401', value: 0.59, color: AppColors.softPurple),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                const SubjectCompletionCard(),
 
                 // ── Student activity ──────────────────
                 SectionHeader(title: 'Student Activity'),
@@ -327,7 +299,6 @@ class LecturerEngagementPageState extends State<LecturerEngagementPage> {
                   padding: const EdgeInsets.only(bottom: 8),
                   child: StudentRow(student: s),
                 )),
-
               ],
             ),
           ),

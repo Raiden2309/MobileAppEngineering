@@ -60,11 +60,6 @@ class RegisterController {
       onError();
       return;
     }
-    if (selectedRole != 1 && selectedRole != 2) {
-      emailError = 'Please select a valid role.';
-      onError();
-      return;
-    }
 
     try {
       // 1. Create the user in Firebase Auth
@@ -74,8 +69,7 @@ class RegisterController {
         password: password,
       );
 
-      final String? uid = userCredential.user?.uid;
-      if (uid == null) throw Exception("User ID generation failed.");
+      final String uid = userCredential.user!.uid;
 
       // 2. Save directly to Firestore (Notice: NO 'response' variables used here)
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
@@ -90,10 +84,8 @@ class RegisterController {
 
       // 3. Log them in locally using their new Firebase UID
       final auth = context.read<AuthProvider>();
-      await auth.login(uid, selectedRole);
+      await auth.login(selectedRole);
 
-      // Temporarily bypass loadUser() until we migrate the ApiService call inside it
-      // await auth.loadUser();
 
       if (!context.mounted) return;
 

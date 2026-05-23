@@ -29,7 +29,11 @@ class DashboardGreeting extends StatelessWidget {
         Container(
           margin: const EdgeInsets.only(top: 4),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: AppColors.glassCard(),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+          ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [

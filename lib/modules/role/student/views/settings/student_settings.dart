@@ -128,7 +128,9 @@ class SettingsBody extends StatelessWidget {
             children: [
               ToggleRow(
                 icon: Icons.notifications_rounded,
-                iconBg: AppColors.greenSheen.withValues(alpha: 0.2),
+                iconBg: AppColors.greenSheenDark.withValues(
+                  alpha: 0.9,
+                ),
                 label: 'Task Reminders',
                 value: data.taskReminders,
                 onToggle: controller.toggleTaskReminders,
@@ -149,7 +151,9 @@ class SettingsBody extends StatelessWidget {
               ),
               ToggleRow(
                 icon: Icons.calendar_today_rounded,
-                iconBg: AppColors.greenSheen.withValues(alpha: 0.2),
+                iconBg: AppColors.greenSheenDark.withValues(
+                  alpha: 0.9,
+                ),
                 label: 'Weekly Reset Summary',
                 value: data.weeklyResetSummary,
                 onToggle: controller.toggleWeeklyResetSummary,
@@ -656,8 +660,8 @@ class NewSemesterCard extends StatelessWidget {
                               height: 32,
                               decoration: BoxDecoration(
                                 color: semester.isCurrent
-                                    ? AppColors.greenSheen.withValues(
-                                        alpha: 0.2,
+                                    ? AppColors.greenSheenDark.withValues(
+                                        alpha: 0.9,
                                       )
                                     : AppColors.white.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(
@@ -709,7 +713,9 @@ class NewSemesterCard extends StatelessWidget {
                                   'Current',
                                   style: TextStyle(
                                     fontSize: FontStyles.titleTiny,
-                                    color: AppColors.greenSheenDark,
+                                    color: AppColors.greenSheenDark.withValues(
+                                      alpha: 0.9,
+                                    ),
                                     fontWeight: FontStyles.weightMedium,
                                   ),
                                 ),

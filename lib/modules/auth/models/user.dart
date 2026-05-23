@@ -15,10 +15,10 @@ class User {
   bool get isLecturer => role == 2;
 
   factory User.fromJson(Map<String, dynamic> json) => User(
-    id:    json['id']    as int,
+    id:    json['id']    is int ? json['id']   as int : int.tryParse(json['id'].toString())   ?? 0,
     name:  json['name']  as String,
     email: json['email'] as String,
-    role:  json['role']  as int,
+    role:  json['role']  is int ? json['role'] as int : int.tryParse(json['role'].toString()) ?? 0,
   );
 
   Map<String, dynamic> toJson() => {

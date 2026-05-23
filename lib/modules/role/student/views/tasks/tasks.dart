@@ -137,7 +137,11 @@ class MyTasksPageState extends State<MyTasksPage> {
               // ── Add task button ────────────────────────
               Container(
                 width: double.infinity,
-                decoration: AppColors.glassCard(),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+                  border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+                ),
                 child: OutlinedButton.icon(
                   onPressed: () => controller.onAddTask(context),
                   icon: const Icon(Icons.add, size: 18, color: AppColors.black),

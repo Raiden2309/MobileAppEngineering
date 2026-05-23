@@ -15,8 +15,8 @@ class TodaysPlan extends StatelessWidget {
     final now = DateTime.now();
 
     final todayIndex = weekPlan.days.indexWhere(
-      (d) =>
-          d.date.day == now.day &&
+          (d) =>
+      d.date.day == now.day &&
           d.date.month == now.month &&
           d.date.year == now.year,
     );
@@ -27,11 +27,14 @@ class TodaysPlan extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 16),
-      decoration: AppColors.glassCard(),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.black),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
@@ -77,10 +80,8 @@ class TodaysPlan extends StatelessWidget {
             ),
           ),
 
-          // ── Divider ───────────────────────────────────────
-          Divider(height: 1, color: AppColors.glassDivider),
+          const Divider(height: 1, color: AppColors.black),
 
-          // ── Content ───────────────────────────────────────
           if (blocks.isEmpty)
             const EmptyState()
           else
@@ -100,9 +101,8 @@ class TodaysPlan extends StatelessWidget {
               ),
             ),
 
-          // ── Footer ────────────────────────────────────────
           if (blocks.isNotEmpty) ...[
-            Divider(height: 1, color: AppColors.glassDivider),
+            const Divider(height: 1, color: AppColors.black),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Row(
@@ -161,8 +161,6 @@ class TodaysPlan extends StatelessWidget {
   }
 }
 
-// ── Study block tile ──────────────────────────────────────
-
 class StudyBlockTile extends StatelessWidget {
   final StudyBlock block;
 
@@ -190,10 +188,11 @@ class StudyBlockTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: AppColors.glassTile(),
+      decoration: AppColors.glassTile().copyWith(
+        border: Border.all(color: AppColors.black),
+      ),
       child: Row(
         children: [
-          // Colored accent bar
           Container(
             width: 3,
             height: 36,
@@ -204,7 +203,6 @@ class StudyBlockTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Title & subject label
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,7 +224,7 @@ class StudyBlockTile extends StatelessWidget {
                     block.subject!,
                     style: const TextStyle(
                       color: AppColors.legendText,
-                      fontSize: FontStyles.titleTiny, // 10 — closest to 11
+                      fontSize: FontStyles.titleTiny,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -236,7 +234,6 @@ class StudyBlockTile extends StatelessWidget {
             ),
           ),
 
-          // Time range
           Text(
             '${block.startTime} – ${block.endTime}',
             style: const TextStyle(
@@ -251,8 +248,6 @@ class StudyBlockTile extends StatelessWidget {
     );
   }
 }
-
-// ── Gap indicator between blocks ─────────────────────────
 
 class TimeGapIndicator extends StatelessWidget {
   final StudyBlock fromBlock;
@@ -299,13 +294,13 @@ class TimeGapIndicator extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 15),
-          Container(width: 1, height: 14, color: AppColors.glassDivider),
+          Container(width: 1, height: 14, color: AppColors.black),
           const SizedBox(width: 10),
           Text(
             '${gap}min break',
             style: const TextStyle(
               color: AppColors.legendText,
-              fontSize: FontStyles.titleTiny, // 10 — closest to 11
+              fontSize: FontStyles.titleTiny,
             ),
           ),
         ],
@@ -313,8 +308,6 @@ class TimeGapIndicator extends StatelessWidget {
     );
   }
 }
-
-// ── Empty state ───────────────────────────────────────────
 
 class EmptyState extends StatelessWidget {
   const EmptyState();

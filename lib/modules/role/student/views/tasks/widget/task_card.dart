@@ -54,7 +54,11 @@ class TaskCardState extends State<TaskCard> {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: AppColors.glassCard(borderRadius: 14),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -175,7 +179,11 @@ class SubjectGroupSection extends StatelessWidget {
         Container(
           margin: const EdgeInsets.only(bottom: 10, top: 4),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: AppColors.glassCard(),
+          decoration: BoxDecoration(
+            color: AppColors.white.withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+            border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+          ),
           child: Row(
             children: [
               Container(

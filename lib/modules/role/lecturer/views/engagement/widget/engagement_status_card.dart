@@ -1,7 +1,4 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
-
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 
@@ -23,11 +20,15 @@ class StatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.white;
+    final c = color ?? AppColors.black;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        decoration: AppColors.glassCard(),
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+        ),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
           child: Row(

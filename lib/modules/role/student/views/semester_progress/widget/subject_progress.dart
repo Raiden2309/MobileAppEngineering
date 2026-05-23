@@ -15,12 +15,15 @@ class SubjectProgressCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: AppColors.glassCard(),
+      decoration: BoxDecoration(
+        color: AppColors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+        border: Border.all(color: AppColors.black),
+      ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header row ────────────────────────────
           Row(
             children: [
               Container(
@@ -51,18 +54,22 @@ class SubjectProgressCard extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          // ── Progress bar ──────────────────────────
           Row(
             children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: subject.progress,
-                    backgroundColor: Colors.white.withValues(
-                        alpha: AppColors.glassTileOpacity),
-                    valueColor: AlwaysStoppedAnimation<Color>(color),
-                    minHeight: 6,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: AppColors.black, width: 1),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: subject.progress,
+                      backgroundColor: Colors.white.withValues(alpha: AppColors.glassTileOpacity),
+                      valueColor: AlwaysStoppedAnimation<Color>(color),
+                      minHeight: 6,
+                    ),
                   ),
                 ),
               ),
@@ -80,7 +87,6 @@ class SubjectProgressCard extends StatelessWidget {
 
           const SizedBox(height: 14),
 
-          // ── Stats row ─────────────────────────────
           Row(
             children: [
               StatChip(
@@ -127,7 +133,9 @@ class StatChip extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-        decoration: AppColors.glassTile(borderRadius: 10),
+        decoration: AppColors.glassTile(borderRadius: 10).copyWith(
+          border: Border.all(color: AppColors.black),
+        ),
         child: Column(
           children: [
             Text(

@@ -127,10 +127,12 @@ class SplashScreenState extends State<SplashScreen>
       destination = const RoleSetupPage();
     } else {
       final int? role = await AuthService.getRole();
-      if (role == 2) {
+      if (role == 1) {
+        destination = const CentralStudentNavigation();
+      } else if (role == 2) {
         destination = const CentralLecturerNavigation();
       } else {
-        destination = const CentralStudentNavigation();
+        destination = const LoginPage();
       }
     }
 

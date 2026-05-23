@@ -37,7 +37,7 @@ class CentralLecturerNavigationState
     _settingsProvider.loadMock();
 
     pages = [
-      const LecturerDashboard(),
+      LecturerDashboard(onNavigateToClasses: () => goToTab(1)),
       const LecturerClassesSection(),
       const LecturerEngagementPage(),
       const LecturerAlertsPage(),

@@ -272,7 +272,6 @@ class StudentSettingsController extends ChangeNotifier {
   }
 
   Future<void> signOut(BuildContext context) async {
-    await LoginController.clearSession();
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(

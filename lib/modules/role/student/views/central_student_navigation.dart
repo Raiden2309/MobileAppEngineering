@@ -164,7 +164,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentNavIndex,
-        onTap: goToTab,
+        onTap: goToTab, role: 1,
       ),
     );
   }

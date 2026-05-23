@@ -24,7 +24,11 @@ class StatCard extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        decoration: AppColors.glassCard(),
+        decoration: BoxDecoration(
+          color: AppColors.white.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
+          border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

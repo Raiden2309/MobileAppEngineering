@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/lecturer/views/dashboard/widgets/lecturer_classes.dart';
+import 'package:mae_assignment_frontend/modules/role/lecturer/views/dashboard/widgets/lecturer_classes_cards.dart';
 import 'widgets/lecturer_greeting.dart';
 import 'widgets/alert_banner.dart';
 import 'widgets/lecturer_stat_grid.dart';
 
 class LecturerDashboard extends StatefulWidget {
-  const LecturerDashboard({super.key});
+  final VoidCallback? onNavigateToClasses;
+  const LecturerDashboard({super.key, this.onNavigateToClasses});
 
   @override
   State<LecturerDashboard> createState() => LecturerDashboardState();
@@ -25,7 +26,7 @@ class LecturerDashboardState extends State<LecturerDashboard> {
           const SizedBox(height: 16),
           const LecturerStatGrid(),
           const SizedBox(height: 16),
-          const LecturerClasses(),
+          LecturerClassesCards(onSeeAll: widget.onNavigateToClasses),
         ],
       ),
     );
