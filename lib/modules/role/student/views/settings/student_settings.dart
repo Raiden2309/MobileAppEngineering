@@ -7,6 +7,7 @@ import '../../controllers/student_settings_controller.dart';
 import '../../models/student_settings_models.dart';
 import '../../providers/navigation_provider.dart';
 import 'bottom_sheet_widgets/blocked_times_sheet.dart';
+import 'bottom_sheet_widgets/joined_classes_sheet.dart';
 import 'bottom_sheet_widgets/semester_sheet.dart';
 import 'bottom_sheet_widgets/study_hours_sheet.dart';
 import 'bottom_sheet_widgets/subjects_sheet.dart';
@@ -87,6 +88,19 @@ class SettingsBody extends StatelessWidget {
                   context,
                   userId: data.userId,
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SettingsGroup(
+            title: 'Classes',
+            children: [
+              SettingsRow(
+                icon: Icons.lock_rounded,
+                iconBg: AppColors.californiaBlue.withValues(alpha: 0.2),
+                label: 'Join Class',
+                value: '${data.joinedClassCount} classes',
+                onTap: () => JoinedClassesSheet.show(context, controller),
               ),
             ],
           ),

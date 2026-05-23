@@ -1,5 +1,7 @@
 import 'package:mae_assignment_frontend/modules/role/student/models/semester_details_model.dart';
 
+import '../controllers/student_settings_controller.dart';
+
 class StudentSettingsModel {
   final int userId;
   final String userName;
@@ -18,6 +20,8 @@ class StudentSettingsModel {
   final List<Map<String, String>> subjects;
   final Set<String> blockedSlots;
   final String? avatarUrl;
+  final int joinedClassCount;           // NEW
+  final List<JoinedClassModel> joinedClasses; // NEW
 
   const StudentSettingsModel({
     required this.userId,
@@ -32,14 +36,20 @@ class StudentSettingsModel {
     required this.slotEndPrompts,
     required this.burnoutWarnings,
     required this.weeklyResetSummary,
-    this.appVersion = 'v1.0',
-    this.semesters = const [],
-    this.subjects    = const [],
-    this.blockedSlots = const {},
+    this.appVersion    = 'v1.0',
+    this.semesters     = const [],
+    this.subjects      = const [],
+    this.blockedSlots  = const {},
     this.avatarUrl,
+    this.joinedClassCount  = 0,         // NEW
+    this.joinedClasses     = const [],  // NEW
   });
 
   factory StudentSettingsModel.fromJson(Map<String, dynamic> json) {
+    final classes = (json['joined_classes'] as List<dynamic>? ?? [])
+        .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
+        .toList();
+
     return StudentSettingsModel(
       userId:             json['user_id'] as int,
       userName:           json['user_name'] as String,
@@ -60,9 +70,10 @@ class StudentSettingsModel {
       subjects: (json['subjects'] as List<dynamic>? ?? [])
           .map((e) => Map<String, String>.from(e as Map))
           .toList(),
-      blockedSlots: Set<String>.from(
-          json['blocked_slots'] as List? ?? []),
-      avatarUrl: json['avatar_url'] as String?,
+      blockedSlots:      Set<String>.from(json['blocked_slots'] as List? ?? []),
+      avatarUrl:         json['avatar_url'] as String?,
+      joinedClasses:     classes,                // NEW
+      joinedClassCount:  classes.length,         // NEW
     );
   }
 
@@ -76,6 +87,8 @@ class StudentSettingsModel {
     List<Map<String, String>>? subjects,
     Set<String>? blockedSlots,
     String? avatarUrl,
+    int? joinedClassCount,                       // NEW
+    List<JoinedClassModel>? joinedClasses,       // NEW
   }) {
     return StudentSettingsModel(
       userId:             userId,
@@ -92,9 +105,11 @@ class StudentSettingsModel {
       weeklyResetSummary: weeklyResetSummary  ?? this.weeklyResetSummary,
       appVersion:         appVersion,
       semesters:          semesters           ?? this.semesters,
-      subjects:     subjects     ?? this.subjects,
-      blockedSlots: blockedSlots ?? this.blockedSlots,
-      avatarUrl: avatarUrl ?? this.avatarUrl,
+      subjects:           subjects            ?? this.subjects,
+      blockedSlots:       blockedSlots        ?? this.blockedSlots,
+      avatarUrl:          avatarUrl           ?? this.avatarUrl,
+      joinedClassCount:   joinedClassCount    ?? this.joinedClassCount,   // NEW
+      joinedClasses:      joinedClasses       ?? this.joinedClasses,      // NEW
     );
   }
 
@@ -115,33 +130,38 @@ class StudentSettingsModel {
       appVersion:         'v1.0',
       semesters: const [
         SemesterModel(
-          name: 'Semester 4 · Year 2',
+          name:            'Semester 4 · Year 2',
           studyHoursStart: '8 AM',
-          studyHoursEnd: '10 PM',
-          subjectCount: 4,
-          isCurrent: true,
+          studyHoursEnd:   '10 PM',
+          subjectCount:    4,
+          isCurrent:       true,
         ),
         SemesterModel(
-          name: 'Semester 3 · Year 2',
+          name:            'Semester 3 · Year 2',
           studyHoursStart: '9 AM',
-          studyHoursEnd: '9 PM',
-          subjectCount: 5,
-          isCurrent: false,
+          studyHoursEnd:   '9 PM',
+          subjectCount:    5,
+          isCurrent:       false,
         ),
       ],
-      // ADD these two new fields ↓
       subjects: [
-        {'name': 'Mathematics',        'color': '4F86C6'},
-        {'name': 'Data Structures',    'color': 'F87171'},
-        {'name': 'Operating Systems',  'color': '34D399'},
+        {'name': 'Mathematics',         'color': '4F86C6'},
+        {'name': 'Data Structures',     'color': 'F87171'},
+        {'name': 'Operating Systems',   'color': '34D399'},
         {'name': 'Software Engineering','color': 'FBBF24'},
       ],
       blockedSlots: {
-        '0_0', '0_1',   // Mon 8am, 9am
-        '2_2', '2_3',   // Wed 10am, 11am
-        '4_5', '4_6',   // Fri 1pm, 2pm
+        '0_0', '0_1',
+        '2_2', '2_3',
+        '4_5', '4_6',
       },
       avatarUrl: null,
+      // NEW — mock joined classes
+      joinedClasses: const [
+        JoinedClassModel(id: '1', name: 'CS301 — Algorithm Design'),
+        JoinedClassModel(id: '2', name: 'CS410 — Machine Learning'),
+      ],
+      joinedClassCount: 2,
     );
   }
 }
