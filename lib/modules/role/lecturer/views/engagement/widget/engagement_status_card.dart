@@ -1,6 +1,6 @@
-import 'package:flutter/cupertino.dart';
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import 'package:flutter/material.dart';
+import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
 
 class StatusCard extends StatelessWidget {
   final String label;
@@ -21,16 +21,17 @@ class StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? AppColors.black;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
           color: AppColors.white.withValues(alpha: 0.92),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
           border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
+          padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,11 +41,10 @@ class StatusCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    label.toUpperCase(),
+                    label,
                     style: const TextStyle(
                       fontSize: FontStyles.titleSmall,
                       color: AppColors.black,
-                      letterSpacing: 0.5,
                     ),
                   ),
                   Text(
@@ -64,7 +64,19 @@ class StatusCard extends StatelessWidget {
                   ),
                 ],
               ),
-              Icon(icon, color: c, size: 20),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: c.withValues(alpha: AppColors.glassIconOpacity),
+                  borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                  border: Border.all(
+                    color: c.withValues(alpha: AppColors.glassBorderOpacity),
+                    width: 1,
+                  ),
+                ),
+                child: Icon(icon, color: c, size: 20),
+              ),
             ],
           ),
         ),

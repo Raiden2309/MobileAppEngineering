@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import 'package:provider/provider.dart';
+import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
+import '../../../controllers/classes_controller.dart';
+import '../../../controllers/lecture_dashboard_controller.dart';
+import '../../../models/class_model.dart';
+import '../../../providers/lecturer_dashboard_provider.dart';
 
 class LecturerClassesCards extends StatelessWidget {
   final VoidCallback? onSeeAll;
@@ -8,6 +13,8 @@ class LecturerClassesCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final classes = context.watch<LecturerDashboardProvider>().classes;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -23,7 +30,7 @@ class LecturerClassesCards extends StatelessWidget {
               ),
             ),
             GestureDetector(
-              onTap: onSeeAll,
+              onTap: () => LecturerDashboardController.onSeeAllClasses(context, onSeeAll),
               child: Text(
                 'See all',
                 style: TextStyle(
@@ -36,22 +43,11 @@ class LecturerClassesCards extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        const _ClassRow(
-          name: 'CT124 System Proposal',
-          meta: '28 students · 62% avg completion',
-          accentColor: AppColors.californiaBlue,
-        ),
-        const SizedBox(height: 8),
-        const _ClassRow(
-          name: 'Research Methods',
-          meta: '24 students · 54% avg completion',
-          accentColor: AppColors.mikadoYellow,
-        ),
-        const SizedBox(height: 8),
-        const _ClassRow(
-          name: 'Mobile Development',
-          meta: '20 students · 59% avg completion',
-          accentColor: AppColors.softPurple,
+        ...classes.map(
+              (c) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _ClassRow(model: c),
+          ),
         ),
         const SizedBox(height: 24),
       ],
@@ -60,15 +56,9 @@ class LecturerClassesCards extends StatelessWidget {
 }
 
 class _ClassRow extends StatelessWidget {
-  final String name;
-  final String meta;
-  final Color accentColor;
+  final ClassModel model;
 
-  const _ClassRow({
-    required this.name,
-    required this.meta,
-    required this.accentColor,
-  });
+  const _ClassRow({required this.model});
 
   @override
   Widget build(BuildContext context) {
@@ -85,18 +75,8 @@ class _ClassRow extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.15),
+              color: model.accentColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(11),
-            ),
-            child: Center(
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -105,7 +85,7 @@ class _ClassRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  model.name,
                   style: TextStyle(
                     fontSize: FontStyles.titleSmall,
                     fontWeight: FontStyles.weightMedium,
@@ -115,7 +95,7 @@ class _ClassRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  meta,
+                  ClassesController.studentsMeta(model),
                   style: TextStyle(
                     fontSize: FontStyles.titleTiny,
                     color: AppColors.black.withValues(alpha: 0.6),

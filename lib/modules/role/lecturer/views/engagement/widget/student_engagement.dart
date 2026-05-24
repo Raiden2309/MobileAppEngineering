@@ -1,17 +1,17 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
 
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import '../../../models/engagement_student_model.dart';
 
 class StudentRow extends StatelessWidget {
-  final Map<String, dynamic> student;
+  final EngagementStudentModel student;
   const StudentRow({super.key, required this.student});
 
   @override
   Widget build(BuildContext context) {
-    final Color? workloadColor = student['workloadColor'];
-    final bool isInactive = student['workload'] == 'Inactive';
-    final chipColor = workloadColor ?? AppColors.black.withValues(alpha: 0.3);
+    final bool isInactive = student.workload == 'Inactive';
+    final chipColor = student.workloadColor ?? AppColors.black.withValues(alpha: 0.3);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -32,7 +32,7 @@ class StudentRow extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              student['initials'],
+              student.initials,
               style: TextStyle(
                 fontSize: FontStyles.titleSmall,
                 fontWeight: FontStyles.weightHeavy,
@@ -46,7 +46,7 @@ class StudentRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  student['name'],
+                  student.name,
                   style: const TextStyle(
                     fontSize: FontStyles.titleSmall,
                     fontWeight: FontStyles.weightHeavy,
@@ -55,8 +55,8 @@ class StudentRow extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  student['meta'],
-                  style: TextStyle(
+                  student.meta,
+                  style: const TextStyle(
                     fontSize: FontStyles.titleTiny,
                     color: AppColors.legendText,
                   ),
@@ -75,7 +75,7 @@ class StudentRow extends StatelessWidget {
                   border: Border.all(color: chipColor.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  student['workload'],
+                  student.workload,
                   style: TextStyle(
                     fontSize: FontStyles.titleTiny,
                     fontWeight: FontStyles.weightHeavy,

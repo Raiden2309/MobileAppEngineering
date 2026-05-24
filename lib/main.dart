@@ -6,6 +6,11 @@ import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
 import 'modules/auth/providers/auth_provider.dart';
+import 'modules/role/lecturer/providers/alert_provider.dart';
+import 'modules/role/lecturer/providers/classes_provider.dart';
+import 'modules/role/lecturer/providers/engagement_provider.dart';
+import 'modules/role/lecturer/providers/lecturer_dashboard_provider.dart';
+import 'modules/role/lecturer/providers/lecturer_settings_provider.dart';
 import 'shared/widgets/splash_screen.dart';
 
 void main() async {
@@ -22,27 +27,25 @@ void main() async {
 
   const storage = FlutterSecureStorage();
 
-  await storage.write(
-    key: 'auth_token',
-    value: 'test_token_abc123',
-  );
-
-  await storage.write(
-    key: 'user_role',
-    value: 'student',
-  );
-
-  await storage.write(
-    key: 'is_setup_complete',
-    value: 'true',
-  );
+  await storage.write(key: 'auth_token',       value: 'test_token_abc123');
+  await storage.write(key: 'user_role',         value: 'student');
+  await storage.write(key: 'is_setup_complete', value: 'true');
 
   final authProvider = AuthProvider();
   await authProvider.loadFromStorage();
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: authProvider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: authProvider),
+
+        // Lecturer
+        ChangeNotifierProvider(create: (_) => AlertProvider()),
+        ChangeNotifierProvider(create: (_) => ClassesProvider()),
+        ChangeNotifierProvider(create: (_) => LecturerDashboardProvider()),
+        ChangeNotifierProvider(create: (_) => EngagementProvider()),
+        ChangeNotifierProvider(create: (_) => LecturerSettingsProvider()),
+      ],
       child: const MyApp(),
     ),
   );

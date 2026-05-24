@@ -15,7 +15,6 @@ class LoginPage extends StatefulWidget {
 
 class LoginPageState extends State<LoginPage> {
   bool showPassword = true;
-  bool rememberMe = false;
 
   // Instantiate the controller
   final LoginController controller = LoginController();
@@ -140,25 +139,8 @@ class LoginPageState extends State<LoginPage> {
                       const SizedBox(height: 12),
 
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          MouseRegion(
-                            cursor: SystemMouseCursors.click,
-                            child: GestureDetector(
-                              onTap: () => setState(() => rememberMe = !rememberMe),
-                              child: Row(
-                                children: [
-                                  Checkbox(
-                                    value: rememberMe,
-                                    mouseCursor: SystemMouseCursors.click,
-                                    overlayColor: WidgetStateProperty.all(AppColors.transparent),
-                                    onChanged: (val) => setState(() => rememberMe = val!),
-                                  ),
-                                  const Text('Remember me', style: TextStyle(fontSize: 13)),
-                                ],
-                              ),
-                            ),
-                          ),
                           TextButton(
                             onPressed: () => ChangePassword.startForgotPassword(context),
                             style: TextButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),

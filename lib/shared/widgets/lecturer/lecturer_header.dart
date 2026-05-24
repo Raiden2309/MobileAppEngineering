@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../modules/role/lecturer/controllers/lecturer_settings_controller.dart';
+import 'package:provider/provider.dart';
 import '../../../modules/role/lecturer/providers/lecturer_settings_provider.dart';
 import '../../../modules/role/lecturer/views/settings/lecturer_settings.dart';
 import '../../../shared/styles/app_colors.dart';
@@ -8,19 +8,18 @@ import '../../../shared/styles/font_styles.dart';
 class LecturerHeader extends StatelessWidget {
   final bool hasUnreadAlerts;
   final VoidCallback onAlertsTapped;
-  final LecturerSettingsController settingsController;
-  final LecturerSettingsProvider settingsProvider;
 
   const LecturerHeader({
     super.key,
     required this.hasUnreadAlerts,
     required this.onAlertsTapped,
-    required this.settingsController,
-    required this.settingsProvider,
   });
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = context.watch<LecturerSettingsProvider>();
+    final avatarUrl = settingsProvider.avatarUrl;
+
     return SizedBox(
       height: 56,
       child: Row(
@@ -42,12 +41,11 @@ class LecturerHeader extends StatelessWidget {
           ),
           Row(
             children: [
-              // Alerts
               GestureDetector(
                 onTap: onAlertsTapped,
                 child: Stack(
                   children: [
-                    CircleAvatar(
+                    const CircleAvatar(
                       backgroundColor: AppColors.white,
                       child: Icon(
                         Icons.notifications_outlined,
@@ -76,34 +74,20 @@ class LecturerHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-
-              // Profile → Settings
               GestureDetector(
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => LecturerSettingsPage(
-                      controller: settingsController,
-                      navigationProvider: settingsProvider,
-                    ),
+                    builder: (_) => const LecturerSettingsPage(),
                   ),
                 ),
-                child: ListenableBuilder(
-                  listenable: settingsController,
-                  builder: (context, _) {
-                    final url = settingsController.avatarUrl;
-                    return CircleAvatar(
-                      backgroundColor: AppColors.white,
-                      backgroundImage:
-                      url != null ? NetworkImage(url) : null,
-                      child: url == null
-                          ? Image.asset(
-                        'assets/images/person.png',
-                        width: 24,
-                      )
-                          : null,
-                    );
-                  },
+                child: CircleAvatar(
+                  backgroundColor: AppColors.white,
+                  backgroundImage:
+                  avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                  child: avatarUrl == null
+                      ? Image.asset('assets/images/person.png', width: 24)
+                      : null,
                 ),
               ),
             ],

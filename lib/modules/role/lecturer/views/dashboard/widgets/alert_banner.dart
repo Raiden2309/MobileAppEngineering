@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import 'package:provider/provider.dart';
+import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
+import '../../../controllers/lecture_dashboard_controller.dart';
+import '../../../providers/lecturer_dashboard_provider.dart';
 
 class AlertBanner extends StatelessWidget {
   const AlertBanner({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final atRiskCount = context.watch<LecturerDashboardProvider>().atRiskCount;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85), // strong white bg
+        color: Colors.white.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
         border: Border.all(color: AppColors.red.withValues(alpha: 0.4)),
       ),
@@ -41,9 +46,9 @@ class AlertBanner extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
-            '2 students showing burnout symptoms',
-            style: TextStyle(
+          Text(
+            '$atRiskCount students showing burnout symptoms',
+            style: const TextStyle(
               fontSize: FontStyles.titleMedium,
               fontWeight: FontStyles.titleWeight,
               color: AppColors.black,
@@ -77,12 +82,15 @@ class AlertBanner extends StatelessWidget {
                   ),
                 ),
               ),
-              const Text(
-                'View alerts →',
-                style: TextStyle(
-                  fontSize: FontStyles.titleSmall,
-                  fontWeight: FontStyles.titleWeight,
-                  color: AppColors.black,
+              GestureDetector(
+                onTap: () => LecturerDashboardController.onViewAlerts(context),
+                child: const Text(
+                  'View alerts →',
+                  style: TextStyle(
+                    fontSize: FontStyles.titleSmall,
+                    fontWeight: FontStyles.titleWeight,
+                    color: AppColors.black,
+                  ),
                 ),
               ),
             ],

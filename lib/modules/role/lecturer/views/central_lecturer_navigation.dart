@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/alerts/lecturer_alerts.dart';
-import 'package:mae_assignment_frontend/modules/role/lecturer/views/classes/lecturer_classes.dart';
+
 import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
 import '../../../../shared/widgets/lecturer/lecturer_header.dart';
-import '../controllers/lecturer_settings_controller.dart';
 import '../providers/lecturer_settings_provider.dart';
+import 'classes/lecturer_classes.dart';
 import 'dashboard/lecturer_dashboard.dart';
 import 'engagement/engagement.dart';
 
@@ -19,35 +20,21 @@ class CentralLecturerNavigation extends StatefulWidget {
 
 class CentralLecturerNavigationState
     extends State<CentralLecturerNavigation> {
-  int  currentNavIndex = 0;
+  int currentNavIndex = 0;
   bool hasUnreadAlerts = true;
 
-  late final LecturerSettingsController _settingsController;
-  late final LecturerSettingsProvider   _settingsProvider;
   late final List<Widget> pages;
 
   @override
   void initState() {
     super.initState();
-
-    _settingsController = LecturerSettingsController();
-    _settingsProvider   = LecturerSettingsProvider(_settingsController);
-
-    // Load mock data for now; swap to _settingsProvider.fetch() when API ready
-    _settingsProvider.loadMock();
-
+    context.read<LecturerSettingsProvider>().loadMock();
     pages = [
       LecturerDashboard(onNavigateToClasses: () => goToTab(1)),
       const LecturerClassesSection(),
       const LecturerEngagementPage(),
       const LecturerAlertsPage(),
     ];
-  }
-
-  @override
-  void dispose() {
-    _settingsController.dispose();
-    super.dispose();
   }
 
   void goToTab(int index) {
@@ -78,10 +65,8 @@ class CentralLecturerNavigationState
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                 child: LecturerHeader(
-                  hasUnreadAlerts:    hasUnreadAlerts,
-                  onAlertsTapped:     () => goToTab(3),
-                  settingsController: _settingsController,
-                  settingsProvider:   _settingsProvider,
+                  hasUnreadAlerts: hasUnreadAlerts,
+                  onAlertsTapped: () => goToTab(3),
                 ),
               ),
               Expanded(

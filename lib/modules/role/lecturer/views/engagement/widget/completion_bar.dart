@@ -1,10 +1,6 @@
-import 'dart:ui';
-
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
 
 class CompletionBar extends StatelessWidget {
   final String label;
@@ -12,6 +8,7 @@ class CompletionBar extends StatelessWidget {
   final Color color;
 
   const CompletionBar({
+    super.key,
     required this.label,
     required this.value,
     required this.color,
@@ -25,7 +22,7 @@ class CompletionBar extends StatelessWidget {
           width: 52,
           child: Text(
             label,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: FontStyles.titleSmall,
               fontWeight: FontStyles.weightMedium,
               color: AppColors.black,

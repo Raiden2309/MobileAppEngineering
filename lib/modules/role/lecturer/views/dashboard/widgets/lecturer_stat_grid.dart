@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import 'package:provider/provider.dart';
+import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
+import '../../../models/stat_card_model.dart';
+import '../../../providers/lecturer_dashboard_provider.dart';
 
 class LecturerStatGrid extends StatelessWidget {
   const LecturerStatGrid({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final stats = context.watch<LecturerDashboardProvider>().stats;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -28,26 +33,10 @@ class LecturerStatGrid extends StatelessWidget {
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: const [
-                  Expanded(
-                    child: _StatCard(
-                      label: 'MY CLASSES',
-                      value: '3',
-                      sub: 'active this sem',
-                      icon: Icons.class_outlined,
-                      accent: AppColors.californiaBlue,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      label: 'STUDENTS',
-                      value: '72',
-                      sub: 'across all classes',
-                      icon: Icons.people_outline,
-                      accent: AppColors.softPurple,
-                    ),
-                  ),
+                children: [
+                  Expanded(child: _StatCard(model: stats[0])),
+                  const SizedBox(width: 12),
+                  Expanded(child: _StatCard(model: stats[1])),
                 ],
               ),
             ),
@@ -55,26 +44,10 @@ class LecturerStatGrid extends StatelessWidget {
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: const [
-                  Expanded(
-                    child: _StatCard(
-                      label: 'AVG COMPLETION',
-                      value: '58%',
-                      sub: 'tasks this week',
-                      icon: Icons.bar_chart_rounded,
-                      accent: AppColors.mikadoYellow,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      label: 'AT RISK',
-                      value: '2',
-                      sub: 'burnout indicators',
-                      icon: Icons.warning_amber,
-                      accent: AppColors.red,
-                    ),
-                  ),
+                children: [
+                  Expanded(child: _StatCard(model: stats[2])),
+                  const SizedBox(width: 12),
+                  Expanded(child: _StatCard(model: stats[3])),
                 ],
               ),
             ),
@@ -86,19 +59,9 @@ class LecturerStatGrid extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String sub;
-  final IconData icon;
-  final Color accent;
+  final StatCardModel model;
 
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.sub,
-    required this.icon,
-    required this.accent,
-  });
+  const _StatCard({required this.model});
 
   @override
   Widget build(BuildContext context) {
@@ -121,14 +84,14 @@ class _StatCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    label,
+                    model.label,
                     style: const TextStyle(
                       fontSize: FontStyles.titleSmall,
                       color: AppColors.black,
                     ),
                   ),
                   Text(
-                    value,
+                    model.value,
                     style: const TextStyle(
                       fontSize: FontStyles.titleGreeting,
                       fontWeight: FontStyles.titleWeight,
@@ -136,7 +99,7 @@ class _StatCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    sub,
+                    model.sub,
                     style: const TextStyle(
                       fontSize: FontStyles.titleSmall,
                       color: AppColors.legendText,
@@ -147,14 +110,14 @@ class _StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.15),
+                  color: model.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: accent.withValues(alpha: 0.4),
+                    color: model.accent.withValues(alpha: 0.4),
                     width: 1.5,
                   ),
                 ),
-                child: Icon(icon, color: accent, size: 20),
+                child: Icon(model.icon, color: model.accent, size: 20),
               ),
             ],
           ),

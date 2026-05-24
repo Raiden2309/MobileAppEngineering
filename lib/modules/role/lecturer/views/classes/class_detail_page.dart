@@ -1,28 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../controllers/classes_controller.dart';
+import '../../models/class_model.dart';
+import '../../models/class_student_model.dart';
+import '../../providers/classes_provider.dart';
 
 class ClassDetailPage extends StatelessWidget {
-  final String name;
-  final String code;
-  final String students;
-  final String avgDone;
-  final String atRisk;
-  final Color accentColor;
-  final Color atRiskColor;
-  final String semester;
+  final ClassModel classModel;
 
-  const ClassDetailPage({
-    super.key,
-    required this.name,
-    required this.code,
-    required this.students,
-    required this.avgDone,
-    required this.atRisk,
-    required this.accentColor,
-    required this.atRiskColor,
-    required this.semester,
-  });
+  const ClassDetailPage({super.key, required this.classModel});
 
   BoxDecoration _whiteCard() => BoxDecoration(
     color: AppColors.white.withValues(alpha: 0.85),
@@ -32,6 +20,10 @@ class ClassDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = classModel;
+    final classCode = c.code.split(' ·').first.trim();
+    final students = context.read<ClassesProvider>().getStudents(classCode);
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -46,19 +38,19 @@ class ClassDetailPage extends StatelessWidget {
           bottom: false,
           child: Column(
             children: [
-              _buildBackNav(context),
+              _buildBackNav(context, c),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHero(context),
-                      _buildCompletionBar(),
+                      _buildHero(c),
+                      _buildCompletionBar(c),
                       const SizedBox(height: 16),
-                      _buildWorkloadMonitor(),
+                      _buildWorkloadMonitor(c),
                       const SizedBox(height: 16),
-                      _buildStudentList(),
+                      _buildStudentList(students),
                     ],
                   ),
                 ),
@@ -70,7 +62,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBackNav(BuildContext context) {
+  Widget _buildBackNav(BuildContext context, ClassModel c) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
@@ -98,7 +90,7 @@ class ClassDetailPage extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            code.split(' ·').first,
+            c.code.split(' ·').first,
             style: TextStyle(
               fontSize: FontStyles.titleMedium,
               fontWeight: FontStyles.weightHeavy,
@@ -112,7 +104,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHero(BuildContext context) {
+  Widget _buildHero(ClassModel c) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -123,7 +115,7 @@ class ClassDetailPage extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.25),
+                color: c.accentColor.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(14),
               ),
             ),
@@ -133,7 +125,7 @@ class ClassDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    c.name,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontStyles.weightHeavy,
@@ -142,7 +134,7 @@ class ClassDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${code.split('·').first.trim()} · Diploma in Computer Science · Sem 4',
+                    '${c.code.split('·').first.trim()} · Diploma in Computer Science · Sem 4',
                     style: TextStyle(
                       fontSize: FontStyles.titleTiny,
                       color: AppColors.black.withValues(alpha: 0.6),
@@ -171,7 +163,7 @@ class ClassDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '${code.split(' ·').first}–A2',
+                '${c.code.split(' ·').first}–A2',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontStyles.weightHeavy,
@@ -182,10 +174,7 @@ class ClassDetailPage extends StatelessWidget {
               const SizedBox(width: 8),
               const Text(
                 '📋 Copy',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.californiaBlue,
-                ),
+                style: TextStyle(fontSize: 11, color: AppColors.californiaBlue),
               ),
             ],
           ),
@@ -193,11 +182,11 @@ class ClassDetailPage extends StatelessWidget {
         const SizedBox(height: 14),
         Row(
           children: [
-            _miniStat('Students', students, AppColors.californiaBlue),
+            _miniStat('Students', ClassesController.studentsLabel(c), AppColors.californiaBlue),
             const SizedBox(width: 8),
-            _miniStat('Avg Done', avgDone, AppColors.mikadoYellow),
+            _miniStat('Avg Done', ClassesController.avgDoneLabel(c),  AppColors.mikadoYellow),
             const SizedBox(width: 8),
-            _miniStat('At Risk', atRisk, atRiskColor),
+            _miniStat('At Risk',  ClassesController.atRiskLabel(c),   ClassesController.atRiskColor(c)),
           ],
         ),
         const SizedBox(height: 16),
@@ -212,30 +201,16 @@ class ClassDetailPage extends StatelessWidget {
         decoration: _whiteCard(),
         child: Column(
           children: [
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontStyles.weightHeavy,
-                color: color,
-              ),
-            ),
+            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontStyles.weightHeavy, color: color)),
             const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: AppColors.black.withValues(alpha: 0.5),
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 10, color: AppColors.black.withValues(alpha: 0.5))),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildCompletionBar() {
-    final pct = double.tryParse(avgDone.replaceAll('%', '')) ?? 0;
+  Widget _buildCompletionBar(ClassModel c) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _whiteCard(),
@@ -245,28 +220,15 @@ class ClassDetailPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Class Completion',
-                style: TextStyle(
-                  fontSize: FontStyles.titleTiny,
-                  color: AppColors.black.withValues(alpha: 0.6),
-                ),
-              ),
-              Text(
-                avgDone,
-                style: const TextStyle(
-                  fontSize: FontStyles.titleSmall,
-                  fontWeight: FontStyles.weightHeavy,
-                  color: AppColors.californiaBlue,
-                ),
-              ),
+              Text('Class Completion', style: TextStyle(fontSize: FontStyles.titleTiny, color: AppColors.black.withValues(alpha: 0.6))),
+              Text(ClassesController.avgDoneLabel(c), style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightHeavy, color: AppColors.californiaBlue)),
             ],
           ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: pct / 100,
+              value: c.avgCompletion / 100,
               minHeight: 8,
               backgroundColor: AppColors.black.withValues(alpha: 0.08),
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.californiaBlue),
@@ -275,28 +237,18 @@ class ClassDetailPage extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             '173 of 308 tasks completed across all students',
-            style: TextStyle(
-              fontSize: 11,
-              color: AppColors.black.withValues(alpha: 0.5),
-            ),
+            style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWorkloadMonitor() {
+  Widget _buildWorkloadMonitor(ClassModel c) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Workload Monitor',
-          style: TextStyle(
-            fontSize: FontStyles.titleMedium,
-            fontWeight: FontStyles.weightHeavy,
-            color: AppColors.black,
-          ),
-        ),
+        const Text('Workload Monitor', style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightHeavy, color: AppColors.black)),
         const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(14),
@@ -304,19 +256,13 @@ class ClassDetailPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Class workload distribution',
-                style: TextStyle(
-                  fontSize: FontStyles.titleTiny,
-                  color: AppColors.black.withValues(alpha: 0.6),
-                ),
-              ),
+              Text('Class workload distribution', style: TextStyle(fontSize: FontStyles.titleTiny, color: AppColors.black.withValues(alpha: 0.6))),
               const SizedBox(height: 12),
-              _workloadBar('Low', 11, 28, AppColors.greenSheen),
+              _workloadBar('Low',            11, c.studentCount, AppColors.greenSheen),
               const SizedBox(height: 8),
-              _workloadBar('Moderate', 16, 28, AppColors.mikadoYellow),
+              _workloadBar('Moderate',       16, c.studentCount, AppColors.mikadoYellow),
               const SizedBox(height: 8),
-              _workloadBar('High / At Risk', 1, 28, AppColors.red),
+              _workloadBar('High / At Risk', c.atRiskCount, c.studentCount, AppColors.red),
             ],
           ),
         ),
@@ -327,18 +273,12 @@ class ClassDetailPage extends StatelessWidget {
   Widget _workloadBar(String label, int count, int total, Color color) {
     return Row(
       children: [
-        SizedBox(
-          width: 96,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 12, color: color),
-          ),
-        ),
+        SizedBox(width: 96, child: Text(label, style: TextStyle(fontSize: 12, color: color))),
         Expanded(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: count / total,
+              value: total > 0 ? count / total : 0,
               minHeight: 8,
               backgroundColor: AppColors.black.withValues(alpha: 0.08),
               valueColor: AlwaysStoppedAnimation<Color>(color),
@@ -348,56 +288,25 @@ class ClassDetailPage extends StatelessWidget {
         const SizedBox(width: 8),
         SizedBox(
           width: 20,
-          child: Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontStyles.weightHeavy,
-              color: color,
-            ),
-            textAlign: TextAlign.right,
-          ),
+          child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: color), textAlign: TextAlign.right),
         ),
       ],
     );
   }
 
-  Widget _buildStudentList() {
-    final studentList = [
-      _StudentData('AH', 'Amirul Haikal', '7/11 tasks · 🔥 Burnout risk', 'At Risk', AppColors.red),
-      _StudentData('AN', 'Ahmad Naqib', '11/11 tasks · All done', '100%', AppColors.californiaBlue),
-      _StudentData('SP', 'Siti Putri', '10/11 tasks', '91%', AppColors.californiaBlue),
-      _StudentData('HZ', 'Haziq Zulkifli', '4/11 tasks · 4 overdue', 'Behind', AppColors.mikadoYellow),
-      _StudentData('RA', 'Raihana Azlan', '8/11 tasks', '73%', AppColors.californiaBlue),
-      _StudentData('FI', 'Farid Iskandar', '6/11 tasks', '55%', AppColors.mikadoYellow),
-    ];
-
+  Widget _buildStudentList(List<ClassStudentModel> students) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Students',
-              style: TextStyle(
-                fontSize: FontStyles.titleMedium,
-                fontWeight: FontStyles.weightHeavy,
-                color: AppColors.black,
-              ),
-            ),
-            const Text(
-              '+ Add',
-              style: TextStyle(
-                fontSize: FontStyles.titleSmall,
-                color: AppColors.californiaBlue,
-                fontWeight: FontStyles.weightMedium,
-              ),
-            ),
+            const Text('Students', style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightHeavy, color: AppColors.black)),
+            const Text('+ Add', style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.californiaBlue, fontWeight: FontStyles.weightMedium)),
           ],
         ),
         const SizedBox(height: 10),
-        ...studentList.map((s) => Padding(
+        ...students.map((s) => Padding(
           padding: const EdgeInsets.only(bottom: 8),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
@@ -412,14 +321,7 @@ class ClassDetailPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Center(
-                    child: Text(
-                      s.initials,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontStyles.weightHeavy,
-                        color: s.chipColor,
-                      ),
-                    ),
+                    child: Text(s.initials, style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: s.chipColor)),
                   ),
                 ),
                 const SizedBox(width: 11),
@@ -427,40 +329,16 @@ class ClassDetailPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        s.name,
-                        style: const TextStyle(
-                          fontSize: FontStyles.titleSmall,
-                          fontWeight: FontStyles.weightMedium,
-                          color: AppColors.black,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Text(s.name, style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightMedium, color: AppColors.black), overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 1),
-                      Text(
-                        s.meta,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.black.withValues(alpha: 0.5),
-                        ),
-                      ),
+                      Text(s.meta, style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5))),
                     ],
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: s.chipColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    s.chip,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontStyles.weightMedium,
-                      color: s.chipColor,
-                    ),
-                  ),
+                  decoration: BoxDecoration(color: s.chipColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                  child: Text(s.chip, style: TextStyle(fontSize: 11, fontWeight: FontStyles.weightMedium, color: s.chipColor)),
                 ),
               ],
             ),
@@ -469,10 +347,4 @@ class ClassDetailPage extends StatelessWidget {
       ],
     );
   }
-}
-
-class _StudentData {
-  final String initials, name, meta, chip;
-  final Color chipColor;
-  const _StudentData(this.initials, this.name, this.meta, this.chip, this.chipColor);
 }

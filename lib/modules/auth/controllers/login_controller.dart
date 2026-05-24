@@ -6,7 +6,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/central_lecturer_navigation.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/central_student_navigation.dart';
-
 import '../services/auth_service.dart';
 
 class LoginController {
@@ -16,7 +15,6 @@ class LoginController {
   String? emailError;
   String? passwordError;
 
-  // ── Login Flow ───────────────────────────────────────────
   Future<void> login(BuildContext context, {required VoidCallback onError}) async {
     final email    = emailController.text.trim();
     final password = passwordController.text.trim();
@@ -36,54 +34,59 @@ class LoginController {
     }
 
     try {
-      // 1. Authenticate the email and password with Firebase Auth
+      // 1. Sign in with Firebase Auth
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
       final String uid = userCredential.user!.uid;
 
-      // 2. Fetch the user's role profile document directly from Cloud Firestore
+      // 2. Fetch Firestore user document
       final DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(uid)
           .get();
 
       if (!userDoc.exists) {
-        emailError = 'User profile data not found in database.';
+        emailError = 'User profile not found in database.';
         onError();
         return;
       }
 
-      // Grab the exact numerical role (1 = student, 2 = lecturer)
-      final int role = (userDoc.get('role') as int?) ?? 0;
-      debugPrint("Role from Firestore: $role");
+      // 3. Safely parse role (handles both int and string in Firestore)
+      final rawRole = userDoc.get('role');
+      final int role = rawRole is int
+          ? rawRole
+          : int.tryParse(rawRole.toString()) ?? 0;
+      debugPrint('Role from Firestore: $role');
 
-      await AuthService.getToken();
+      // 4. Get auth token
+      try {
+        await AuthService.getToken();
+      } catch (tokenError) {
+        debugPrint('getToken failed: $tokenError');
+        // Continue anyway — token failure shouldn't block login
+      }
 
       if (!context.mounted) return;
 
-      // 4. Update state globally using AuthProvider
+      // 5. Update global auth state
       final auth = context.read<AuthProvider>();
       await auth.login(role);
 
-
       if (!context.mounted) return;
 
-      // 5. Smart Routing based on registration status or role
+      // 6. Route based on role
       if (role == 0) {
-        // Fallback safety flow if they registered via Google but bypassed role picking
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const RoleSetupPage()),
         );
       } else if (role == 1) {
-        // ROUTE DIRECTLY TO STUDENT WORKSPACE
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const CentralStudentNavigation()),
         );
       } else if (role == 2) {
-        // ROUTE DIRECTLY TO LECTURER WORKSPACE
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()),
@@ -91,16 +94,24 @@ class LoginController {
       }
 
     } on FirebaseAuthException catch (firebaseError) {
-      // Handle login-specific errors gracefully without crashing
-      if (firebaseError.code == 'user-not-found' || firebaseError.code == 'wrong-password' || firebaseError.code == 'invalid-credential') {
+      debugPrint('Firebase code: ${firebaseError.code}');
+      debugPrint('Firebase message: ${firebaseError.message}');
+
+      const invalidCodes = {
+        'user-not-found',
+        'wrong-password',
+        'invalid-credential',
+        'invalid-email',
+        'internal-error',
+        'network-request-failed',
+      };
+
+      if (invalidCodes.contains(firebaseError.code)) {
         emailError    = 'Invalid email or password.';
         passwordError = 'Invalid email or password.';
       } else {
         emailError = firebaseError.message ?? 'Authentication failed.';
       }
-      onError();
-    } catch (e) {
-      emailError = 'An unexpected server error occurred.';
       onError();
     }
   }

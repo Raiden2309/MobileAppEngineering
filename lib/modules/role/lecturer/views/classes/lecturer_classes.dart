@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/lecturer/views/classes/widgets/class_card.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../controllers/classes_controller.dart';
+import '../../providers/classes_provider.dart';
+import 'widgets/class_card.dart';
 
 class LecturerClassesSection extends StatelessWidget {
   const LecturerClassesSection({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final classes = context.watch<ClassesProvider>().classes;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -25,10 +30,9 @@ class LecturerClassesSection extends StatelessWidget {
                   letterSpacing: 0.5,
                 ),
               ),
-
               const SizedBox(height: 4),
               Text(
-                'Semester 4 · 3 active classes',
+                'Semester 4 · ${classes.length} active classes',
                 style: TextStyle(
                   fontSize: FontStyles.titleSmall,
                   color: AppColors.black.withValues(alpha: 0.6),
@@ -42,40 +46,15 @@ class LecturerClassesSection extends StatelessWidget {
           child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
             child: Column(
-              children: const [
-                ClassCard(
-                  name: 'CT124 System Proposal',
-                  code: 'CT124 · Diploma in Computer Science',
-                  students: '28',
-                  avgDone: '62%',
-                  atRisk: '1',
-                  atRiskColor: AppColors.red,
-                  accentColor: AppColors.californiaBlue,
-                  semester: 'Sem 4 · Mar – Jul 2026',
-                ),
-                SizedBox(height: 12),
-                ClassCard(
-                  name: 'Research Methods',
-                  code: 'RM302 · Diploma in Computer Science',
-                  students: '24',
-                  avgDone: '54%',
-                  atRisk: '1',
-                  atRiskColor: AppColors.red,
-                  accentColor: AppColors.mikadoYellow,
-                  semester: 'Sem 4 · Mar – Jul 2026',
-                ),
-                SizedBox(height: 12),
-                ClassCard(
-                  name: 'Mobile Development',
-                  code: 'MOB401 · Diploma in Computer Science',
-                  students: '20',
-                  avgDone: '59%',
-                  atRisk: '0',
-                  atRiskColor: AppColors.greenSheen,
-                  accentColor: AppColors.softPurple,
-                  semester: 'Sem 4 · Mar – Jul 2026',
-                ),
-                SizedBox(height: 32),
+              children: [
+                ...classes.map((c) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: ClassCard(
+                    classModel: c,
+                    onTap: () => ClassesController.openClass(context, c),
+                  ),
+                )),
+                const SizedBox(height: 20),
               ],
             ),
           ),
