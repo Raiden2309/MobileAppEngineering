@@ -11,7 +11,6 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, bg, fg) = switch (status) {
-      TaskStatus.done       => ('Done',        AppColors.completed,  AppColors.greenSheen),
       TaskStatus.completed  => ('Done',        AppColors.completed,  AppColors.greenSheen),
       TaskStatus.inProgress => ('In Progress', AppColors.inProgress, AppColors.mikadoYellow),
       TaskStatus.dueToday   => ('Due Today',   AppColors.dueSoon,    AppColors.nectarine),

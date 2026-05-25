@@ -17,7 +17,6 @@ Color subjectColor(String key) {
 Color chipBg(TaskStatus status) {
   switch (status) {
     case TaskStatus.completed:
-    case TaskStatus.done:
       return AppColors.completed;
     case TaskStatus.inProgress:
       return AppColors.inProgress;
@@ -33,7 +32,6 @@ Color chipBg(TaskStatus status) {
 Color chipFg(TaskStatus status) {
   switch (status) {
     case TaskStatus.completed:
-    case TaskStatus.done:
       return AppColors.greenSheen;
     case TaskStatus.inProgress:
       return AppColors.mikadoYellow;

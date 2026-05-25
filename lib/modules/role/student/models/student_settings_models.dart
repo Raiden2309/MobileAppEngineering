@@ -1,3 +1,5 @@
+import 'package:mae_assignment_frontend/modules/role/student/models/student_subject_model.dart';
+
 import 'semester_details_model.dart';
 
 class JoinedClassModel {
@@ -29,7 +31,7 @@ class StudentSettingsModel {
   final bool weeklyResetSummary;
   final String appVersion;
   final List<SemesterModel> semesters;
-  final List<Map<String, String>> subjects;
+  final List<StudentSubjectModel> subjects;
   final Set<String> blockedSlots;
   final String? avatarUrl;
   final int joinedClassCount;
@@ -80,7 +82,7 @@ class StudentSettingsModel {
           .map((e) => SemesterModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       subjects: (json['subjects'] as List<dynamic>? ?? [])
-          .map((e) => Map<String, String>.from(e as Map))
+          .map((e) => StudentSubjectModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       blockedSlots:     Set<String>.from(json['blocked_slots'] as List? ?? []),
       avatarUrl:        json['avatar_url'] as String?,
@@ -96,7 +98,7 @@ class StudentSettingsModel {
     bool? burnoutWarnings,
     bool? weeklyResetSummary,
     List<SemesterModel>? semesters,
-    List<Map<String, String>>? subjects,
+    List<StudentSubjectModel>? subjects,
     Set<String>? blockedSlots,
     String? avatarUrl,
     int? joinedClassCount,
@@ -144,11 +146,11 @@ class StudentSettingsModel {
         SemesterModel(name: 'Semester 4 · Year 2', studyHoursStart: '8 AM', studyHoursEnd: '10 PM', subjectCount: 4, isCurrent: true),
         SemesterModel(name: 'Semester 3 · Year 2', studyHoursStart: '9 AM', studyHoursEnd: '9 PM',  subjectCount: 5, isCurrent: false),
       ],
-      subjects: [
-        {'name': 'Mathematics',          'color': '4F86C6'},
-        {'name': 'Data Structures',      'color': 'F87171'},
-        {'name': 'Operating Systems',    'color': '34D399'},
-        {'name': 'Software Engineering', 'color': 'FBBF24'},
+      subjects: const [
+        StudentSubjectModel(id: 1, studentId: 1, semesterId: 1, subjectId: 1, name: 'Mathematics',          code: 'MATH101', colorHex: '4F86C6'),
+        StudentSubjectModel(id: 2, studentId: 1, semesterId: 1, subjectId: 2, name: 'Data Structures',      code: 'CS201',   colorHex: 'F87171'),
+        StudentSubjectModel(id: 3, studentId: 1, semesterId: 1, subjectId: 3, name: 'Operating Systems',    code: 'CS301',   colorHex: '34D399'),
+        StudentSubjectModel(id: 4, studentId: 1, semesterId: 1, subjectId: 4, name: 'Software Engineering', code: 'SE305',   colorHex: 'FBBF24'),
       ],
       blockedSlots: const {'0_0', '0_1', '2_2', '2_3', '4_5', '4_6'},
       avatarUrl: null,

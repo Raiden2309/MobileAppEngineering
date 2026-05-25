@@ -1,4 +1,4 @@
-enum TaskStatus { done, inProgress, dueToday, upcoming, toDo, dueSoon, completed }
+enum TaskStatus { inProgress, dueToday, upcoming, toDo, dueSoon, completed }
 
 enum BlockType { blocked, study, breakSlot }
 

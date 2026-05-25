@@ -17,6 +17,19 @@ class EngagementStudentModel {
     this.workloadColor,
   });
 
+  factory EngagementStudentModel.fromJson(Map<String, dynamic> json) {
+    return EngagementStudentModel(
+      initials:      json['initials'] as String,
+      name:          json['name'] as String,
+      meta:          json['meta'] as String,
+      workload:      json['workload'] as String,
+      workloadColor: json['workload_color'] != null
+          ? Color(int.parse('FF${json['workload_color'] as String}', radix: 16))
+          : null,
+      classes: List<String>.from(json['classes'] as List),
+    );
+  }
+
   EngagementStudentModel copyWith({
     String? initials,
     String? name,
@@ -26,11 +39,11 @@ class EngagementStudentModel {
     List<String>? classes,
   }) =>
       EngagementStudentModel(
-        initials: initials ?? this.initials,
-        name: name ?? this.name,
-        meta: meta ?? this.meta,
-        workload: workload ?? this.workload,
+        initials:      initials      ?? this.initials,
+        name:          name          ?? this.name,
+        meta:          meta          ?? this.meta,
+        workload:      workload      ?? this.workload,
         workloadColor: workloadColor ?? this.workloadColor,
-        classes: classes ?? this.classes,
+        classes:       classes       ?? this.classes,
       );
 }

@@ -56,7 +56,7 @@ class DashboardModel {
         tasks:     [],
       ),
       todayTasks: const [
-        TaskItem(title: 'Review affinity analysis notes', subtitle: 'Research Methods · 45 min',      status: TaskStatus.done,      checked: true),
+        TaskItem(title: 'Review affinity analysis notes', subtitle: 'Research Methods · 45 min',      status: TaskStatus.completed,      checked: true),
         TaskItem(title: 'Write use case diagrams',        subtitle: 'CT124 System Proposal · 2 hrs',  status: TaskStatus.inProgress),
         TaskItem(title: 'Prepare functional requirements',subtitle: 'CT124 System Proposal · 1 hr',   status: TaskStatus.dueToday),
         TaskItem(title: 'Prepare survey questions',       subtitle: 'Research Methods · 1.5 hrs',     status: TaskStatus.upcoming),
