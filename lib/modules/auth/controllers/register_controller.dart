@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../providers/auth_provider.dart';
 import '../../new_user_setup/views/role_setup.dart';
+import '../services/google_sign_in_stub.dart';
 
 class RegisterController {
   final nameController            = TextEditingController();
@@ -106,6 +107,60 @@ class RegisterController {
       onError();
     } catch (e) {
       emailError = 'An unexpected error occurred. Please try again.';
+      onError();
+    }
+  }
+
+  Future<void> registerWithGoogle(BuildContext context, {required VoidCallback onError}) async {
+    try {
+      // Handshake calls the correct runtime file directly (Web popup vs Mobile credential)
+      final UserCredential userCredential = await GoogleSignInService.authenticate();
+      final User? firebaseUser = userCredential.user;
+
+      if (firebaseUser == null) throw Exception("Failed to acquire Google profile properties.");
+
+      if (!context.mounted) return;
+
+      // Check if a structural account collection profile record exists for this account
+      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .get();
+
+      final auth = context.read<AuthProvider>();
+
+      if (!userDoc.exists) {
+        // First-time signup registration entry point creation logic
+        await FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).set({
+          'uid': firebaseUser.uid,
+          'name': firebaseUser.displayName ?? 'New User',
+          'email': firebaseUser.email ?? '',
+          'role': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await auth.login(0);
+
+        if (!context.mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RoleSetupPage()),
+        );
+      } else {
+        // Account exists — fetch profile data and skip selection layout
+        final rawRole = userDoc.get('role');
+        final int role = rawRole is int ? rawRole : int.tryParse(rawRole.toString()) ?? 0;
+
+        await auth.login(role);
+
+        if (!context.mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RoleSetupPage()),
+        );
+      }
+    } catch (e) {
+      debugPrint("Google Registration Interruption: $e");
       onError();
     }
   }
