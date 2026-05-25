@@ -1,386 +1,69 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../../shared/services/api_service.dart';
-import '../../../auth/controllers/login_controller.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/views/login_page.dart';
 import '../models/student_settings_models.dart';
-import '../models/semester_details_model.dart';
+import '../providers/student_settings_provider.dart';
 
-class StudentSettingsController extends ChangeNotifier {
-  static const _storage = FlutterSecureStorage();
-
-  StudentSettingsModel? data;
-
-  static const _keyStudyStart       = 'settings_study_start';
-  static const _keyStudyEnd         = 'settings_study_end';
-  static const _keyBlockedSlots     = 'settings_blocked_slots';
-  static const _keySubjects         = 'settings_subjects';
-  static const _keySemesters        = 'settings_semesters';
-  static const _keyTaskReminders    = 'settings_task_reminders';
-  static const _keySlotEndPrompts   = 'settings_slot_end_prompts';
-  static const _keyBurnoutWarnings  = 'settings_burnout_warnings';
-  static const _keyWeeklyReset      = 'settings_weekly_reset_summary';
-  static const _keyUserId           = 'settings_user_id';
-  static const _keyUserName         = 'settings_user_name';
-  static const _keySemester         = 'settings_semester';
-  static const _keyYear             = 'settings_year';
-  static const _keySubjectCount     = 'settings_subject_count';
-  static const _keyBlockedCount     = 'settings_blocked_slots_count';
-  static const _keyAppVersion       = 'settings_app_version';
-  static const _keyAvatarUrl        = 'settings_avatar_url';
-  static const _keyJoinedClasses    = 'settings_joined_classes'; // NEW
-
-  TimeOfDay studyStart = const TimeOfDay(hour: 8, minute: 0);
-  TimeOfDay studyEnd   = const TimeOfDay(hour: 22, minute: 0);
-
-  Set<String> blockedSlots = {};
-
-  List<Map<String, String>> subjects   = [];
-  List<Map<String, String>> semesters  = [];
-  List<JoinedClassModel>    joinedClasses = []; // NEW
-
-  bool taskReminders      = false;
-  bool slotEndPrompts     = false;
-  bool burnoutWarnings    = false;
-  bool weeklyResetSummary = false;
-
-  String? avatarUrl;
-
-  bool    loading = false;
-  String? error;
-
-  // ─── Getters ────────────────────────────────────────────────────────────────
-
-  String get studyHoursDisplay =>
-      '${_formatTime(studyStart)} – ${_formatTime(studyEnd)}';
-
-  int get blockedSlotsCount  => blockedSlots.length;
-  int get subjectCount       => subjects.length;
-  int get joinedClassCount   => joinedClasses.length; // NEW
-
-  String? get currentSemesterName =>
-      semesters.firstWhere(
-            (s) => s['isCurrent'] == 'true',
-        orElse: () => {},
-      )['name'];
-
-  // ─── Load ───────────────────────────────────────────────────────────────────
-
-  Future<void> load() async {
-    loading = true;
-    error   = null;
-    notifyListeners();
-
-    await _loadFromCache();
-    loading = false;
-    notifyListeners();
-
-    try {
-      final json = await ApiService.get('/student/settings');
-      _applyFromApi(json);
-      await _saveToCache();
-      notifyListeners();
-    } catch (_) {}
+class StudentSettingsController {
+  static Future<void> load(BuildContext context) {
+    return context.read<StudentSettingsProvider>().load();
   }
 
-  void _applyFromApi(Map<String, dynamic> json) {
-    data = StudentSettingsModel.fromJson(json);
-
-    avatarUrl          = data!.avatarUrl;
-    studyStart         = _parseTimeString(data!.studyHoursStart);
-    studyEnd           = _parseTimeString(data!.studyHoursEnd);
-    taskReminders      = data!.taskReminders;
-    slotEndPrompts     = data!.slotEndPrompts;
-    burnoutWarnings    = data!.burnoutWarnings;
-    weeklyResetSummary = data!.weeklyResetSummary;
-    semesters          = data!.semesters.map((s) => {
-      'name':            s.name,
-      'isCurrent':       s.isCurrent.toString(),
-      'subjectCount':    s.subjectCount.toString(),
-      'studyHoursStart': s.studyHoursStart,
-      'studyHoursEnd':   s.studyHoursEnd,
-    }).toList();
-
-    if (json['blocked_slots'] != null) {
-      blockedSlots = Set<String>.from(json['blocked_slots'] as List);
-    }
-    if (json['subjects'] != null) {
-      subjects = (json['subjects'] as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
-    }
-
-    // NEW — parse joined classes from API
-    if (json['joined_classes'] != null) {
-      joinedClasses = (json['joined_classes'] as List)
-          .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    }
+  static Future<void> toggleTaskReminders(BuildContext context) {
+    return context.read<StudentSettingsProvider>().toggleTaskReminders();
   }
 
-  // ─── Cache ──────────────────────────────────────────────────────────────────
-
-  Future<void> _loadFromCache() async {
-    final start           = await _storage.read(key: _keyStudyStart);
-    final end             = await _storage.read(key: _keyStudyEnd);
-    final slots           = await _storage.read(key: _keyBlockedSlots);
-    final subjRaw         = await _storage.read(key: _keySubjects);
-    final semRaw          = await _storage.read(key: _keySemesters);
-    final trRaw           = await _storage.read(key: _keyTaskReminders);
-    final sepRaw          = await _storage.read(key: _keySlotEndPrompts);
-    final bwRaw           = await _storage.read(key: _keyBurnoutWarnings);
-    final wrsRaw          = await _storage.read(key: _keyWeeklyReset);
-    final userIdRaw       = await _storage.read(key: _keyUserId);
-    final userNameRaw     = await _storage.read(key: _keyUserName);
-    final semesterRaw     = await _storage.read(key: _keySemester);
-    final yearRaw         = await _storage.read(key: _keyYear);
-    final subjCountRaw    = await _storage.read(key: _keySubjectCount);
-    final blockedCountRaw = await _storage.read(key: _keyBlockedCount);
-    final appVersionRaw   = await _storage.read(key: _keyAppVersion);
-    final avatarRaw       = await _storage.read(key: _keyAvatarUrl);
-    final classesRaw      = await _storage.read(key: _keyJoinedClasses); // NEW
-
-    if (avatarRaw  != null) avatarUrl  = avatarRaw;
-    if (start      != null) studyStart = _parseTimeString(start);
-    if (end        != null) studyEnd   = _parseTimeString(end);
-    if (slots      != null) blockedSlots = Set<String>.from(jsonDecode(slots) as List);
-
-    if (subjRaw != null) {
-      subjects = (jsonDecode(subjRaw) as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
-    }
-    if (semRaw != null) {
-      semesters = (jsonDecode(semRaw) as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
-    }
-
-    // NEW — restore joined classes from cache
-    if (classesRaw != null) {
-      joinedClasses = (jsonDecode(classesRaw) as List)
-          .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
-          .toList();
-    }
-
-    if (trRaw  != null) taskReminders      = trRaw  == 'true';
-    if (sepRaw != null) slotEndPrompts     = sepRaw == 'true';
-    if (bwRaw  != null) burnoutWarnings    = bwRaw  == 'true';
-    if (wrsRaw != null) weeklyResetSummary = wrsRaw == 'true';
-
-    if (semesters.isNotEmpty || userIdRaw != null) {
-      data = StudentSettingsModel(
-        userId:             int.tryParse(userIdRaw ?? '0') ?? 0,
-        userName:           userNameRaw ?? '',
-        semester:           semesterRaw ?? '',
-        year:               int.tryParse(yearRaw ?? '0') ?? 0,
-        subjectCount:       int.tryParse(subjCountRaw ?? '0') ?? 0,
-        studyHoursStart:    _formatTime(studyStart),
-        studyHoursEnd:      _formatTime(studyEnd),
-        blockedSlotsCount:  int.tryParse(blockedCountRaw ?? '0') ?? 0,
-        taskReminders:      taskReminders,
-        slotEndPrompts:     slotEndPrompts,
-        burnoutWarnings:    burnoutWarnings,
-        weeklyResetSummary: weeklyResetSummary,
-        appVersion:         appVersionRaw ?? 'v1.0',
-        joinedClassCount:   joinedClasses.length, // NEW
-        semesters: semesters.map((s) => SemesterModel(
-          name:            s['name'] ?? '',
-          isCurrent:       s['isCurrent'] == 'true',
-          subjectCount:    int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-          studyHoursStart: s['studyHoursStart'] ?? '',
-          studyHoursEnd:   s['studyHoursEnd'] ?? '',
-        )).toList(),
-      );
-    }
+  static Future<void> toggleSlotEndPrompts(BuildContext context) {
+    return context.read<StudentSettingsProvider>().toggleSlotEndPrompts();
   }
 
-  Future<void> _saveToCache() async {
-    await _storage.write(key: _keyStudyStart,      value: _formatTime(studyStart));
-    await _storage.write(key: _keyStudyEnd,        value: _formatTime(studyEnd));
-    await _storage.write(key: _keyBlockedSlots,    value: jsonEncode(blockedSlots.toList()));
-    await _storage.write(key: _keySubjects,        value: jsonEncode(subjects));
-    await _storage.write(key: _keySemesters,       value: jsonEncode(semesters));
-    await _storage.write(key: _keyTaskReminders,   value: taskReminders.toString());
-    await _storage.write(key: _keySlotEndPrompts,  value: slotEndPrompts.toString());
-    await _storage.write(key: _keyBurnoutWarnings, value: burnoutWarnings.toString());
-    await _storage.write(key: _keyWeeklyReset,     value: weeklyResetSummary.toString());
-
-    // NEW — persist joined classes
-    await _storage.write(
-      key: _keyJoinedClasses,
-      value: jsonEncode(joinedClasses.map((c) => c.toJson()).toList()),
-    );
-
-    if (data != null) {
-      await _storage.write(key: _keyUserId,       value: data!.userId.toString());
-      await _storage.write(key: _keyUserName,     value: data!.userName);
-      await _storage.write(key: _keySemester,     value: data!.semester);
-      await _storage.write(key: _keyYear,         value: data!.year.toString());
-      await _storage.write(key: _keySubjectCount, value: data!.subjectCount.toString());
-      await _storage.write(key: _keyBlockedCount, value: data!.blockedSlotsCount.toString());
-      await _storage.write(key: _keyAppVersion,   value: data!.appVersion);
-      if (avatarUrl != null) {
-        await _storage.write(key: _keyAvatarUrl,  value: avatarUrl!);
-      }
-    }
+  static Future<void> toggleBurnoutWarnings(BuildContext context) {
+    return context.read<StudentSettingsProvider>().toggleBurnoutWarnings();
   }
 
-  // ─── Joined Classes ─────────────────────────────────────────────────────────
-
-  /// Join a class by code. Returns true on success, false on failure.
-  Future<bool> joinClass(String code) async {
-    try {
-      final response = await ApiService.post(
-        '/student/classes/join',
-        {'code': code},
-      );
-      final joined = JoinedClassModel.fromJson(response as Map<String, dynamic>);
-      // Avoid duplicates
-      if (!joinedClasses.any((c) => c.id == joined.id)) {
-        joinedClasses = [...joinedClasses, joined];
-        data = data?.copyWith(joinedClassCount: joinedClasses.length);
-        await _saveToCache();
-        notifyListeners();
-      }
-      return true;
-    } catch (_) {
-      return false;
-    }
+  static Future<void> toggleWeeklyResetSummary(BuildContext context) {
+    return context.read<StudentSettingsProvider>().toggleWeeklyResetSummary();
   }
 
-  /// Leave a class by id.
-  Future<void> leaveClass(String classId) async {
-    joinedClasses = joinedClasses.where((c) => c.id != classId).toList();
-    data = data?.copyWith(joinedClassCount: joinedClasses.length);
-    await _saveToCache();
-    _tryApiDelete('/student/classes/$classId');
-    notifyListeners();
+  static Future<void> saveStudyHours(BuildContext context, TimeOfDay start, TimeOfDay end) {
+    return context.read<StudentSettingsProvider>().saveStudyHours(start, end);
   }
 
-  // ─── Toggles ────────────────────────────────────────────────────────────────
-
-  Future<void> toggleTaskReminders() async {
-    taskReminders = !taskReminders;
-    data = data?.copyWith(taskReminders: taskReminders);
-    await _persistToggle('task_reminders', taskReminders);
+  static Future<void> saveBlockedSlots(BuildContext context, Set<String> slots) {
+    return context.read<StudentSettingsProvider>().saveBlockedSlots(slots);
   }
 
-  Future<void> toggleSlotEndPrompts() async {
-    slotEndPrompts = !slotEndPrompts;
-    data = data?.copyWith(slotEndPrompts: slotEndPrompts);
-    await _persistToggle('slot_end_prompts', slotEndPrompts);
+  static Future<void> saveSubjects(BuildContext context, List<Map<String, String>> updated) {
+    return context.read<StudentSettingsProvider>().saveSubjects(updated);
   }
 
-  Future<void> toggleBurnoutWarnings() async {
-    burnoutWarnings = !burnoutWarnings;
-    data = data?.copyWith(burnoutWarnings: burnoutWarnings);
-    await _persistToggle('burnout_warnings', burnoutWarnings);
+  static Future<void> saveSemesters(BuildContext context, List<Map<String, String>> updated) {
+    return context.read<StudentSettingsProvider>().saveSemesters(updated);
   }
 
-  Future<void> toggleWeeklyResetSummary() async {
-    weeklyResetSummary = !weeklyResetSummary;
-    data = data?.copyWith(weeklyResetSummary: weeklyResetSummary);
-    await _persistToggle('weekly_reset_summary', weeklyResetSummary);
+  static void selectSemester(BuildContext context, String name) {
+    context.read<StudentSettingsProvider>().selectSemester(name);
   }
 
-  Future<void> _persistToggle(String apiKey, bool value) async {
-    await _saveToCache();
-    _tryApiPatch({apiKey: value});
-    notifyListeners();
+  static Future<void> updateUserName(BuildContext context, String name) {
+    return context.read<StudentSettingsProvider>().updateUserName(name);
   }
 
-  // ─── Study / Schedule ───────────────────────────────────────────────────────
-
-  Future<void> saveStudyHours(TimeOfDay start, TimeOfDay end) async {
-    studyStart = start;
-    studyEnd   = end;
-    await _saveToCache();
-    _tryApiPatch({'study_hours_start': _formatTime(start), 'study_hours_end': _formatTime(end)});
-    notifyListeners();
+  static Future<void> updateAvatar(BuildContext context, XFile file) {
+    return context.read<StudentSettingsProvider>().updateAvatar(file);
   }
 
-  Future<void> saveBlockedSlots(Set<String> slots) async {
-    blockedSlots = slots;
-    await _saveToCache();
-    _tryApiPatch({'blocked_slots': slots.toList()});
-    notifyListeners();
+  static Future<bool> joinClass(BuildContext context, String code) {
+    return context.read<StudentSettingsProvider>().joinClass(code);
   }
 
-  Future<void> saveSubjects(List<Map<String, String>> updated) async {
-    subjects = updated;
-    await _saveToCache();
-    _tryApiPatch({'subjects': updated});
-    notifyListeners();
+  static Future<void> leaveClass(BuildContext context, String classId) {
+    return context.read<StudentSettingsProvider>().leaveClass(classId);
   }
 
-  Future<void> saveSemesters(List<Map<String, String>> updated) async {
-    semesters = updated;
-    data = data?.copyWith(
-      semesters: updated.map((s) => SemesterModel(
-        name:            s['name'] ?? '',
-        isCurrent:       s['isCurrent'] == 'true',
-        subjectCount:    int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-        studyHoursStart: s['studyHoursStart'] ?? '',
-        studyHoursEnd:   s['studyHoursEnd'] ?? '',
-      )).toList(),
-    );
-    await _saveToCache();
-    _tryApiPatch({'semesters': updated});
-    notifyListeners();
-  }
-
-  void selectSemester(String name) {
-    semesters = semesters.map((s) {
-      return {...s, 'isCurrent': (s['name'] == name).toString()};
-    }).toList();
-    data = data?.copyWith(
-      semesters: semesters.map((s) => SemesterModel(
-        name:            s['name'] ?? '',
-        isCurrent:       s['isCurrent'] == 'true',
-        subjectCount:    int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-        studyHoursStart: s['studyHoursStart'] ?? '',
-        studyHoursEnd:   s['studyHoursEnd'] ?? '',
-      )).toList(),
-    );
-    _saveToCache();
-    _tryApiPatch({'semesters': semesters});
-    notifyListeners();
-  }
-
-  // ─── Profile ────────────────────────────────────────────────────────────────
-
-  Future<void> updateUserName(String name) async {
-    data = data?.copyWith(userName: name);
-    await _storage.write(key: _keyUserName, value: name);
-    _tryApiPatch({'name': name});
-    notifyListeners();
-  }
-
-  Future<void> updateAvatar(XFile file) async {
-    try {
-      final response = await ApiService.uploadImage(
-        '/student/settings/avatar',
-        file.path,
-      );
-      final remoteUrl = response['avatar_url'] as String;
-      avatarUrl = remoteUrl;
-      data = data?.copyWith(avatarUrl: remoteUrl);
-      await _storage.write(key: _keyAvatarUrl, value: remoteUrl);
-      notifyListeners();
-    } catch (_) {
-      setError('Failed to upload avatar');
-    }
-  }
-
-  // ─── Auth ───────────────────────────────────────────────────────────────────
-
-  Future<void> signOut(BuildContext context) async {
+  static Future<void> signOut(BuildContext context) async {
     await context.read<AuthProvider>().logout();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
@@ -389,110 +72,4 @@ class StudentSettingsController extends ChangeNotifier {
           (route) => false,
     );
   }
-
-  // ─── Misc ───────────────────────────────────────────────────────────────────
-
-  void clear() {
-    data               = null;
-    studyStart         = const TimeOfDay(hour: 8,  minute: 0);
-    studyEnd           = const TimeOfDay(hour: 22, minute: 0);
-    blockedSlots       = {};
-    subjects           = [];
-    semesters          = [];
-    joinedClasses      = []; // NEW
-    taskReminders      = false;
-    slotEndPrompts     = false;
-    burnoutWarnings    = false;
-    weeklyResetSummary = false;
-    loading            = false;
-    error              = null;
-    avatarUrl          = null;
-    notifyListeners();
-  }
-
-  void setData(StudentSettingsModel model) {
-    data               = model;
-    studyStart         = _parseTimeString(model.studyHoursStart);
-    studyEnd           = _parseTimeString(model.studyHoursEnd);
-    taskReminders      = model.taskReminders;
-    slotEndPrompts     = model.slotEndPrompts;
-    burnoutWarnings    = model.burnoutWarnings;
-    weeklyResetSummary = model.weeklyResetSummary;
-    subjects           = List.from(model.subjects);
-    blockedSlots       = Set.from(model.blockedSlots);
-    semesters          = model.semesters.map((s) => {
-      'name':            s.name,
-      'isCurrent':       s.isCurrent.toString(),
-      'subjectCount':    s.subjectCount.toString(),
-      'studyHoursStart': s.studyHoursStart,
-      'studyHoursEnd':   s.studyHoursEnd,
-    }).toList();
-    avatarUrl          = model.avatarUrl;
-    notifyListeners();
-  }
-
-  void setLoading(bool value) {
-    loading = value;
-    notifyListeners();
-  }
-
-  void setError(String message) {
-    error   = message;
-    loading = false;
-    notifyListeners();
-  }
-
-  // ─── API helpers ────────────────────────────────────────────────────────────
-
-  void _tryApiPatch(Map<String, dynamic> body) async {
-    try {
-      await ApiService.patch('/student/settings', body);
-    } catch (_) {}
-  }
-
-  void _tryApiDelete(String path) async {
-    try {
-      await ApiService.delete(path);
-    } catch (_) {}
-  }
-
-  // ─── Time helpers ────────────────────────────────────────────────────────────
-
-  TimeOfDay _parseTimeString(String s) {
-    s = s.trim();
-    if (s.contains(':')) {
-      final parts = s.split(':');
-      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
-    }
-    final isPm = s.toUpperCase().contains('PM');
-    final isAm = s.toUpperCase().contains('AM');
-    final num  = int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-    int hour   = num;
-    if (isPm && hour != 12) hour += 12;
-    if (isAm && hour == 12) hour  = 0;
-    return TimeOfDay(hour: hour, minute: 0);
-  }
-
-  String _formatTime(TimeOfDay t) {
-    final h    = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
-    final ampm = t.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$h $ampm';
-  }
-}
-
-// ─── JoinedClassModel ────────────────────────────────────────────────────────
-
-class JoinedClassModel {
-  final String id;
-  final String name;
-
-  const JoinedClassModel({required this.id, required this.name});
-
-  factory JoinedClassModel.fromJson(Map<String, dynamic> json) =>
-      JoinedClassModel(
-        id:   json['id']?.toString() ?? '',
-        name: json['name']?.toString() ?? '',
-      );
-
-  Map<String, dynamic> toJson() => {'id': id, 'name': name};
 }

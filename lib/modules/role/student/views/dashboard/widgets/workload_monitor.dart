@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../providers/dashboard_provider.dart';
 
 class WorkloadMonitor extends StatelessWidget {
   const WorkloadMonitor({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final workloadPlan = context.watch<DashboardProvider>().data?.workloadPlan;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        Text(
-          "Workload Monitor",
+        const Text(
+          'Workload Monitor',
           style: TextStyle(
             fontSize: FontStyles.titleLarge,
             fontWeight: FontStyles.weightHeavy,
@@ -32,14 +36,22 @@ class WorkloadMonitor extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Today\'s Plan',
-                style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.titleWeight),
+              Text(
+                workloadPlan?.planLabel ?? "Today's Plan",
+                style: const TextStyle(
+                  fontSize: FontStyles.titleMedium,
+                  fontWeight: FontStyles.titleWeight,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                'No tasks yet.',
-                style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.legendText),
+                workloadPlan == null || workloadPlan.isEmpty
+                    ? 'No tasks yet.'
+                    : '${workloadPlan.tasks.length} tasks planned',
+                style: const TextStyle(
+                  fontSize: FontStyles.titleSmall,
+                  color: AppColors.legendText,
+                ),
               ),
             ],
           ),

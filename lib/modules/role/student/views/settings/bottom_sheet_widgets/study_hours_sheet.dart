@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
-import '../../../controllers/student_settings_controller.dart';
+import '../../../providers/student_settings_provider.dart';
 
-/// Bottom sheet for editing study hours (start + end time).
-/// Opens only when tapped — disposed immediately on close.
 class StudyHoursSheet extends StatefulWidget {
-  final StudentSettingsController controller;
-  const StudyHoursSheet({super.key, required this.controller});
+  const StudyHoursSheet({super.key});
 
-  static Future<void> show(BuildContext context, StudentSettingsController controller) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => StudyHoursSheet(controller: controller),
+      builder: (_) => const StudyHoursSheet(),
     );
   }
 
@@ -28,8 +26,9 @@ class _StudyHoursSheetState extends State<StudyHoursSheet> {
   @override
   void initState() {
     super.initState();
-    _start = widget.controller.studyStart;
-    _end   = widget.controller.studyEnd;
+    final provider = context.read<StudentSettingsProvider>();
+    _start = provider.studyStart;
+    _end   = provider.studyEnd;
   }
 
   Future<void> _pickTime(bool isStart) async {
@@ -53,7 +52,7 @@ class _StudyHoursSheetState extends State<StudyHoursSheet> {
     return _SheetScaffold(
       title: 'Study Hours',
       onSave: () async {
-        await widget.controller.saveStudyHours(_start, _end);
+        await context.read<StudentSettingsProvider>().saveStudyHours(_start, _end);
         if (context.mounted) Navigator.pop(context);
       },
       child: Row(
@@ -97,7 +96,6 @@ class _TimeBlock extends StatelessWidget {
   }
 }
 
-// ── Shared sheet scaffold (used by all 4 sheets) ─────────────────────────────
 class _SheetScaffold extends StatelessWidget {
   final String title;
   final Widget child;
@@ -117,7 +115,6 @@ class _SheetScaffold extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle
           Center(
             child: Container(
               width: 40, height: 4,
@@ -125,7 +122,6 @@ class _SheetScaffold extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

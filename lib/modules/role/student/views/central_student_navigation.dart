@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/settings/student_settings.dart';
-import '../controllers/burnout_alert_controller.dart';
 import '../controllers/semester_progress_controller.dart';
-import '../controllers/student_settings_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/tasks_controller.dart';
 import '../providers/burnout_alert_provider.dart';
@@ -11,6 +10,8 @@ import '../providers/semester_progress_provider.dart';
 import '../providers/student_settings_provider.dart';
 import '../providers/study_plan_provider.dart';
 import '../providers/task_provider.dart';
+import '../controllers/burnout_alert_controller.dart';
+import '../controllers/student_settings_controller.dart';
 import 'tasks/tasks.dart';
 import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
@@ -28,29 +29,12 @@ class CentralStudentNavigation extends StatefulWidget {
 }
 
 class CentralStudentNavigationState extends State<CentralStudentNavigation> {
-  // ── Burnout ───────────────────────────────────────────────
-  final BurnoutAlertController burnoutController = BurnoutAlertController();
-  late final BurnoutAlertProvider burnoutProvider;
+  int currentNavIndex = 0;
+  final List<int> navHistory = [];
 
-  // ── Settings ──────────────────────────────────────────────
-  final StudentSettingsController settingsController =
-  StudentSettingsController();
-  late final StudentSettingsProvider settingsProvider;
-
-  // ── Semester progress ─────────────────────────────────────
-  late final SemesterProvider semesterProvider;
-  late final SemesterProgressController semesterController;
-
-  // ── Study plan ────────────────────────────────────────────
-  late final StudyPlanProvider studyPlanProvider;
-  late final StudyPlanController studyPlanController;
-
-  // ── Tasks ─────────────────────────────────────────────────
-  late final TasksProvider tasksProvider;
-  late final TaskController taskController;
-
-  // ── Navigation ────────────────────────────────────────────
-  final NavigationProvider navigationProvider = NavigationProvider();
+  late final TaskController _taskController;
+  late final StudyPlanController _studyPlanController;
+  late final SemesterProgressController _semesterProgressController;
 
   late final List<Widget> pages;
 
@@ -58,43 +42,38 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
   void initState() {
     super.initState();
 
-    // Burnout
-    burnoutProvider = BurnoutAlertProvider(burnoutController);
-    burnoutProvider.loadMock();
+    // Load mock data into providers
+    context.read<BurnoutAlertProvider>().loadMock();
+    context.read<StudentSettingsProvider>().loadMock();
+    context.read<SemesterProvider>().loadMock();
+    context.read<StudyPlanProvider>().loadMock();
+    context.read<TasksProvider>().loadMock();
 
-    // Settings
-    settingsProvider = StudentSettingsProvider(settingsController);
-    settingsProvider.loadMock();
-
-    // Semester progress
-    semesterProvider = SemesterProvider();
-    semesterController = SemesterProgressController(semesterProvider);
-    semesterProvider.loadMock();
-
-    // Study plan
-    studyPlanProvider = StudyPlanProvider();
-    studyPlanController = StudyPlanController(studyPlanProvider);
-    studyPlanProvider.loadMock();
-
-    // Tasks
-    tasksProvider = TasksProvider();
-    taskController = TaskController(tasksProvider);
-    tasksProvider.loadMock();
+    // Instantiate controllers that wrap providers
+    _taskController = TaskController(context.read<TasksProvider>());
+    _studyPlanController = StudyPlanController(context.read<StudyPlanProvider>());
+    _semesterProgressController = SemesterProgressController(context.read<SemesterProvider>());
 
     pages = [
       const StudentDashboard(),
-      MyTasksPage(controller: taskController),
-      StudyPlanPage(controller: studyPlanController),
-      SemesterProgressPage(controller: semesterController),
+      MyTasksPage(controller: _taskController),
+      StudyPlanPage(controller: _studyPlanController),
+      SemesterProgressPage(controller: _semesterProgressController),
     ];
   }
 
-  int currentNavIndex = 0;
-  final List<int> navHistory = [];
+  @override
+  void dispose() {
+    _taskController.dispose();
+    _studyPlanController.dispose();
+    _semesterProgressController.dispose();
+    super.dispose();
+  }
 
   void goToTab(int index) {
     if (index == currentNavIndex) return;
     setState(() {
+      navHistory.add(currentNavIndex);
       currentNavIndex = index;
     });
   }
@@ -104,16 +83,6 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
     setState(() {
       currentNavIndex = navHistory.removeLast();
     });
-  }
-
-  @override
-  void dispose() {
-    burnoutController.dispose();
-    settingsController.dispose();
-    semesterController.dispose();
-    studyPlanController.dispose();
-    taskController.dispose();
-    super.dispose();
   }
 
   @override
@@ -133,29 +102,30 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
           bottom: false,
           child: Column(
             children: [
-              if (currentNavIndex != 4)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                  child: StudentHeader(
-                    burnoutAlertController: burnoutController,
-                    settingsController: settingsController,
-                    onProfileTapped: () {
-                      navigationProvider.setCurrentIndex(currentNavIndex);
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => StudentSettingsPage(
-                            controller: settingsController,
-                            navigationProvider: navigationProvider,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: StudentHeader(
+                  burnoutAlertController: BurnoutAlertController(),
+                  settingsController: StudentSettingsController(),
+                  onProfileTapped: () {
+                    context
+                        .read<NavigationProvider>()
+                        .setCurrentIndex(currentNavIndex);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const StudentSettingsPage(),
+                      ),
+                    );
+                  },
                 ),
+              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 68),
-                  child: IndexedStack(index: currentNavIndex, children: pages),
+                  child: IndexedStack(
+                    index: currentNavIndex,
+                    children: pages,
+                  ),
                 ),
               ),
             ],
@@ -164,7 +134,8 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
       ),
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentNavIndex,
-        onTap: goToTab, role: 1,
+        onTap: goToTab,
+        role: 1,
       ),
     );
   }

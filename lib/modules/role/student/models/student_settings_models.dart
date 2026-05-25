@@ -1,6 +1,18 @@
-import 'package:mae_assignment_frontend/modules/role/student/models/semester_details_model.dart';
+import 'semester_details_model.dart';
 
-import '../controllers/student_settings_controller.dart';
+class JoinedClassModel {
+  final String id;
+  final String name;
+
+  const JoinedClassModel({required this.id, required this.name});
+
+  factory JoinedClassModel.fromJson(Map<String, dynamic> json) {
+    return JoinedClassModel(
+      id:   json['id'] as String,
+      name: json['name'] as String,
+    );
+  }
+}
 
 class StudentSettingsModel {
   final int userId;
@@ -20,8 +32,8 @@ class StudentSettingsModel {
   final List<Map<String, String>> subjects;
   final Set<String> blockedSlots;
   final String? avatarUrl;
-  final int joinedClassCount;           // NEW
-  final List<JoinedClassModel> joinedClasses; // NEW
+  final int joinedClassCount;
+  final List<JoinedClassModel> joinedClasses;
 
   const StudentSettingsModel({
     required this.userId,
@@ -36,13 +48,13 @@ class StudentSettingsModel {
     required this.slotEndPrompts,
     required this.burnoutWarnings,
     required this.weeklyResetSummary,
-    this.appVersion    = 'v1.0',
-    this.semesters     = const [],
-    this.subjects      = const [],
-    this.blockedSlots  = const {},
+    this.appVersion       = 'v1.0',
+    this.semesters        = const [],
+    this.subjects         = const [],
+    this.blockedSlots     = const {},
     this.avatarUrl,
-    this.joinedClassCount  = 0,         // NEW
-    this.joinedClasses     = const [],  // NEW
+    this.joinedClassCount = 0,
+    this.joinedClasses    = const [],
   });
 
   factory StudentSettingsModel.fromJson(Map<String, dynamic> json) {
@@ -70,10 +82,10 @@ class StudentSettingsModel {
       subjects: (json['subjects'] as List<dynamic>? ?? [])
           .map((e) => Map<String, String>.from(e as Map))
           .toList(),
-      blockedSlots:      Set<String>.from(json['blocked_slots'] as List? ?? []),
-      avatarUrl:         json['avatar_url'] as String?,
-      joinedClasses:     classes,                // NEW
-      joinedClassCount:  classes.length,         // NEW
+      blockedSlots:     Set<String>.from(json['blocked_slots'] as List? ?? []),
+      avatarUrl:        json['avatar_url'] as String?,
+      joinedClasses:    classes,
+      joinedClassCount: classes.length,
     );
   }
 
@@ -87,8 +99,8 @@ class StudentSettingsModel {
     List<Map<String, String>>? subjects,
     Set<String>? blockedSlots,
     String? avatarUrl,
-    int? joinedClassCount,                       // NEW
-    List<JoinedClassModel>? joinedClasses,       // NEW
+    int? joinedClassCount,
+    List<JoinedClassModel>? joinedClasses,
   }) {
     return StudentSettingsModel(
       userId:             userId,
@@ -108,8 +120,8 @@ class StudentSettingsModel {
       subjects:           subjects            ?? this.subjects,
       blockedSlots:       blockedSlots        ?? this.blockedSlots,
       avatarUrl:          avatarUrl           ?? this.avatarUrl,
-      joinedClassCount:   joinedClassCount    ?? this.joinedClassCount,   // NEW
-      joinedClasses:      joinedClasses       ?? this.joinedClasses,      // NEW
+      joinedClassCount:   joinedClassCount    ?? this.joinedClassCount,
+      joinedClasses:      joinedClasses       ?? this.joinedClasses,
     );
   }
 
@@ -129,34 +141,17 @@ class StudentSettingsModel {
       weeklyResetSummary: false,
       appVersion:         'v1.0',
       semesters: const [
-        SemesterModel(
-          name:            'Semester 4 · Year 2',
-          studyHoursStart: '8 AM',
-          studyHoursEnd:   '10 PM',
-          subjectCount:    4,
-          isCurrent:       true,
-        ),
-        SemesterModel(
-          name:            'Semester 3 · Year 2',
-          studyHoursStart: '9 AM',
-          studyHoursEnd:   '9 PM',
-          subjectCount:    5,
-          isCurrent:       false,
-        ),
+        SemesterModel(name: 'Semester 4 · Year 2', studyHoursStart: '8 AM', studyHoursEnd: '10 PM', subjectCount: 4, isCurrent: true),
+        SemesterModel(name: 'Semester 3 · Year 2', studyHoursStart: '9 AM', studyHoursEnd: '9 PM',  subjectCount: 5, isCurrent: false),
       ],
       subjects: [
-        {'name': 'Mathematics',         'color': '4F86C6'},
-        {'name': 'Data Structures',     'color': 'F87171'},
-        {'name': 'Operating Systems',   'color': '34D399'},
-        {'name': 'Software Engineering','color': 'FBBF24'},
+        {'name': 'Mathematics',          'color': '4F86C6'},
+        {'name': 'Data Structures',      'color': 'F87171'},
+        {'name': 'Operating Systems',    'color': '34D399'},
+        {'name': 'Software Engineering', 'color': 'FBBF24'},
       ],
-      blockedSlots: {
-        '0_0', '0_1',
-        '2_2', '2_3',
-        '4_5', '4_6',
-      },
+      blockedSlots: const {'0_0', '0_1', '2_2', '2_3', '4_5', '4_6'},
       avatarUrl: null,
-      // NEW — mock joined classes
       joinedClasses: const [
         JoinedClassModel(id: '1', name: 'CS301 — Algorithm Design'),
         JoinedClassModel(id: '2', name: 'CS410 — Machine Learning'),

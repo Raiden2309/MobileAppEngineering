@@ -1,71 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../providers/dashboard_provider.dart';
 import '../../central_student_navigation.dart';
+import 'task_card.dart';
 
-enum TaskStatus { done, inProgress, dueToday, upcoming }
-
-class TaskItem {
-  final String title;
-  final String subtitle;
-  final TaskStatus status;
-  final bool checked;
-
-  const TaskItem({
-    required this.title,
-    required this.subtitle,
-    required this.status,
-    this.checked = false,
-  });
-}
-
-class TaskToday extends StatefulWidget {
+class TaskToday extends StatelessWidget {
   const TaskToday({super.key});
 
   @override
-  State<TaskToday> createState() => TaskTodayState();
-}
-
-class TaskTodayState extends State<TaskToday> {
-  List<TaskItem> tasks = const [
-    TaskItem(
-      title: 'Review affinity analysis notes',
-      subtitle: 'Research Methods · 45 min',
-      status: TaskStatus.done,
-      checked: true,
-    ),
-    TaskItem(
-      title: 'Write use case diagrams',
-      subtitle: 'CT124 System Proposal · 2 hrs',
-      status: TaskStatus.inProgress,
-    ),
-    TaskItem(
-      title: 'Prepare functional requirements',
-      subtitle: 'CT124 System Proposal · 1 hr',
-      status: TaskStatus.dueToday,
-    ),
-    TaskItem(
-      title: 'Prepare survey questions',
-      subtitle: 'Research Methods · 1.5 hrs',
-      status: TaskStatus.upcoming,
-    ),
-  ];
-
-  void toggleTask(int index) {
-    setState(() {
-      final t = tasks[index];
-      tasks = List.from(tasks)
-        ..[index] = TaskItem(
-          title: t.title,
-          subtitle: t.subtitle,
-          status: t.status,
-          checked: !t.checked,
-        );
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final provider = context.watch<DashboardProvider>();
+    final tasks = provider.data?.todayTasks ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -85,11 +33,9 @@ class TaskTodayState extends State<TaskToday> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
-                onTap: () {
-                  context
-                      .findAncestorStateOfType<CentralStudentNavigationState>()
-                      ?.goToTab(1);
-                },
+                onTap: () => context
+                    .findAncestorStateOfType<CentralStudentNavigationState>()
+                    ?.goToTab(1),
                 child: const Text(
                   'See all',
                   style: TextStyle(
@@ -105,134 +51,13 @@ class TaskTodayState extends State<TaskToday> {
         const SizedBox(height: 16),
         Column(
           children: List.generate(tasks.length, (index) {
-            final task = tasks[index];
-            return TaskCard(task: task, onToggle: () => toggleTask(index));
+            return TaskCard(
+              task: tasks[index],
+              onToggle: () => provider.toggleTask(index),
+            );
           }),
         ),
       ],
-    );
-  }
-}
-
-class TaskCard extends StatelessWidget {
-  final TaskItem task;
-  final VoidCallback onToggle;
-
-  const TaskCard({super.key, required this.task, required this.onToggle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-        border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
-      ),
-      child: Row(
-        children: [
-          TaskCheckbox(
-            checked: task.checked,
-            accent: AppColors.lime,
-            onTap: onToggle,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontSize: FontStyles.titleMedium,
-                    fontWeight: FontStyles.weightMedium,
-                    color: task.checked ? AppColors.legendText : AppColors.black,
-                    decoration: task.checked ? TextDecoration.lineThrough : null,
-                    decorationColor: AppColors.legendText,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  task.subtitle,
-                  style: const TextStyle(fontSize: 12, color: AppColors.legendText),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          StatusBadge(status: task.status),
-        ],
-      ),
-    );
-  }
-}
-
-class TaskCheckbox extends StatelessWidget {
-  final bool checked;
-  final Color accent;
-  final VoidCallback onTap;
-
-  const TaskCheckbox({
-    super.key,
-    required this.checked,
-    required this.accent,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: checked
-              ? accent.withValues(alpha: AppColors.glassIconOpacity)
-              : AppColors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppColors.black,
-            width: 2,
-          ),
-        ),
-        child: checked
-            ? Icon(Icons.check, color: accent, size: 18)
-            : null,
-      ),
-    );
-  }
-}
-
-class StatusBadge extends StatelessWidget {
-  final TaskStatus status;
-
-  const StatusBadge({super.key, required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, bg, fg) = switch (status) {
-      TaskStatus.done       => ('Done',        AppColors.completed,  AppColors.greenSheen),
-      TaskStatus.inProgress => ('In Progress', AppColors.inProgress, AppColors.mikadoYellow),
-      TaskStatus.dueToday   => ('Due Today',   AppColors.dueSoon,    AppColors.nectarine),
-      TaskStatus.upcoming   => ('Upcoming',    AppColors.toDo,       AppColors.californiaBlue),
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppColors.glassBadgeBorderRadius),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: FontStyles.titleSmall,
-          fontWeight: FontStyles.weightMedium,
-          color: fg,
-        ),
-      ),
     );
   }
 }

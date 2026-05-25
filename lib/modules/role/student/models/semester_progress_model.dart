@@ -91,20 +91,18 @@ class SemesterProgressModel {
     );
   }
 
-  // Sample data
-
   factory SemesterProgressModel.mockData() {
     return const SemesterProgressModel(
-      semesterName: 'Sem 4',
-      dateRange: 'March – July 2026',
-      overallProgress: 0.65,
-      completedTasks: 10,
-      totalTasks: 20,
-      currentWeek: 8,
-      totalWeeks: 14,
+      semesterName:     'Sem 4',
+      dateRange:        'March – July 2026',
+      overallProgress:  0.65,
+      completedTasks:   10,
+      totalTasks:       20,
+      currentWeek:      8,
+      totalWeeks:       14,
       timelineProgress: 0.57,
-      weeksRemaining: 6,
-      finalExamDate: '14 July',
+      weeksRemaining:   6,
+      finalExamDate:    '14 July',
       subjects: [
         SubjectProgress(name: 'CT124 System Proposal', code: 'CT124',  progress: 0.65, completed: 7, remaining: 4, dueSoon: 1),
         SubjectProgress(name: 'Research Methods',      code: 'RM302',  progress: 0.40, completed: 2, remaining: 3, dueSoon: 1),

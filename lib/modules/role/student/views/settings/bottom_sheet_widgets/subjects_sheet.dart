@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
-import '../../../controllers/student_settings_controller.dart';
+import '../../../providers/student_settings_provider.dart';
 
 class SubjectsSheet extends StatefulWidget {
-  final StudentSettingsController controller;
-  const SubjectsSheet({super.key, required this.controller});
+  const SubjectsSheet({super.key});
 
-  static Future<void> show(BuildContext context, StudentSettingsController controller) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SubjectsSheet(controller: controller),
+      builder: (_) => const SubjectsSheet(),
     );
   }
 
@@ -31,7 +31,7 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
   void initState() {
     super.initState();
     _subjects = List<Map<String, String>>.from(
-      widget.controller.subjects.map((e) => Map<String, String>.from(e)),
+      context.read<StudentSettingsProvider>().subjects.map((e) => Map<String, String>.from(e)),
     );
   }
 
@@ -93,7 +93,6 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            // Subject list
             if (_subjects.isNotEmpty) ...[
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 220),
@@ -132,7 +131,6 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
               ),
               const SizedBox(height: 8),
             ],
-            // Add new subject row
             Row(
               children: [
                 Expanded(
@@ -178,7 +176,7 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () async {
-                  await widget.controller.saveSubjects(_subjects);
+                  await context.read<StudentSettingsProvider>().saveSubjects(_subjects);
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),

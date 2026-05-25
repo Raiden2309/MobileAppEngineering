@@ -1,6 +1,4 @@
-enum BlockType { blocked, study, breakSlot }
-
-enum BlockStatus { none, completed, inProgress, dueSoon, toDo }
+import 'app_enums.dart';
 
 class StudyBlock {
   final String title;
@@ -30,6 +28,15 @@ class StudyBlock {
           ? BlockStatus.values.byName(json['status'] as String)
           : BlockStatus.none,
     );
+  }
+
+  String get endTime {
+    final parts = startTime.split(':');
+    final startMinutes = int.parse(parts[0]) * 60 + int.parse(parts[1]);
+    final endMinutes = startMinutes + durationMinutes;
+    final h = endMinutes ~/ 60;
+    final m = endMinutes % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
   }
 
   String get durationLabel {
@@ -81,8 +88,6 @@ class WeekPlan {
     );
   }
 
-  // Mock data
-
   factory WeekPlan.mockData() {
     final now = DateTime.now();
     final monday = now.subtract(Duration(days: now.weekday - 1));
@@ -91,28 +96,30 @@ class WeekPlan {
       lastUpdated: now,
       days: List.generate(7, (i) {
         final day = monday.add(Duration(days: i));
-        final isToday = day.day == now.day && day.month == now.month && day.year == now.year;
-        final isPast  = day.isBefore(DateTime(now.year, now.month, now.day));
+        final isToday = day.day == now.day &&
+            day.month == now.month &&
+            day.year == now.year;
+        final isPast = day.isBefore(DateTime(now.year, now.month, now.day));
 
         return DayPlan(
           date:   day,
-          blocks: isToday ? todayBlocks : isPast ? pastBlocks : [],
+          blocks: isToday ? _todayBlocks : isPast ? _pastBlocks : [],
         );
       }),
     );
   }
 
-  static const List<StudyBlock> todayBlocks = [
-    StudyBlock(title: 'CT124 Lecture',                  subject: 'Blocked',               startTime: '8:00',  durationMinutes: 60,  type: BlockType.blocked),
-    StudyBlock(title: 'Review affinity analysis notes', subject: 'Research Methods',       startTime: '9:00',  durationMinutes: 45,  type: BlockType.study,     status: BlockStatus.completed),
-    StudyBlock(title: 'Short break',                    subject: 'Recommended',            startTime: '9:45',  durationMinutes: 15,  type: BlockType.breakSlot),
-    StudyBlock(title: 'Write use case diagrams',        subject: 'CT124 System Proposal',  startTime: '10:00', durationMinutes: 120, type: BlockType.study,     status: BlockStatus.inProgress),
-    StudyBlock(title: 'Lunch break',                    subject: 'Recommended',            startTime: '12:00', durationMinutes: 45,  type: BlockType.breakSlot),
-    StudyBlock(title: 'Draft literature review',        subject: 'Research Methods',       startTime: '13:00', durationMinutes: 90,  type: BlockType.study,     status: BlockStatus.toDo),
-    StudyBlock(title: 'Prepare presentation slides',    subject: 'CT124 System Proposal',  startTime: '14:30', durationMinutes: 60,  type: BlockType.study,     status: BlockStatus.toDo),
+  static const List<StudyBlock> _todayBlocks = [
+    StudyBlock(title: 'CT124 Lecture',                  subject: 'Blocked',              startTime: '8:00',  durationMinutes: 60,  type: BlockType.blocked),
+    StudyBlock(title: 'Review affinity analysis notes', subject: 'Research Methods',      startTime: '9:00',  durationMinutes: 45,  type: BlockType.study,     status: BlockStatus.completed),
+    StudyBlock(title: 'Short break',                    subject: 'Recommended',           startTime: '9:45',  durationMinutes: 15,  type: BlockType.breakSlot),
+    StudyBlock(title: 'Write use case diagrams',        subject: 'CT124 System Proposal', startTime: '10:00', durationMinutes: 120, type: BlockType.study,     status: BlockStatus.inProgress),
+    StudyBlock(title: 'Lunch break',                    subject: 'Recommended',           startTime: '12:00', durationMinutes: 45,  type: BlockType.breakSlot),
+    StudyBlock(title: 'Draft literature review',        subject: 'Research Methods',      startTime: '13:00', durationMinutes: 90,  type: BlockType.study,     status: BlockStatus.toDo),
+    StudyBlock(title: 'Prepare presentation slides',    subject: 'CT124 System Proposal', startTime: '14:30', durationMinutes: 60,  type: BlockType.study,     status: BlockStatus.toDo),
   ];
 
-  static const List<StudyBlock> pastBlocks = [
+  static const List<StudyBlock> _pastBlocks = [
     StudyBlock(title: 'Morning study session', subject: 'Research Methods', startTime: '9:00',  durationMinutes: 90, type: BlockType.study, status: BlockStatus.completed),
     StudyBlock(title: 'Assignment review',     subject: 'CT124',            startTime: '11:00', durationMinutes: 60, type: BlockType.study, status: BlockStatus.completed),
   ];

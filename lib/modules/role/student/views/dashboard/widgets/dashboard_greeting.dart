@@ -1,29 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
-import '../../../controllers/student_dashboard_controller.dart';
+import '../../../providers/dashboard_provider.dart';
 
 class DashboardGreeting extends StatelessWidget {
-  final StudentDashboardController controller;
-  const DashboardGreeting({super.key, required this.controller});
+  const DashboardGreeting({super.key});
+
+  String _formattedDate() {
+    final now = DateTime.now();
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    return '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final summary = context.watch<DashboardProvider>().data?.summary;
+    final userName = summary?.userName ?? '';
+    final taskCount = summary?.taskCountToday ?? 0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           margin: const EdgeInsets.only(top: 16),
           child: Text(
-            'Good Morning, ${controller.userName}',
-            style: const TextStyle(fontSize: FontStyles.titleGreeting, fontWeight: FontStyles.titleWeight, color: AppColors.black, letterSpacing: 0.5, height: 1),
+            'Good Morning, $userName',
+            style: const TextStyle(
+              fontSize: FontStyles.titleGreeting,
+              fontWeight: FontStyles.titleWeight,
+              color: AppColors.black,
+              letterSpacing: 0.5,
+              height: 1,
+            ),
           ),
         ),
         Container(
           margin: const EdgeInsets.only(top: 4),
           child: Text(
-            'You have ${controller.amountOfTasks} tasks scheduled for today',
-            style: const TextStyle(fontSize: FontStyles.titleMedium, color: AppColors.black, letterSpacing: 0.5, height: 2),
+            'You have $taskCount tasks scheduled for today',
+            style: const TextStyle(
+              fontSize: FontStyles.titleMedium,
+              color: AppColors.black,
+              letterSpacing: 0.5,
+              height: 2,
+            ),
           ),
         ),
         Container(
@@ -39,7 +62,14 @@ class DashboardGreeting extends StatelessWidget {
             children: [
               const Icon(Icons.calendar_month, color: AppColors.black, size: 18),
               const SizedBox(width: 8),
-              Text(controller.getFormattedDate(), style: const TextStyle(color: Colors.black, fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightMedium)),
+              Text(
+                _formattedDate(),
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: FontStyles.titleMedium,
+                  fontWeight: FontStyles.weightMedium,
+                ),
+              ),
             ],
           ),
         ),

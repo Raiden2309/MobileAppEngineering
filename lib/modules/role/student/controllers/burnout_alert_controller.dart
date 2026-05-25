@@ -1,69 +1,27 @@
 import 'package:flutter/material.dart';
-import '../models/burnout_alert_model.dart';
+import 'package:provider/provider.dart';
+import '../providers/burnout_alert_provider.dart';
 
-class BurnoutAlertController extends ChangeNotifier {
-  BurnoutAlertModel? currentAlert;
-  bool isDismissed = false;
-  bool loading = false;
-  String? error;
-
-  bool get hasAlert => currentAlert != null && !isDismissed;
-
-  void setLoading(bool value) {
-    loading = value;
-    notifyListeners();
+class BurnoutAlertController {
+  static void evaluateSession(BuildContext context, {required double hoursStudied}) {
+    context.read<BurnoutAlertProvider>().evaluateSession(hoursStudied: hoursStudied);
   }
 
-  void setError(String message) {
-    error = message;
-    loading = false;
-    notifyListeners();
+  static void dismiss(BuildContext context) {
+    context.read<BurnoutAlertProvider>().dismiss();
   }
 
-  void setAlert(BurnoutAlertModel alert) {
-    currentAlert = alert;
-    isDismissed = false;
-    loading = false;
-    error = null;
-    notifyListeners();
-  }
-
-  void evaluateSession({required double hoursStudied}) {
-    if (hoursStudied >= 6.0) {
-      currentAlert = BurnoutAlertModel.overloadPreset(hoursStudied: hoursStudied);
-    } else if (hoursStudied >= 5.0) {
-      currentAlert = BurnoutAlertModel.burnoutPreset(hoursStudied: hoursStudied);
-    } else if (hoursStudied >= 3.0) {
-      currentAlert = BurnoutAlertModel.warningPreset(hoursStudied: hoursStudied);
-    } else {
-      currentAlert = BurnoutAlertModel.allGoodPreset(hoursStudied: hoursStudied);
-    }
-    isDismissed = false;
-    loading = false;
-    notifyListeners();
-  }
-
-  void dismiss() {
-    isDismissed = true;
-    notifyListeners();
-  }
-
-  void onPrimaryAction(BuildContext context) {
-    if (currentAlert == null) return;
-    dismiss();
+  static void onPrimaryAction(BuildContext context) {
+    context.read<BurnoutAlertProvider>().dismiss();
     Navigator.of(context).pop(true);
   }
 
-  void onDismiss(BuildContext context) {
-    dismiss();
+  static void onDismiss(BuildContext context) {
+    context.read<BurnoutAlertProvider>().dismiss();
     Navigator.of(context).pop(false);
   }
 
-  void clear() {
-    currentAlert = null;
-    isDismissed = false;
-    loading = false;
-    error = null;
-    notifyListeners();
+  static void clear(BuildContext context) {
+    context.read<BurnoutAlertProvider>().clear();
   }
 }

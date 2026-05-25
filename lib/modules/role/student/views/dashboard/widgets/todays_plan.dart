@@ -1,27 +1,38 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
-
-import '../../../../../../shared/styles/font_styles.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/plan_widget.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
+import '../../../../../../shared/styles/font_styles.dart';
+import '../../../models/app_enums.dart';
 import '../../../models/dashboard_models.dart';
+import '../../../models/study_plan_model.dart';
+import '../../../providers/study_plan_provider.dart';
 import '../../central_student_navigation.dart';
+import 'study_block_tile.dart';
 
 class TodaysPlan extends StatelessWidget {
   const TodaysPlan({super.key});
 
+  String _totalHoursLabel(List<StudyBlock> blocks) {
+    final totalMinutes = blocks
+        .where((b) => b.type == BlockType.study)
+        .fold(0, (sum, b) => sum + b.durationMinutes);
+    if (totalMinutes <= 0) return '${blocks.length} blocks today';
+    final h = totalMinutes ~/ 60;
+    final m = totalMinutes % 60;
+    if (h == 0) return '${m}m of study today';
+    if (m == 0) return '${h}h of study today';
+    return '${h}h ${m}m of study today';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final weekPlan = WeekPlan.mockData();
+    final plan = context.watch<StudyPlanProvider>().plan;
     final now = DateTime.now();
-
-    final todayIndex = weekPlan.days.indexWhere(
-          (d) =>
-      d.date.day == now.day &&
-          d.date.month == now.month &&
-          d.date.year == now.year,
+    final todayPlan = plan?.days.firstWhere(
+          (d) => d.date.day == now.day && d.date.month == now.month && d.date.year == now.year,
+      orElse: () => DayPlan(date: now, blocks: const []),
     );
-
-    final todayPlan = todayIndex >= 0 ? weekPlan.days[todayIndex] : null;
     final blocks = todayPlan?.blocks ?? [];
 
     return Container(
@@ -62,10 +73,7 @@ class TodaysPlan extends StatelessWidget {
                 ),
                 if (blocks.isNotEmpty)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: AppColors.glassBadge(),
                     child: Text(
                       '${blocks.length} blocks',
@@ -79,11 +87,9 @@ class TodaysPlan extends StatelessWidget {
               ],
             ),
           ),
-
           const Divider(height: 1, color: AppColors.black),
-
           if (blocks.isEmpty)
-            const EmptyState()
+            const PlanEmptyState()
           else
             Padding(
               padding: const EdgeInsets.all(16),
@@ -100,21 +106,16 @@ class TodaysPlan extends StatelessWidget {
                 ],
               ),
             ),
-
           if (blocks.isNotEmpty) ...[
             const Divider(height: 1, color: AppColors.black),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.access_time_rounded,
-                    color: AppColors.black,
-                    size: 14,
-                  ),
+                  const Icon(Icons.access_time_rounded, color: AppColors.black, size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    totalHoursLabel(blocks),
+                    _totalHoursLabel(blocks),
                     style: const TextStyle(
                       color: AppColors.black,
                       fontSize: FontStyles.titleSmall,
@@ -124,11 +125,9 @@ class TodaysPlan extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: GestureDetector(
-                      onTap: () {
-                        context
-                            .findAncestorStateOfType<CentralStudentNavigationState>()
-                            ?.goToTab(2);
-                      },
+                      onTap: () => context
+                          .findAncestorStateOfType<CentralStudentNavigationState>()
+                          ?.goToTab(2),
                       child: const Text(
                         'View full plan >',
                         style: TextStyle(
@@ -144,192 +143,6 @@ class TodaysPlan extends StatelessWidget {
             ),
           ],
         ],
-      ),
-    );
-  }
-
-  String totalHoursLabel(List<StudyBlock> blocks) {
-    final totalMinutes = blocks
-        .where((b) => b.type == BlockType.study)
-        .fold(0, (sum, b) => sum + b.durationMinutes);
-    if (totalMinutes <= 0) return '${blocks.length} blocks today';
-    final h = totalMinutes ~/ 60;
-    final m = totalMinutes % 60;
-    if (h == 0) return '${m}m of study today';
-    if (m == 0) return '${h}h of study today';
-    return '${h}h ${m}m of study today';
-  }
-}
-
-class StudyBlockTile extends StatelessWidget {
-  final StudyBlock block;
-
-  const StudyBlockTile({super.key, required this.block});
-
-  static const List<Color> subjectAccentColors = [
-    AppColors.californiaBlue,
-    AppColors.greenSheen,
-    AppColors.softPurple,
-    AppColors.skyCyan,
-    AppColors.nectarine,
-    AppColors.pink,
-    AppColors.lime,
-    AppColors.mikadoYellow,
-  ];
-
-  Color get accentColor {
-    if (block.type == BlockType.blocked) return AppColors.red;
-    if (block.type == BlockType.breakSlot) return AppColors.black;
-    final key = block.subject ?? block.title;
-    return subjectAccentColors[key.hashCode.abs() % subjectAccentColors.length];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: AppColors.glassTile().copyWith(
-        border: Border.all(color: AppColors.black),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 3,
-            height: 36,
-            decoration: BoxDecoration(
-              color: accentColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  block.title,
-                  style: const TextStyle(
-                    color: AppColors.black,
-                    fontSize: FontStyles.titleSmall,
-                    fontWeight: FontStyles.titleWeight,
-                    letterSpacing: -0.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (block.subject != null && block.subject!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    block.subject!,
-                    style: const TextStyle(
-                      color: AppColors.legendText,
-                      fontSize: FontStyles.titleTiny,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
-            ),
-          ),
-
-          Text(
-            '${block.startTime} – ${block.endTime}',
-            style: const TextStyle(
-              color: AppColors.legendText,
-              fontSize: FontStyles.titleSmall,
-              fontWeight: FontStyles.weightMedium,
-              fontFeatures: [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class TimeGapIndicator extends StatelessWidget {
-  final StudyBlock fromBlock;
-  final StudyBlock toBlock;
-
-  const TimeGapIndicator({
-    super.key,
-    required this.fromBlock,
-    required this.toBlock,
-  });
-
-  int get gapMinutes {
-    try {
-      final endParts = fromBlock.endTime.split(':');
-      final startParts = toBlock.startTime.split(':');
-      final now = DateTime.now();
-      final end = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        int.parse(endParts[0]),
-        int.parse(endParts[1]),
-      );
-      final start = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        int.parse(startParts[0]),
-        int.parse(startParts[1]),
-      );
-      return start.difference(end).inMinutes;
-    } catch (e) {
-      return 0;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final gap = gapMinutes;
-    if (gap <= 0) return const SizedBox(height: 8);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        children: [
-          const SizedBox(width: 15),
-          Container(width: 1, height: 14, color: AppColors.black),
-          const SizedBox(width: 10),
-          Text(
-            '${gap}min break',
-            style: const TextStyle(
-              color: AppColors.legendText,
-              fontSize: FontStyles.titleTiny,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class EmptyState extends StatelessWidget {
-  const EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 28),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(Icons.wb_sunny_rounded, color: AppColors.black, size: 32),
-            SizedBox(height: 10),
-            Text(
-              'No study blocks scheduled today',
-              style: TextStyle(
-                color: AppColors.black,
-                fontSize: FontStyles.titleSmall,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -1,21 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../../modules/role/student/controllers/burnout_alert_controller.dart';
-import '../../../modules/role/student/controllers/student_settings_controller.dart';
-import '../../../modules/role/student/views/burnout_alert/burnout_alert_bottom_sheet.dart';
+import 'package:mae_assignment_frontend/modules/role/student/controllers/burnout_alert_controller.dart';
+import 'package:mae_assignment_frontend/modules/role/student/controllers/student_settings_controller.dart';
 import '../../styles/app_colors.dart';
 import '../../styles/font_styles.dart';
+import '../../../modules/role/student/views/burnout_alert/burnout_alert_bottom_sheet.dart';
 
 class StudentHeader extends StatelessWidget {
-  final BurnoutAlertController burnoutAlertController;
-  final StudentSettingsController settingsController;
   final VoidCallback onProfileTapped;
-
 
   const StudentHeader({
     super.key,
-    required this.burnoutAlertController,
-    required this.settingsController,
-    required this.onProfileTapped,
+    required this.onProfileTapped, required BurnoutAlertController burnoutAlertController, required StudentSettingsController settingsController,
   });
 
   void showBurnoutAlert(BuildContext context) {
@@ -23,7 +18,7 @@ class StudentHeader extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => BurnoutAlertBottomSheet(controller: burnoutAlertController),
+      builder: (_) => const BurnoutAlertBottomSheet(),
     );
   }
 

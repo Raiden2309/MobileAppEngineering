@@ -1,28 +1,78 @@
+import 'package:flutter/material.dart';
 import '../../../../shared/services/api_service.dart';
-import '../controllers/burnout_alert_controller.dart';
 import '../models/burnout_alert_model.dart';
 
-class BurnoutAlertProvider {
-  final BurnoutAlertController controller;
+class BurnoutAlertProvider extends ChangeNotifier {
+  BurnoutAlertModel? currentAlert;
+  bool isDismissed = false;
+  bool loading = false;
+  String? error;
 
-  BurnoutAlertProvider(this.controller);
+  bool get hasAlert => currentAlert != null && !isDismissed;
 
   void loadMock() {
-    // controller.setAlert(BurnoutAlertModel.warningPreset(hoursStudied: 3.5));
-    // controller.setAlert(BurnoutAlertModel.burnoutPreset(hoursStudied: 5.5));
-    controller.setAlert(BurnoutAlertModel.overloadPreset(hoursStudied: 7.0));
-    // controller.setAlert(BurnoutAlertModel.allGoodPreset(hoursStudied: 1.5));
+    setAlert(BurnoutAlertModel.overloadPreset(hoursStudied: 7.0));
   }
 
   Future<void> fetch() async {
-    controller.setLoading(true);
+    loading = true;
+    error = null;
+    notifyListeners();
 
     try {
       final json = await ApiService.get('/burnout_alert/getBurnoutData');
-      final model = BurnoutAlertModel.fromJson(json);
-      controller.setAlert(model);
+      setAlert(BurnoutAlertModel.fromJson(json));
     } catch (e) {
-      controller.setError(e.toString());
+      error = e.toString();
+      loading = false;
+      notifyListeners();
     }
+  }
+
+  void setAlert(BurnoutAlertModel alert) {
+    currentAlert = alert;
+    isDismissed = false;
+    loading = false;
+    error = null;
+    notifyListeners();
+  }
+
+  void evaluateSession({required double hoursStudied}) {
+    if (hoursStudied >= 6.0) {
+      currentAlert = BurnoutAlertModel.overloadPreset(hoursStudied: hoursStudied);
+    } else if (hoursStudied >= 5.0) {
+      currentAlert = BurnoutAlertModel.burnoutPreset(hoursStudied: hoursStudied);
+    } else if (hoursStudied >= 3.0) {
+      currentAlert = BurnoutAlertModel.warningPreset(hoursStudied: hoursStudied);
+    } else {
+      currentAlert = BurnoutAlertModel.allGoodPreset(hoursStudied: hoursStudied);
+    }
+    isDismissed = false;
+    loading = false;
+    notifyListeners();
+  }
+
+  void dismiss() {
+    isDismissed = true;
+    notifyListeners();
+  }
+
+  void clear() {
+    currentAlert = null;
+    isDismissed = false;
+    loading = false;
+    error = null;
+    notifyListeners();
+  }
+
+  void setLoading(bool value) {
+    loading = value;
+    notifyListeners();
+  }
+
+  void setError(String message) {
+    error = message;
+    loading = false;
+    notifyListeners();
   }
 }

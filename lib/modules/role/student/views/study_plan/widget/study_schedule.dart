@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../models/app_enums.dart';
 import '../../../models/study_plan_model.dart';
 
 class StudySchedule extends StatelessWidget {

@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../../../auth/views/change_password.dart';
 import '../../controllers/student_settings_controller.dart';
 import '../../models/student_settings_models.dart';
-import '../../providers/navigation_provider.dart';
+import '../../providers/student_settings_provider.dart';
 import 'bottom_sheet_widgets/blocked_times_sheet.dart';
 import 'bottom_sheet_widgets/joined_classes_sheet.dart';
 import 'bottom_sheet_widgets/semester_sheet.dart';
@@ -13,17 +14,12 @@ import 'bottom_sheet_widgets/study_hours_sheet.dart';
 import 'bottom_sheet_widgets/subjects_sheet.dart';
 
 class StudentSettingsPage extends StatelessWidget {
-  final StudentSettingsController controller;
-  final NavigationProvider navigationProvider;
-
-  const StudentSettingsPage({
-    super.key,
-    required this.controller,
-    required this.navigationProvider,
-  });
+  const StudentSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<StudentSettingsProvider>();
+
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Container(
@@ -35,20 +31,15 @@ class StudentSettingsPage extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: ListenableBuilder(
-            listenable: controller,
-            builder: (context, _) {
-              if (controller.loading) {
+          child: Builder(
+            builder: (context) {
+              if (provider.loading) {
                 return const Center(child: CircularProgressIndicator());
               }
-              if (controller.data == null) {
+              if (provider.data == null) {
                 return const Center(child: Text('No settings found'));
               }
-              return SettingsBody(
-                controller: controller,
-                data: controller.data!,
-                navigationProvider: navigationProvider,
-              );
+              return SettingsBody(data: provider.data!);
             },
           ),
         ),
@@ -58,24 +49,19 @@ class StudentSettingsPage extends StatelessWidget {
 }
 
 class SettingsBody extends StatelessWidget {
-  final StudentSettingsController controller;
   final StudentSettingsModel data;
-  final NavigationProvider navigationProvider;
 
-  const SettingsBody({
-    super.key,
-    required this.controller,
-    required this.data,
-    required this.navigationProvider,
-  });
+  const SettingsBody({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.read<StudentSettingsProvider>();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
       child: Column(
         children: [
-          ProfileHeader(data: data, navigationProvider: navigationProvider, controller: controller,),
+          ProfileHeader(data: data),
           const SizedBox(height: 24),
           SettingsGroup(
             title: 'Account',
@@ -100,7 +86,7 @@ class SettingsBody extends StatelessWidget {
                 iconBg: AppColors.californiaBlue.withValues(alpha: 0.2),
                 label: 'Join Class',
                 value: '${data.joinedClassCount} classes',
-                onTap: () => JoinedClassesSheet.show(context, controller),
+                onTap: () => JoinedClassesSheet.show(context),
               ),
             ],
           ),
@@ -113,64 +99,72 @@ class SettingsBody extends StatelessWidget {
                 iconBg: AppColors.mikadoYellow.withValues(alpha: 0.2),
                 label: 'Study Hours',
                 value: '${data.studyHoursStart} – ${data.studyHoursEnd}',
-                onTap: () => StudyHoursSheet.show(context, controller),
+                onTap: () => showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => const StudyHoursSheet(),
+                ),
               ),
               SettingsRow(
                 icon: Icons.block_rounded,
                 iconBg: AppColors.red.withValues(alpha: 0.2),
                 label: 'Blocked Times',
                 value: '${data.blockedSlotsCount} slots',
-                onTap: () => BlockedTimesSheet.show(context, controller),
+                onTap: () => showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => const BlockedTimesSheet(),
+                ),
               ),
               SettingsRow(
                 icon: Icons.menu_book_rounded,
                 iconBg: AppColors.softPurple.withValues(alpha: 0.2),
                 label: 'Subjects',
                 value: '${data.subjectCount} subjects',
-                onTap: () => SubjectsSheet.show(context, controller),
+                onTap: () => showModalBottomSheet(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  isScrollControlled: true,
+                  builder: (_) => const SubjectsSheet(),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          NewSemesterCard(
-            controller: controller,
-            navigationProvider: navigationProvider,
-          ),
+          const NewSemesterCard(),
           const SizedBox(height: 16),
           SettingsGroup(
             title: 'Notifications',
             children: [
               ToggleRow(
                 icon: Icons.notifications_rounded,
-                iconBg: AppColors.greenSheenDark.withValues(
-                  alpha: 0.9,
-                ),
+                iconBg: AppColors.greenSheenDark.withValues(alpha: 0.9),
                 label: 'Task Reminders',
                 value: data.taskReminders,
-                onToggle: controller.toggleTaskReminders,
+                onToggle: provider.toggleTaskReminders,
               ),
               ToggleRow(
                 icon: Icons.alarm_rounded,
                 iconBg: AppColors.mikadoYellow.withValues(alpha: 0.2),
                 label: 'Slot End Prompts',
                 value: data.slotEndPrompts,
-                onToggle: controller.toggleSlotEndPrompts,
+                onToggle: provider.toggleSlotEndPrompts,
               ),
               ToggleRow(
                 icon: Icons.local_fire_department_rounded,
                 iconBg: AppColors.red.withValues(alpha: 0.2),
                 label: 'Burnout Warnings',
                 value: data.burnoutWarnings,
-                onToggle: controller.toggleBurnoutWarnings,
+                onToggle: provider.toggleBurnoutWarnings,
               ),
               ToggleRow(
                 icon: Icons.calendar_today_rounded,
-                iconBg: AppColors.greenSheenDark.withValues(
-                  alpha: 0.9,
-                ),
+                iconBg: AppColors.greenSheenDark.withValues(alpha: 0.9),
                 label: 'Weekly Reset Summary',
                 value: data.weeklyResetSummary,
-                onToggle: controller.toggleWeeklyResetSummary,
+                onToggle: provider.toggleWeeklyResetSummary,
               ),
             ],
           ),
@@ -190,7 +184,7 @@ class SettingsBody extends StatelessWidget {
                 iconBg: AppColors.red.withValues(alpha: 0.2),
                 label: 'Sign Out',
                 labelColor: AppColors.red,
-                onTap: () => controller.signOut(context),
+                onTap: () => StudentSettingsController.signOut(context),
               ),
             ],
           ),
@@ -202,15 +196,8 @@ class SettingsBody extends StatelessWidget {
 
 class ProfileHeader extends StatefulWidget {
   final StudentSettingsModel data;
-  final NavigationProvider navigationProvider;
-  final StudentSettingsController controller;
 
-  const ProfileHeader({
-    super.key,
-    required this.data,
-    required this.navigationProvider,
-    required this.controller,
-  });
+  const ProfileHeader({super.key, required this.data});
 
   @override
   State<ProfileHeader> createState() => _ProfileHeaderState();
@@ -241,11 +228,14 @@ class _ProfileHeaderState extends State<ProfileHeader> {
       imageQuality: 85,
     );
     if (image == null) return;
-    await widget.controller.updateAvatar(image);
+    if (!mounted) return;
+    await context.read<StudentSettingsProvider>().updateAvatar(image);
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<StudentSettingsProvider>();
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -264,37 +254,30 @@ class _ProfileHeaderState extends State<ProfileHeader> {
           padding: const EdgeInsets.symmetric(vertical: 28),
           child: Column(
             children: [
-              // Avatar with pencil
               GestureDetector(
                 onTap: _pickImage,
                 child: Stack(
                   children: [
-                    ListenableBuilder(
-                      listenable: widget.controller,
-                      builder: (context, _) {
-                        final url = widget.controller.avatarUrl;
-                        return Container(
-                          width: 72,
-                          height: 72,
-                          decoration: AppColors.glassCard(borderRadius: 36),
-                          clipBehavior: Clip.antiAlias,
-                          child: url != null
-                              ? Image.network(
-                            url,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                              Icons.person_rounded,
-                              size: 36,
-                              color: AppColors.white,
-                            ),
-                          )
-                              : const Icon(
-                            Icons.person_rounded,
-                            size: 36,
-                            color: AppColors.white,
-                          ),
-                        );
-                      },
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: AppColors.glassCard(borderRadius: 36),
+                      clipBehavior: Clip.antiAlias,
+                      child: provider.avatarUrl != null
+                          ? Image.network(
+                        provider.avatarUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.person_rounded,
+                          size: 36,
+                          color: AppColors.white,
+                        ),
+                      )
+                          : const Icon(
+                        Icons.person_rounded,
+                        size: 36,
+                        color: AppColors.white,
+                      ),
                     ),
                     Positioned(
                       bottom: 0,
@@ -321,115 +304,113 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Name with inline edit
               _editingName
                   ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 160,
-                          height: 36,
-                          child: TextField(
-                            controller: _nameController,
-                            autofocus: true,
-                            textAlign: TextAlign.center,
-                            cursorColor: AppColors.white,
-                            cursorHeight: 20,
-                            style: const TextStyle(
-                              fontSize: FontStyles.titleLarge,
-                              fontWeight: FontStyles.titleWeight,
-                              color: AppColors.white,
-                              height: 1.0,
-                            ),
-                            decoration: InputDecoration(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 10,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: AppColors.white.withValues(alpha: 0.4),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.white,
-                                  width: 1.5,
-                                ),
-                              ),
-                            ),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 160,
+                    height: 36,
+                    child: TextField(
+                      controller: _nameController,
+                      autofocus: true,
+                      textAlign: TextAlign.center,
+                      cursorColor: AppColors.white,
+                      cursorHeight: 20,
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleLarge,
+                        fontWeight: FontStyles.titleWeight,
+                        color: AppColors.white,
+                        height: 1.0,
+                      ),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: AppColors.white.withValues(alpha: 0.4),
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () {
-                            widget.controller.updateUserName(
-                              _nameController.text.trim(),
-                            );
-                            setState(() => _editingName = false);
-                          },
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: AppColors.lime.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check_rounded,
-                              size: 16,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        GestureDetector(
-                          onTap: () {
-                            _nameController.text = widget.data.userName;
-                            setState(() => _editingName = false);
-                          },
-                          child: Container(
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: AppColors.red.withValues(alpha: 0.2),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.close_rounded,
-                              size: 16,
-                              color: AppColors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          widget.data.userName,
-                          style: const TextStyle(
-                            fontSize: FontStyles.titleLarge,
-                            fontWeight: FontStyles.titleWeight,
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
                             color: AppColors.white,
+                            width: 1.5,
                           ),
                         ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () => setState(() => _editingName = true),
-                          child: Icon(
-                            Icons.edit_rounded,
-                            size: 14,
-                            color: AppColors.white.withValues(alpha: 0.5),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () {
+                      context.read<StudentSettingsProvider>().updateUserName(
+                        _nameController.text.trim(),
+                      );
+                      setState(() => _editingName = false);
+                    },
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.lime.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: () {
+                      _nameController.text = widget.data.userName;
+                      setState(() => _editingName = false);
+                    },
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+                  : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.data.userName,
+                    style: const TextStyle(
+                      fontSize: FontStyles.titleLarge,
+                      fontWeight: FontStyles.titleWeight,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => setState(() => _editingName = true),
+                    child: Icon(
+                      Icons.edit_rounded,
+                      size: 14,
+                      color: AppColors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 4),
               Text(
                 'Semester ${widget.data.semester} · Year ${widget.data.year} · ${widget.data.subjectCount} subjects',
@@ -450,7 +431,7 @@ class SettingsGroup extends StatelessWidget {
   final String title;
   final List<Widget> children;
 
-  const SettingsGroup({required this.title, required this.children});
+  const SettingsGroup({super.key, required this.title, required this.children});
 
   @override
   Widget build(BuildContext context) {
@@ -477,17 +458,17 @@ class SettingsGroup extends StatelessWidget {
                 .entries
                 .map(
                   (e) => Column(
-                    children: [
-                      e.value,
-                      if (e.key < children.length - 1)
-                        Divider(
-                          height: 1,
-                          color: AppColors.glassDivider,
-                          indent: 52,
-                        ),
-                    ],
-                  ),
-                )
+                children: [
+                  e.value,
+                  if (e.key < children.length - 1)
+                    Divider(
+                      height: 1,
+                      color: AppColors.glassDivider,
+                      indent: 52,
+                    ),
+                ],
+              ),
+            )
                 .toList(),
           ),
         ),
@@ -505,6 +486,7 @@ class SettingsRow extends StatelessWidget {
   final VoidCallback onTap;
 
   const SettingsRow({
+    super.key,
     required this.icon,
     required this.iconBg,
     required this.label,
@@ -526,9 +508,7 @@ class SettingsRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(
-                  AppColors.glassIconBorderRadius,
-                ),
+                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -572,6 +552,7 @@ class ToggleRow extends StatelessWidget {
   final VoidCallback onToggle;
 
   const ToggleRow({
+    super.key,
     required this.icon,
     required this.iconBg,
     required this.label,
@@ -592,9 +573,7 @@ class ToggleRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(
-                  AppColors.glassIconBorderRadius,
-                ),
+                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -625,16 +604,13 @@ class ToggleRow extends StatelessWidget {
 }
 
 class NewSemesterCard extends StatelessWidget {
-  final StudentSettingsController controller;
-  final NavigationProvider navigationProvider;
-
-  const NewSemesterCard({
-    required this.controller,
-    required this.navigationProvider,
-  });
+  const NewSemesterCard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<StudentSettingsProvider>();
+    final semesters = provider.data?.semesters ?? [];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -656,11 +632,11 @@ class NewSemesterCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...controller.data!.semesters.map(
-                (semester) => Column(
+              ...semesters.map(
+                    (semester) => Column(
                   children: [
                     GestureDetector(
-                      onTap: () => controller.selectSemester(semester.name),
+                      onTap: () => provider.selectSemester(semester.name),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -674,9 +650,7 @@ class NewSemesterCard extends StatelessWidget {
                               height: 32,
                               decoration: BoxDecoration(
                                 color: semester.isCurrent
-                                    ? AppColors.greenSheenDark.withValues(
-                                        alpha: 0.9,
-                                      )
+                                    ? AppColors.greenSheenDark.withValues(alpha: 0.9)
                                     : AppColors.white.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(
                                   AppColors.glassIconBorderRadius,
@@ -727,9 +701,7 @@ class NewSemesterCard extends StatelessWidget {
                                   'Current',
                                   style: TextStyle(
                                     fontSize: FontStyles.titleTiny,
-                                    color: AppColors.greenSheenDark.withValues(
-                                      alpha: 0.9,
-                                    ),
+                                    color: AppColors.greenSheenDark.withValues(alpha: 0.9),
                                     fontWeight: FontStyles.weightMedium,
                                   ),
                                 ),
@@ -749,15 +721,15 @@ class NewSemesterCard extends StatelessWidget {
                               ),
                               child: semester.isCurrent
                                   ? Center(
-                                      child: Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: const BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: AppColors.white,
-                                        ),
-                                      ),
-                                    )
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              )
                                   : null,
                             ),
                           ],
@@ -769,12 +741,9 @@ class NewSemesterCard extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => SemesterSheet.show(context, controller),
+                onTap: () => SemesterSheet.show(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   decoration: AppColors.glassTile(),
                   child: Row(
                     children: [
@@ -782,18 +751,10 @@ class NewSemesterCard extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.californiaBlue.withValues(
-                            alpha: 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(
-                            AppColors.glassIconBorderRadius,
-                          ),
+                          color: AppColors.californiaBlue.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
                         ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          size: 16,
-                          color: AppColors.white,
-                        ),
+                        child: const Icon(Icons.add_rounded, size: 16, color: AppColors.white),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(

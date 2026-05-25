@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../models/app_enums.dart';
 import '../../../models/tasks_model.dart';
 
 Color subjectColor(String key) {
@@ -15,23 +16,37 @@ Color subjectColor(String key) {
 
 Color chipBg(TaskStatus status) {
   switch (status) {
-    case TaskStatus.completed:  return AppColors.completed;
-    case TaskStatus.inProgress: return AppColors.inProgress;
-    case TaskStatus.dueSoon:    return AppColors.dueSoon;
-    case TaskStatus.toDo:       return AppColors.toDo;
+    case TaskStatus.completed:
+    case TaskStatus.done:
+      return AppColors.completed;
+    case TaskStatus.inProgress:
+      return AppColors.inProgress;
+    case TaskStatus.dueSoon:
+    case TaskStatus.dueToday:
+      return AppColors.dueSoon;
+    case TaskStatus.toDo:
+    case TaskStatus.upcoming:
+      return AppColors.toDo;
   }
 }
 
 Color chipFg(TaskStatus status) {
   switch (status) {
-    case TaskStatus.completed:  return AppColors.greenSheen;
-    case TaskStatus.inProgress: return AppColors.mikadoYellow;
-    case TaskStatus.dueSoon:    return AppColors.red;
-    case TaskStatus.toDo:       return AppColors.californiaBlue;
+    case TaskStatus.completed:
+    case TaskStatus.done:
+      return AppColors.greenSheen;
+    case TaskStatus.inProgress:
+      return AppColors.mikadoYellow;
+    case TaskStatus.dueSoon:
+    case TaskStatus.dueToday:
+      return AppColors.red;
+    case TaskStatus.toDo:
+    case TaskStatus.upcoming:
+      return AppColors.californiaBlue;
   }
 }
 
-// TaskCard
+// ── TaskCard ──────────────────────────────────────────────────────────────────
 
 class TaskCard extends StatefulWidget {
   final Task task;
@@ -105,7 +120,7 @@ class TaskCardState extends State<TaskCard> {
   }
 }
 
-// ── Checkbox ─────────────────────────────────────────────────────────────────
+// ── Checkbox ──────────────────────────────────────────────────────────────────
 
 class Checkbox extends StatelessWidget {
   final bool isCompleted;
@@ -121,10 +136,7 @@ class Checkbox extends StatelessWidget {
             ? AppColors.lime.withValues(alpha: AppColors.glassIconOpacity)
             : AppColors.transparent,
         borderRadius: BorderRadius.circular(7),
-        border: Border.all(
-          color: AppColors.black,
-          width: 2,
-        ),
+        border: Border.all(color: AppColors.black, width: 2),
       ),
       child: isCompleted
           ? const Icon(Icons.check_rounded, size: 16, color: AppColors.lime)
@@ -133,7 +145,7 @@ class Checkbox extends StatelessWidget {
   }
 }
 
-// ── StatusChip ───────────────────────────────────────────────────────────────
+// ── StatusChip ────────────────────────────────────────────────────────────────
 
 class StatusChip extends StatelessWidget {
   final Task task;

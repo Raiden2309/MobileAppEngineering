@@ -11,6 +11,13 @@ import 'modules/role/lecturer/providers/classes_provider.dart';
 import 'modules/role/lecturer/providers/engagement_provider.dart';
 import 'modules/role/lecturer/providers/lecturer_dashboard_provider.dart';
 import 'modules/role/lecturer/providers/lecturer_settings_provider.dart';
+import 'modules/role/student/providers/burnout_alert_provider.dart';
+import 'modules/role/student/providers/dashboard_provider.dart';
+import 'modules/role/student/providers/navigation_provider.dart';
+import 'modules/role/student/providers/semester_progress_provider.dart';
+import 'modules/role/student/providers/student_settings_provider.dart';
+import 'modules/role/student/providers/study_plan_provider.dart';
+import 'modules/role/student/providers/task_provider.dart';
 import 'shared/widgets/splash_screen.dart';
 
 void main() async {
@@ -38,6 +45,15 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
+
+        // Student
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => StudyPlanProvider()),
+        ChangeNotifierProvider(create: (_) => TasksProvider()),
+        ChangeNotifierProvider(create: (_) => SemesterProvider()),
+        ChangeNotifierProvider(create: (_) => NavigationProvider()),
+        ChangeNotifierProvider(create: (_) => BurnoutAlertProvider()),
+        ChangeNotifierProvider(create: (_) => StudentSettingsProvider()),
 
         // Lecturer
         ChangeNotifierProvider(create: (_) => AlertProvider()),

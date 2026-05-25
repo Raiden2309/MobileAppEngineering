@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../controllers/student_settings_controller.dart';
+import '../../../providers/student_settings_provider.dart';
 
 class BlockedTimesSheet extends StatefulWidget {
-  final StudentSettingsController controller;
-  const BlockedTimesSheet({super.key, required this.controller});
+  const BlockedTimesSheet({super.key});
 
-  static Future<void> show(BuildContext context, StudentSettingsController controller) {
+  static Future<void> show(BuildContext context) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => BlockedTimesSheet(controller: controller),
+      builder: (_) => const BlockedTimesSheet(),
     );
   }
 
@@ -28,7 +29,7 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
   @override
   void initState() {
     super.initState();
-    _slots = Set<String>.from(widget.controller.blockedSlots);
+    _slots = Set<String>.from(context.read<StudentSettingsProvider>().blockedSlots);
   }
 
   void _toggle(String key) => setState(() {
@@ -51,7 +52,6 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle
               Center(
                 child: Container(
                   width: 40, height: 4,
@@ -77,7 +77,6 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
                 style: TextStyle(fontSize: 12, color: Colors.white54),
               ),
               const SizedBox(height: 16),
-              // Day headers
               Row(
                 children: [
                   const SizedBox(width: 36),
@@ -89,7 +88,6 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
                 ],
               ),
               const SizedBox(height: 4),
-              // Grid — scrollable
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
@@ -132,14 +130,13 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              // Legend
               Row(
                 children: [
                   Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0x1FF87171), border: Border.all(color: const Color(0x4DF87171)), borderRadius: BorderRadius.circular(3))),
                   const SizedBox(width: 6),
                   const Text('Blocked', style: TextStyle(fontSize: 11, color: AppColors.legendText)),
                   const SizedBox(width: 16),
-                  Container(width: 10, height: 10, decoration: BoxDecoration(color: Color(0xFF1E2330), border: Border.all(color: AppColors.white), borderRadius: BorderRadius.circular(3))),
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: const Color(0xFF1E2330), border: Border.all(color: AppColors.white), borderRadius: BorderRadius.circular(3))),
                   const SizedBox(width: 6),
                   const Text('Available', style: TextStyle(fontSize: 11, color: AppColors.legendText)),
                 ],
@@ -155,7 +152,7 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   onPressed: () async {
-                    await widget.controller.saveBlockedSlots(_slots);
+                    await StudentSettingsController.saveBlockedSlots(context, _slots);
                     if (context.mounted) Navigator.pop(context);
                   },
                   child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),

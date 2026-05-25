@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../providers/dashboard_provider.dart';
 
 class CurrentTaskPopup extends StatelessWidget {
   const CurrentTaskPopup({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final currentTask = context.watch<DashboardProvider>().data?.currentTask;
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(top: 24),
@@ -19,9 +23,31 @@ class CurrentTaskPopup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Current Task Reminder', style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.titleWeight)),
+          const Text(
+            'Current Task Reminder',
+            style: TextStyle(
+              fontSize: FontStyles.titleMedium,
+              fontWeight: FontStyles.titleWeight,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('No tasks yet.', style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.legendText)),
+          Text(
+            currentTask != null ? currentTask.title : 'No tasks yet.',
+            style: const TextStyle(
+              fontSize: FontStyles.titleSmall,
+              color: AppColors.legendText,
+            ),
+          ),
+          if (currentTask != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              currentTask.subtitle,
+              style: const TextStyle(
+                fontSize: FontStyles.titleSmall,
+                color: AppColors.legendText,
+              ),
+            ),
+          ],
         ],
       ),
     );
