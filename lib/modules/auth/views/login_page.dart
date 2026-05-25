@@ -180,7 +180,14 @@ class LoginPageState extends State<LoginPage> {
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           style: OutlinedButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
-                          onPressed: () {},
+                          onPressed: () => controller.signInWithGoogle(
+                            context,
+                            onError: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Google Sign-In failed. Please try again.')),
+                              );
+                            },
+                          ),
                           icon: const Icon(Icons.g_mobiledata, size: 24),
                           label: const Text('Sign in with Google'),
                         ),

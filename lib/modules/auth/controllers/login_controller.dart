@@ -7,6 +7,8 @@ import '../providers/auth_provider.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/central_lecturer_navigation.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/central_student_navigation.dart';
 import '../services/auth_service.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import '../services/google_sign_in_stub.dart';
 
 class LoginController {
   final emailController    = TextEditingController();
@@ -64,7 +66,6 @@ class LoginController {
         await AuthService.getToken();
       } catch (tokenError) {
         debugPrint('getToken failed: $tokenError');
-        // Continue anyway — token failure shouldn't block login
       }
 
       if (!context.mounted) return;
@@ -119,5 +120,64 @@ class LoginController {
   void dispose() {
     emailController.dispose();
     passwordController.dispose();
+  }
+
+  // ── Multi-Platform Google Sign-In Flow ────────────────────
+  Future<void> signInWithGoogle(BuildContext context, {required VoidCallback onError}) async {
+    try {
+      // Direct call to the multi-platform utility layer
+      final UserCredential userCredential = await GoogleSignInService.authenticate();
+
+      final User? firebaseUser = userCredential.user;
+      if (firebaseUser == null) throw Exception("Failed to acquire Google user details.");
+
+      if (!context.mounted) return;
+
+      // Check if this user record already exists in Firestore
+      final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .get();
+
+      final auth = context.read<AuthProvider>();
+
+      if (!userDoc.exists) {
+        // New user setup collection record initialization
+        await FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).set({
+          'uid': firebaseUser.uid,
+          'name': firebaseUser.displayName ?? 'New User',
+          'email': firebaseUser.email ?? '',
+          'role': 0,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        await auth.login(0);
+
+        if (!context.mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RoleSetupPage()),
+        );
+      } else {
+        // Existing user verification dashboard navigation redirection
+        final rawRole = userDoc.get('role');
+        final int role = rawRole is int ? rawRole : int.tryParse(rawRole.toString()) ?? 0;
+
+        await auth.login(role);
+
+        if (!context.mounted) return;
+
+        if (role == 0) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RoleSetupPage()));
+        } else if (role == 1) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CentralStudentNavigation()));
+        } else if (role == 2) {
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()));
+        }
+      }
+    } catch (e) {
+      debugPrint("Google Authentication Exception: $e");
+      onError();
+    }
   }
 }

@@ -191,8 +191,14 @@ class RegisterPageState extends State<RegisterPage> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(enabledMouseCursor: SystemMouseCursors.click),
-                          onPressed: () {},
+                          onPressed: () => controller.registerWithGoogle(
+                            context,
+                            onError: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Google registration failed. Please try again.')),
+                              );
+                            },
+                          ),
                           icon: const Icon(Icons.g_mobiledata, size: 24),
                           label: const Text('Sign up with Google'),
                         ),
