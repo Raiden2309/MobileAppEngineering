@@ -42,14 +42,6 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
   void initState() {
     super.initState();
 
-    // Load mock data into providers
-    context.read<BurnoutAlertProvider>().loadMock();
-    context.read<StudentSettingsProvider>().loadMock();
-    context.read<SemesterProvider>().loadMock();
-    context.read<StudyPlanProvider>().loadMock();
-    context.read<TasksProvider>().loadMock();
-
-    // Instantiate controllers that wrap providers
     _taskController = TaskController(context.read<TasksProvider>());
     _studyPlanController = StudyPlanController(context.read<StudyPlanProvider>());
     _semesterProgressController = SemesterProgressController(context.read<SemesterProvider>());
@@ -60,6 +52,15 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
       StudyPlanPage(controller: _studyPlanController),
       SemesterProgressPage(controller: _semesterProgressController),
     ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<BurnoutAlertProvider>().loadMock();
+      context.read<StudentSettingsProvider>().loadMock();
+      context.read<SemesterProvider>().loadMock();
+      context.read<StudyPlanProvider>().loadMock();
+      context.read<TasksProvider>().loadMock();
+    });
   }
 
   @override

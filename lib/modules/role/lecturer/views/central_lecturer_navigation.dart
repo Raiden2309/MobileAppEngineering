@@ -28,13 +28,18 @@ class CentralLecturerNavigationState
   @override
   void initState() {
     super.initState();
-    context.read<LecturerSettingsProvider>().loadMock();
+
     pages = [
       LecturerDashboard(onNavigateToClasses: () => goToTab(1)),
       const LecturerClassesSection(),
       const LecturerEngagementPage(),
       const LecturerAlertsPage(),
     ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<LecturerSettingsProvider>().loadMock();
+    });
   }
 
   void goToTab(int index) {

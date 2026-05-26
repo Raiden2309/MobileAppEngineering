@@ -1,15 +1,19 @@
 import 'app_enums.dart';
 
 class Task {
-  final String name;
-  final String estimatedTime;
+  final String id;
+  final String title;
+  final double estimatedHours;
   final TaskStatus status;
 
   const Task({
-    required this.name,
-    required this.estimatedTime,
+    required this.id,
+    required this.title,
+    required this.estimatedHours,
     required this.status,
   });
+
+  String get estimatedTime => 'Est. $estimatedHours hrs';
 
   String get statusLabel {
     switch (status) {
@@ -21,22 +25,35 @@ class Task {
     }
   }
 
-  factory Task.fromJson(Map<String, dynamic> json) {
-    return Task(
-      name:          json['name'] as String,
-      estimatedTime: json['estimated_time'] as String,
-      status:        TaskStatus.values.byName(json['status'] as String),
-    );
-  }
+  Task copyWith({
+    String? id,
+    String? title,
+    double? estimatedHours,
+    TaskStatus? status,
+  }) => Task(
+    id:             id             ?? this.id,
+    title:          title          ?? this.title,
+    estimatedHours: estimatedHours ?? this.estimatedHours,
+    status:         status         ?? this.status,
+  );
+
+  factory Task.fromJson(Map<String, dynamic> json) => Task(
+    id:             json['id'].toString(),
+    title:          json['title'] as String,
+    estimatedHours: (json['estimated_hours'] as num).toDouble(),
+    status:         TaskStatus.values.byName(json['status'] as String),
+  );
 
   Map<String, dynamic> toJson() => {
-    'name':           name,
-    'estimated_time': estimatedTime,
-    'status':         status.name,
+    'id':              id,
+    'title':           title,
+    'estimated_hours': estimatedHours,
+    'status':          status.name,
   };
 }
 
 class SubjectGroup {
+  final String id;
   final String name;
   final String colorKey;
   final int totalTasks;
@@ -44,6 +61,7 @@ class SubjectGroup {
   final List<Task> tasks;
 
   const SubjectGroup({
+    required this.id,
     required this.name,
     required this.colorKey,
     required this.totalTasks,
@@ -51,74 +69,80 @@ class SubjectGroup {
     required this.tasks,
   });
 
-  factory SubjectGroup.fromJson(Map<String, dynamic> json) {
-    return SubjectGroup(
-      name:           json['name'] as String,
-      colorKey:       json['color_key'] as String,
-      totalTasks:     json['total_tasks'] as int,
-      completedTasks: json['completed_tasks'] as int,
-      tasks: (json['tasks'] as List<dynamic>)
-          .map((t) => Task.fromJson(t as Map<String, dynamic>))
-          .toList(),
-    );
-  }
+  SubjectGroup copyWith({
+    String? id,
+    String? name,
+    String? colorKey,
+    int? totalTasks,
+    int? completedTasks,
+    List<Task>? tasks,
+  }) => SubjectGroup(
+    id:             id             ?? this.id,
+    name:           name           ?? this.name,
+    colorKey:       colorKey       ?? this.colorKey,
+    totalTasks:     totalTasks     ?? this.totalTasks,
+    completedTasks: completedTasks ?? this.completedTasks,
+    tasks:          tasks          ?? this.tasks,
+  );
+
+  factory SubjectGroup.fromJson(Map<String, dynamic> json) => SubjectGroup(
+    id:             json['id'].toString(),
+    name:           json['name'] as String,
+    colorKey:       json['color_key'] as String,
+    totalTasks:     json['total_tasks'] as int,
+    completedTasks: json['completed_tasks'] as int,
+    tasks: (json['tasks'] as List<dynamic>)
+        .map((t) => Task.fromJson(t as Map<String, dynamic>))
+        .toList(),
+  );
 
   Map<String, dynamic> toJson() => {
-    'name':            name,
-    'color_key':       colorKey,
-    'total_tasks':     totalTasks,
+    'id':             id,
+    'name':           name,
+    'color_key':      colorKey,
+    'total_tasks':    totalTasks,
     'completed_tasks': completedTasks,
-    'tasks':           tasks.map((t) => t.toJson()).toList(),
+    'tasks':          tasks.map((t) => t.toJson()).toList(),
   };
 
-  static List<SubjectGroup> mockData() {
-    return const [
-      SubjectGroup(
-        name: 'CT124 System Proposal',
-        colorKey: 'blue',
-        totalTasks: 11,
-        completedTasks: 7,
-        tasks: [
-          Task(name: 'Complete system proposal introduction', estimatedTime: 'Est. 1.5 hrs', status: TaskStatus.completed),
-          Task(name: 'Create system context diagram',         estimatedTime: 'Est. 1 hr',    status: TaskStatus.completed),
-          Task(name: 'Write use case diagrams',               estimatedTime: 'Est. 2 hrs',   status: TaskStatus.inProgress),
-          Task(name: 'Prepare functional requirements',       estimatedTime: 'Est. 1 hr',    status: TaskStatus.dueSoon),
-          Task(name: 'Write non-functional requirements',     estimatedTime: 'Est. 1 hr',    status: TaskStatus.toDo),
-        ],
-      ),
-      SubjectGroup(
-        name: 'Research Methods',
-        colorKey: 'yellow',
-        totalTasks: 5,
-        completedTasks: 2,
-        tasks: [
-          Task(name: 'Review affinity analysis notes', estimatedTime: 'Est. 45 min',  status: TaskStatus.completed),
-          Task(name: 'Literature review draft',        estimatedTime: 'Est. 2 hrs',   status: TaskStatus.completed),
-          Task(name: 'Prepare survey questions',       estimatedTime: 'Est. 1.5 hrs', status: TaskStatus.dueSoon),
-          Task(name: 'Analyse qualitative data',       estimatedTime: 'Est. 3 hrs',   status: TaskStatus.toDo),
-        ],
-      ),
-      SubjectGroup(
-        name: 'Mobile Development',
-        colorKey: 'orange',
-        totalTasks: 4,
-        completedTasks: 1,
-        tasks: [
-          Task(name: 'Set up Flutter project',  estimatedTime: 'Est. 30 min', status: TaskStatus.completed),
-          Task(name: 'Build login screen UI',   estimatedTime: 'Est. 2 hrs',  status: TaskStatus.inProgress),
-          Task(name: 'Integrate Firebase auth', estimatedTime: 'Est. 3 hrs',  status: TaskStatus.toDo),
-        ],
-      ),
-      SubjectGroup(
-        name: 'Software Engineering',
-        colorKey: 'teal',
-        totalTasks: 4,
-        completedTasks: 0,
-        tasks: [
-          Task(name: 'Design class diagram',  estimatedTime: 'Est. 2 hrs', status: TaskStatus.toDo),
-          Task(name: 'Write unit test cases', estimatedTime: 'Est. 2 hrs', status: TaskStatus.dueSoon),
-        ],
-      ),
-    ];
-  }
+  static List<SubjectGroup> mockData() => [
+    SubjectGroup(
+      id: '1', name: 'CT124 System Proposal', colorKey: 'blue',
+      totalTasks: 5, completedTasks: 2,
+      tasks: [
+        Task(id: '1', title: 'Complete system proposal introduction', estimatedHours: 1.5, status: TaskStatus.completed),
+        Task(id: '2', title: 'Create system context diagram',         estimatedHours: 1.0, status: TaskStatus.completed),
+        Task(id: '3', title: 'Write use case diagrams',               estimatedHours: 2.0, status: TaskStatus.inProgress),
+        Task(id: '4', title: 'Prepare functional requirements',       estimatedHours: 1.0, status: TaskStatus.dueSoon),
+        Task(id: '5', title: 'Write non-functional requirements',     estimatedHours: 1.0, status: TaskStatus.toDo),
+      ],
+    ),
+    SubjectGroup(
+      id: '2', name: 'Research Methods', colorKey: 'yellow',
+      totalTasks: 4, completedTasks: 2,
+      tasks: [
+        Task(id: '6', title: 'Review affinity analysis notes', estimatedHours: 0.75, status: TaskStatus.completed),
+        Task(id: '7', title: 'Literature review draft',        estimatedHours: 2.0,  status: TaskStatus.completed),
+        Task(id: '8', title: 'Prepare survey questions',       estimatedHours: 1.5,  status: TaskStatus.dueSoon),
+        Task(id: '9', title: 'Analyse qualitative data',       estimatedHours: 3.0,  status: TaskStatus.toDo),
+      ],
+    ),
+    SubjectGroup(
+      id: '3', name: 'Mobile Development', colorKey: 'orange',
+      totalTasks: 3, completedTasks: 1,
+      tasks: [
+        Task(id: '10', title: 'Set up Flutter project',  estimatedHours: 0.5, status: TaskStatus.completed),
+        Task(id: '11', title: 'Build login screen UI',   estimatedHours: 2.0, status: TaskStatus.inProgress),
+        Task(id: '12', title: 'Integrate Firebase auth', estimatedHours: 3.0, status: TaskStatus.toDo),
+      ],
+    ),
+    SubjectGroup(
+      id: '4', name: 'Software Engineering', colorKey: 'teal',
+      totalTasks: 2, completedTasks: 0,
+      tasks: [
+        Task(id: '13', title: 'Design class diagram',  estimatedHours: 2.0, status: TaskStatus.toDo),
+        Task(id: '14', title: 'Write unit test cases', estimatedHours: 2.0, status: TaskStatus.dueSoon),
+      ],
+    ),
+  ];
 }

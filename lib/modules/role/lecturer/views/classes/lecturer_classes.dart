@@ -5,6 +5,7 @@ import '../../../../../../shared/styles/font_styles.dart';
 import '../../controllers/classes_controller.dart';
 import '../../providers/classes_provider.dart';
 import 'widgets/class_card.dart';
+import 'widgets/create_class_sheet.dart';
 
 class LecturerClassesSection extends StatelessWidget {
   const LecturerClassesSection({super.key});
@@ -21,14 +22,45 @@ class LecturerClassesSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'My Classes',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontStyles.weightHeavy,
-                  color: AppColors.black,
-                  letterSpacing: 0.5,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'My Classes',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontStyles.weightHeavy,
+                      color: AppColors.black,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => CreateClassSheet.show(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: AppColors.black,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, size: 14, color: AppColors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'Add Class',
+                            style: TextStyle(
+                              fontSize: FontStyles.titleSmall,
+                              fontWeight: FontStyles.weightMedium,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -52,6 +84,7 @@ class LecturerClassesSection extends StatelessWidget {
                   child: ClassCard(
                     classModel: c,
                     onTap: () => ClassesController.openClass(context, c),
+                    onDelete: () => context.read<ClassesProvider>().deleteClass(c),
                   ),
                 )),
                 const SizedBox(height: 20),

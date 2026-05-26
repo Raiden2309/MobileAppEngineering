@@ -4,7 +4,7 @@ import '../models/class_model.dart';
 import '../models/class_student_model.dart';
 
 class ClassesProvider extends ChangeNotifier {
-  final List<ClassModel> classes = const [
+  List<ClassModel> _classes = [
     ClassModel(
       name: 'CT124 System Proposal',
       code: 'CT124 · Diploma in Computer Science',
@@ -34,6 +34,8 @@ class ClassesProvider extends ChangeNotifier {
     ),
   ];
 
+  List<ClassModel> get classes => _classes;
+
   final Map<String, List<ClassStudentModel>> studentsByClass = {
     'CT124': [
       ClassStudentModel(initials: 'AH', name: 'Amirul Haikal',  meta: '7/11 tasks · 🔥 Burnout risk', chip: 'At Risk', chipColor: AppColors.red),
@@ -47,5 +49,28 @@ class ClassesProvider extends ChangeNotifier {
 
   List<ClassStudentModel> getStudents(String classCode) {
     return studentsByClass[classCode] ?? [];
+  }
+
+  Future<void> addClass({
+    required String name,
+    required String code,
+    required String joinCode,
+  }) async {
+    final newClass = ClassModel(
+      name: name,
+      code: '$code · Diploma in Computer Science',
+      semester: 'Sem 4 · Mar – Jul 2026',
+      studentCount: 0,
+      avgCompletion: 0,
+      atRiskCount: 0,
+      accentColor: AppColors.californiaBlue,
+    );
+    _classes = [..._classes, newClass];
+    notifyListeners();
+  }
+
+  void deleteClass(ClassModel c) {
+    _classes = _classes.where((x) => x != c).toList();
+    notifyListeners();
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../controllers/tasks_controller.dart';
 import '../../../models/app_enums.dart';
 import '../../../models/tasks_model.dart';
 
@@ -16,39 +17,37 @@ Color subjectColor(String key) {
 
 Color chipBg(TaskStatus status) {
   switch (status) {
-    case TaskStatus.completed:
-      return AppColors.completed;
-    case TaskStatus.inProgress:
-      return AppColors.inProgress;
+    case TaskStatus.completed:  return AppColors.completed;
+    case TaskStatus.inProgress: return AppColors.inProgress;
     case TaskStatus.dueSoon:
-    case TaskStatus.dueToday:
-      return AppColors.dueSoon;
+    case TaskStatus.dueToday:   return AppColors.dueSoon;
     case TaskStatus.toDo:
-    case TaskStatus.upcoming:
-      return AppColors.toDo;
+    case TaskStatus.upcoming:   return AppColors.toDo;
   }
 }
 
 Color chipFg(TaskStatus status) {
   switch (status) {
-    case TaskStatus.completed:
-      return AppColors.greenSheen;
-    case TaskStatus.inProgress:
-      return AppColors.mikadoYellow;
+    case TaskStatus.completed:  return AppColors.greenSheen;
+    case TaskStatus.inProgress: return AppColors.mikadoYellow;
     case TaskStatus.dueSoon:
-    case TaskStatus.dueToday:
-      return AppColors.red;
+    case TaskStatus.dueToday:   return AppColors.red;
     case TaskStatus.toDo:
-    case TaskStatus.upcoming:
-      return AppColors.californiaBlue;
+    case TaskStatus.upcoming:   return AppColors.californiaBlue;
   }
 }
 
-// ── TaskCard ──────────────────────────────────────────────────────────────────
-
 class TaskCard extends StatefulWidget {
   final Task task;
-  const TaskCard({super.key, required this.task});
+  final SubjectGroup group;
+  final TaskController controller;
+
+  const TaskCard({
+    super.key,
+    required this.task,
+    required this.group,
+    required this.controller,
+  });
 
   @override
   State<TaskCard> createState() => TaskCardState();
@@ -72,13 +71,13 @@ class TaskCardState extends State<TaskCard> {
         borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
         border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.fromLTRB(14, 10, 6, 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: () => setState(() => isCompleted = !isCompleted),
-            child: Checkbox(isCompleted: isCompleted),
+            child: TaskCheckbox(isCompleted: isCompleted),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -86,7 +85,7 @@ class TaskCardState extends State<TaskCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.task.name,
+                  widget.task.title,
                   style: TextStyle(
                     fontSize: FontStyles.titleMedium,
                     fontWeight: FontStyles.weightMedium,
@@ -112,17 +111,33 @@ class TaskCardState extends State<TaskCard> {
               ],
             ),
           ),
+          IconButton(
+            onPressed: () => widget.controller.onEditTask(
+              context,
+              widget.group,
+              widget.task,
+            ),
+            icon: const Icon(Icons.edit_outlined, size: 16),
+            color: AppColors.black.withValues(alpha: 0.35),
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+          ),
+          IconButton(
+            onPressed: () => widget.controller.deleteTask(widget.task),
+            icon: const Icon(Icons.delete_outline_rounded, size: 16),
+            color: AppColors.red.withValues(alpha: 0.6),
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+          ),
         ],
       ),
     );
   }
 }
 
-// ── Checkbox ──────────────────────────────────────────────────────────────────
-
-class Checkbox extends StatelessWidget {
+class TaskCheckbox extends StatelessWidget {
   final bool isCompleted;
-  const Checkbox({required this.isCompleted});
+  const TaskCheckbox({super.key, required this.isCompleted});
 
   @override
   Widget build(BuildContext context) {
@@ -143,11 +158,9 @@ class Checkbox extends StatelessWidget {
   }
 }
 
-// ── StatusChip ────────────────────────────────────────────────────────────────
-
 class StatusChip extends StatelessWidget {
   final Task task;
-  const StatusChip({required this.task});
+  const StatusChip({super.key, required this.task});
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +171,6 @@ class StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppColors.glassBadgeBorderRadius),
         border: Border.all(
           color: chipFg(task.status).withValues(alpha: AppColors.glassBorderOpacity),
-          width: 1,
         ),
       ),
       child: Text(
@@ -173,11 +185,15 @@ class StatusChip extends StatelessWidget {
   }
 }
 
-// ── SubjectGroupSection ───────────────────────────────────────────────────────
-
 class SubjectGroupSection extends StatelessWidget {
   final SubjectGroup group;
-  const SubjectGroupSection({super.key, required this.group});
+  final TaskController controller;
+
+  const SubjectGroupSection({
+    super.key,
+    required this.group,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -223,7 +239,11 @@ class SubjectGroupSection extends StatelessWidget {
             ],
           ),
         ),
-        ...group.tasks.map((task) => TaskCard(task: task)),
+        ...group.tasks.map((task) => TaskCard(
+          task: task,
+          group: group,
+          controller: controller,
+        )),
         const SizedBox(height: 12),
       ],
     );

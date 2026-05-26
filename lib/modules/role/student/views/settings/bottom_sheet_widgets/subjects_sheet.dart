@@ -24,14 +24,25 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
   final _newSubjectController = TextEditingController();
   String? _error;
 
-  final _colors = ['4F86C6','F87171','34D399','FBBF24','A78BFA','F472B6','60A5FA','FB923C'];
+  final _colors = [
+    '4F86C6',
+    'F87171',
+    '34D399',
+    'FBBF24',
+    'A78BFA',
+    'F472B6',
+    '60A5FA',
+    'FB923C',
+  ];
   int _colorIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _subjects = List<Map<String, String>>.from(
-      context.read<StudentSettingsProvider>().subjects.map((e) => Map<String, String>.from(e)),
+      context.read<StudentSettingsProvider>().subjects.map(
+        (e) => Map<String, String>.from(e),
+      ),
     );
   }
 
@@ -48,7 +59,10 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
       return;
     }
     setState(() {
-      _subjects.add({'name': name, 'color': _colors[_colorIndex % _colors.length]});
+      _subjects.add({
+        'name': name,
+        'color_hex': _colors[_colorIndex % _colors.length],
+      });
       _colorIndex++;
       _newSubjectController.clear();
       _error = null;
@@ -62,7 +76,9 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
           color: Color(0xFF1E2330),
@@ -75,15 +91,26 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Subjects', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white)),
+                const Text(
+                  'Subjects',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.white,
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.close, color: AppColors.white),
                   onPressed: () => Navigator.pop(context),
@@ -103,25 +130,47 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                     final s = _subjects[i];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.black,
-                        border: Border.all(color: AppColors.white.withOpacity(0.07)),
+                        border: Border.all(
+                          color: AppColors.white.withOpacity(0.07),
+                        ),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         children: [
                           Container(
-                            width: 10, height: 10,
-                            decoration: BoxDecoration(color: _parseColor(s['color']!), shape: BoxShape.circle),
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: _parseColor(s['color_hex'] ?? '4F86C6'),
+                              shape: BoxShape.circle,
+                            ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(s['name']!, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFFE5E7EB))),
+                            child: Text(
+                              s['name'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
                           ),
                           GestureDetector(
                             onTap: () => _remove(i),
-                            child: const Text('✕', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 14)),
+                            child: const Text(
+                              '✕',
+                              style: TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -136,17 +185,32 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                 Expanded(
                   child: TextField(
                     controller: _newSubjectController,
-                    style: const TextStyle(color: AppColors.white, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 13,
+                    ),
                     cursorColor: AppColors.white,
                     decoration: InputDecoration(
                       hintText: 'Subject name…',
-                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                      hintStyle: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
                       errorText: _error,
-                      errorStyle: const TextStyle(color: AppColors.red, fontSize: 11),
+                      errorStyle: const TextStyle(
+                        color: AppColors.red,
+                        fontSize: 11,
+                      ),
                       filled: true,
                       fillColor: AppColors.black,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
                     ),
                   ),
                 ),
@@ -154,13 +218,25 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                 GestureDetector(
                   onTap: _add,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 11,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.black,
-                      border: Border.all(color: AppColors.white.withOpacity(0.07)),
+                      border: Border.all(
+                        color: AppColors.white.withOpacity(0.07),
+                      ),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text('+ Add', style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600, fontSize: 13)),
+                    child: const Text(
+                      '+ Add',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -173,13 +249,20 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                   backgroundColor: AppColors.black,
                   foregroundColor: AppColors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () async {
-                  await context.read<StudentSettingsProvider>().saveSubjects(_subjects);
+                  await context.read<StudentSettingsProvider>().saveSubjects(
+                    _subjects,
+                  );
                   if (context.mounted) Navigator.pop(context);
                 },
-                child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700)),
+                child: const Text(
+                  'Save',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],

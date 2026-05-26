@@ -7,6 +7,7 @@ import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
 import '../../controllers/semester_progress_controller.dart';
 import '../../models/semester_progress_model.dart';
+import '../settings/bottom_sheet_widgets/subjects_sheet.dart';
 
 class SemesterProgressPage extends StatelessWidget {
   final SemesterProgressController controller;
@@ -54,13 +55,44 @@ class SemesterProgressPage extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            const Text(
-              'Subjects',
-              style: TextStyle(
-                color: AppColors.black,
-                fontSize: FontStyles.titleMedium,
-                fontWeight: FontStyles.weightMedium,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Text(
+                  'Subjects',
+                  style: TextStyle(
+                    color: AppColors.black,
+                    fontSize: FontStyles.titleMedium,
+                    fontWeight: FontStyles.weightMedium,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => SubjectsSheet.show(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: AppColors.black,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.add, size: 14, color: AppColors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Add Subject',
+                          style: TextStyle(
+                            fontSize: FontStyles.titleSmall,
+                            fontWeight: FontStyles.weightMedium,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
 
@@ -71,4 +103,3 @@ class SemesterProgressPage extends StatelessWidget {
     );
   }
 }
-

@@ -8,12 +8,45 @@ import 'stat_box_classes.dart';
 class ClassCard extends StatelessWidget {
   final ClassModel classModel;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const ClassCard({
     super.key,
     required this.classModel,
     required this.onTap,
+    this.onDelete,
   });
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E2330),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          'Delete Class?',
+          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${classModel.name}"? This cannot be undone.',
+          style: const TextStyle(color: Colors.white60, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              onDelete?.call();
+            },
+            child: Text('Delete', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +54,7 @@ class ClassCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onDelete != null ? () => _confirmDelete(context) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
@@ -70,6 +104,19 @@ class ClassCard extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (onDelete != null)
+                  GestureDetector(
+                    onTap: () => _confirmDelete(context),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.red),
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 10),
