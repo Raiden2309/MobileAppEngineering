@@ -1,42 +1,30 @@
-import 'package:flutter/material.dart';
-
 class ClassStudentModel {
-  final String initials;
+  // 1. Database Engine Data (from ClassEnrollmentModel)
+  final String studentId;
   final String name;
-  final String meta;
-  final String chip;
-  final Color chipColor;
+  final double weeklyStudyHours;
+  final double burnoutIndex;
+
+  // 2. UI Display Data (calculated on the fly)
+  String get initials => name.isNotEmpty ? name[0].toUpperCase() : 'S';
+  Color get chipColor => burnoutIndex > 0.7 ? Colors.red : Colors.green;
+  String get meta => "Study Hours: $weeklyStudyHours";
+  String get chip => burnoutIndex > 0.7 ? "At Risk" : "Stable";
 
   const ClassStudentModel({
-    required this.initials,
+    required this.studentId,
     required this.name,
-    required this.meta,
-    required this.chip,
-    required this.chipColor,
+    required this.weeklyStudyHours,
+    required this.burnoutIndex,
   });
 
-  factory ClassStudentModel.fromJson(Map<String, dynamic> json) {
+  factory ClassStudentModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
     return ClassStudentModel(
-      initials:  json['initials'] as String,
-      name:      json['name'] as String,
-      meta:      json['meta'] as String,
-      chip:      json['chip'] as String,
-      chipColor: Color(int.parse('FF${json['chip_color'] as String}', radix: 16)),
+      studentId: data['studentId'] ?? '',
+      name: data['studentName'] ?? 'Student',
+      weeklyStudyHours: (data['weeklyStudyHours'] as num?)?.toDouble() ?? 0.0,
+      burnoutIndex: (data['burnoutIndex'] as num?)?.toDouble() ?? 0.0,
     );
   }
-
-  ClassStudentModel copyWith({
-    String? initials,
-    String? name,
-    String? meta,
-    String? chip,
-    Color? chipColor,
-  }) =>
-      ClassStudentModel(
-        initials:  initials  ?? this.initials,
-        name:      name      ?? this.name,
-        meta:      meta      ?? this.meta,
-        chip:      chip      ?? this.chip,
-        chipColor: chipColor ?? this.chipColor,
-      );
 }

@@ -14,19 +14,4 @@ class StatCardModel {
     required this.icon,
     required this.accent,
   });
-
-  StatCardModel copyWith({
-    String? label,
-    String? value,
-    String? sub,
-    IconData? icon,
-    Color? accent,
-  }) =>
-      StatCardModel(
-        label: label ?? this.label,
-        value: value ?? this.value,
-        sub: sub ?? this.sub,
-        icon: icon ?? this.icon,
-        accent: accent ?? this.accent,
-      );
 }

@@ -44,7 +44,8 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
         ChangeNotifierProvider(create: (_) => DashboardProvider()),

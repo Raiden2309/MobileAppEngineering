@@ -7,6 +7,7 @@ import '../../providers/classes_provider.dart';
 import 'widgets/class_card.dart';
 import 'widgets/create_class_sheet.dart';
 
+
 class LecturerClassesSection extends StatelessWidget {
   const LecturerClassesSection({super.key});
 

@@ -22,7 +22,6 @@ class ClassDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = classModel;
     final classCode = c.code.split(' ·').first.trim();
-    final students = context.read<ClassesProvider>().getStudents(classCode);
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -50,7 +49,20 @@ class ClassDetailPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       _buildWorkloadMonitor(c),
                       const SizedBox(height: 16),
-                      _buildStudentList(students),
+
+                      StreamBuilder<List<ClassStudentModel>>(
+                        stream: context.read<ClassesProvider>().getStudents(classCode),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                            return const Text("No students enrolled.");
+                          }
+                          // This replaces your _buildStudentList(students) call
+                          return _buildStudentList(snapshot.data!);
+                        },
+                      ),
                     ],
                   ),
                 ),

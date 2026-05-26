@@ -1,76 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/class_model.dart';
 import '../models/class_student_model.dart';
 
-class ClassesProvider extends ChangeNotifier {
-  List<ClassModel> _classes = [
-    ClassModel(
-      name: 'CT124 System Proposal',
-      code: 'CT124 · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
-      studentCount: 28,
-      avgCompletion: 62,
-      atRiskCount: 1,
-      accentColor: AppColors.californiaBlue,
-    ),
-    ClassModel(
-      name: 'Research Methods',
-      code: 'RM302 · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
-      studentCount: 24,
-      avgCompletion: 54,
-      atRiskCount: 1,
-      accentColor: AppColors.mikadoYellow,
-    ),
-    ClassModel(
-      name: 'Mobile Development',
-      code: 'MOB401 · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
-      studentCount: 20,
-      avgCompletion: 59,
-      atRiskCount: 0,
-      accentColor: AppColors.softPurple,
-    ),
-  ];
+class ClassesProvider with ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<ClassModel> get classes => _classes;
+  List<ClassModel> availableClasses = [];
+  bool isLoading = false;
 
-  final Map<String, List<ClassStudentModel>> studentsByClass = {
-    'CT124': [
-      ClassStudentModel(initials: 'AH', name: 'Amirul Haikal',  meta: '7/11 tasks · 🔥 Burnout risk', chip: 'At Risk', chipColor: AppColors.red),
-      ClassStudentModel(initials: 'AN', name: 'Ahmad Naqib',    meta: '11/11 tasks · All done',        chip: '100%',    chipColor: AppColors.californiaBlue),
-      ClassStudentModel(initials: 'SP', name: 'Siti Putri',     meta: '10/11 tasks',                   chip: '91%',     chipColor: AppColors.californiaBlue),
-      ClassStudentModel(initials: 'HZ', name: 'Haziq Zulkifli', meta: '4/11 tasks · 4 overdue',        chip: 'Behind',  chipColor: AppColors.mikadoYellow),
-      ClassStudentModel(initials: 'RA', name: 'Raihana Azlan',  meta: '8/11 tasks',                    chip: '73%',     chipColor: AppColors.californiaBlue),
-      ClassStudentModel(initials: 'FI', name: 'Farid Iskandar', meta: '6/11 tasks',                    chip: '55%',     chipColor: AppColors.mikadoYellow),
-    ],
-  };
+  // 1. Alias Getter to match 'classes' view requirements
+  List<ClassModel> get classes => availableClasses;
 
-  List<ClassStudentModel> getStudents(String classCode) {
-    return studentsByClass[classCode] ?? [];
+  // 2. Alias Method to support 'addClass' calls from create_class_sheet.dart
+  Future<void> addClass(ClassModel newClass) async {
+    await _db.collection('classes').doc(newClass.id).set(newClass.toFirestore());
+    await fetchAllClasses();
   }
 
-  Future<void> addClass({
-    required String name,
-    required String code,
-    required String joinCode,
-  }) async {
-    final newClass = ClassModel(
-      name: name,
-      code: '$code · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
-      studentCount: 0,
-      avgCompletion: 0,
-      atRiskCount: 0,
-      accentColor: AppColors.californiaBlue,
-    );
-    _classes = [..._classes, newClass];
-    notifyListeners();
+  // 3. Delete Class Method
+  Future<void> deleteClass(ClassModel targetClass) async {
+    await _db.collection('classes').doc(targetClass.id).delete();
+    await fetchAllClasses();
   }
 
-  void deleteClass(ClassModel c) {
-    _classes = _classes.where((x) => x != c).toList();
+  // 4. Fetch All Classes
+  Future<void> fetchAllClasses() async {
+    isLoading = true;
     notifyListeners();
+
+    try {
+      final snapshot = await _db.collection('classes').get();
+      availableClasses = snapshot.docs
+          .map((doc) => ClassModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint("Error gathering classes: $e");
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 5. Query Active Students matching a Course ID reference code
+  Stream<List<ClassStudentModel>> getStudents(String classId) {
+    return _db
+        .collection('enrollments')
+        .where('classId', isEqualTo: classId)
+        .snapshots()
+        .map((snap) => snap.docs
+        .map((doc) => ClassStudentModel.fromFirestore(doc))
+        .toList());
   }
 }

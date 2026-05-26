@@ -1,78 +1,77 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
 import '../models/class_model.dart';
-import '../models/stat_card_model.dart';
+import '../models/stat_card_model.dart'; // Ensure this import matches your repo file layout
 
-class LecturerDashboardProvider extends ChangeNotifier {
-  String _lecturerName = 'Dr. Lim';
-  String _greeting = 'Good morning';
-  String _dateLabel = '📅 Thursday, 26 March 2026';
-  int _atRiskCount = 2;
+class LecturerDashboardProvider with ChangeNotifier {
+  String _lecturerName = 'Dr. Angela';
+  String _greeting = 'Good Morning';
+  String _subtitleText = 'Here is your update for today';
+  String _dateLabel = 'Tuesday, May 26';
+  int _atRiskCount = 3;
 
   String get lecturerName => _lecturerName;
   String get greeting => _greeting;
+  String get subtitleText => _subtitleText;
   String get dateLabel => _dateLabel;
   int get atRiskCount => _atRiskCount;
-  String get subtitleText => 'You have $_atRiskCount at-risk student alerts today';
 
-  final List<StatCardModel> stats = const [
+  List<StatCardModel> get stats => [
     StatCardModel(
-      label: 'MY CLASSES',
-      value: '3',
-      sub: 'active this sem',
-      icon: Icons.class_outlined,
-      accent: AppColors.californiaBlue,
+        label: 'Total Students',
+        value: '72',
+        sub: 'Enrolled',
+        icon: Icons.people,
+        accent: Colors.blue
     ),
     StatCardModel(
-      label: 'STUDENTS',
-      value: '72',
-      sub: 'across all classes',
-      icon: Icons.people_outline,
-      accent: AppColors.softPurple,
+        label: 'At Risk',
+        value: '$_atRiskCount',
+        sub: 'Students',
+        icon: Icons.warning,
+        accent: Colors.red
     ),
     StatCardModel(
-      label: 'AVG COMPLETION',
-      value: '58%',
-      sub: 'tasks this week',
-      icon: Icons.bar_chart_rounded,
-      accent: AppColors.mikadoYellow,
-    ),
-    StatCardModel(
-      label: 'AT RISK',
-      value: '2',
-      sub: 'burnout indicators',
-      icon: Icons.warning_amber,
-      accent: AppColors.red,
+        label: 'Avg Attendance',
+        value: '94%',
+        sub: 'Class Rate',
+        icon: Icons.check_circle,
+        accent: Colors.green
     ),
   ];
 
-  final List<ClassModel> classes = const [
+  final List<ClassModel> classes = [
     ClassModel(
-      name: 'CT124 System Proposal',
-      code: 'CT124 · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
+      id: "mock_1",
+      lecturerId: "uid_1",
+      name: "Mobile Application Engineering",
+      code: "SE_LEVEL1_MAE",
+      semester: "Semester 2",
+      accentColor: const Color(0xFF4CAF50),
       studentCount: 28,
-      avgCompletion: 62,
-      atRiskCount: 1,
-      accentColor: AppColors.californiaBlue,
+      avgCompletion: 74.0,
+      atRiskCount: 3,
     ),
     ClassModel(
-      name: 'Research Methods',
-      code: 'RM302 · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
+      id: "mock_2",
+      lecturerId: "uid_1",
+      name: "Human Computer Interaction",
+      code: "SE_LEVEL1_HCI",
+      semester: "Semester 2",
+      accentColor: const Color(0xFF2196F3),
       studentCount: 24,
-      avgCompletion: 54,
-      atRiskCount: 1,
-      accentColor: AppColors.mikadoYellow,
+      avgCompletion: 88.0,
+      atRiskCount: 0,
     ),
     ClassModel(
-      name: 'Mobile Development',
-      code: 'MOB401 · Diploma in Computer Science',
-      semester: 'Sem 4 · Mar – Jul 2026',
+      id: "mock_3",
+      lecturerId: "uid_1",
+      name: "Object-Oriented Programming",
+      code: "SE_LEVEL1_OOP",
+      semester: "Semester 2",
+      accentColor: const Color(0xFF9C27B0),
       studentCount: 20,
-      avgCompletion: 59,
-      atRiskCount: 0,
-      accentColor: AppColors.softPurple,
+      avgCompletion: 61.0,
+      atRiskCount: 5,
     ),
   ];
 

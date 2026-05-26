@@ -1,60 +1,60 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'class_enrollment_model.dart';
 
 class ClassModel {
+  final String id;
+  final String lecturerId;
   final String name;
   final String code;
   final String semester;
+  final Color accentColor;
+
+  // Runtime placeholders calculated dynamically via your stream metrics
   final int studentCount;
   final double avgCompletion;
   final int atRiskCount;
-  final Color accentColor;
-  final List<ClassEnrollmentModel> enrollments;
 
-  const ClassModel({
+  ClassModel({
+    required this.id,
+    required this.lecturerId,
     required this.name,
     required this.code,
     required this.semester,
-    required this.studentCount,
-    required this.avgCompletion,
-    required this.atRiskCount,
     required this.accentColor,
-    this.enrollments = const [],
+    this.studentCount = 0,
+    this.avgCompletion = 0.0,
+    this.atRiskCount = 0,
   });
 
-  factory ClassModel.fromJson(Map<String, dynamic> json) {
+  factory ClassModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+
+    String colorStr = data['accentColor'] ?? '0xFF4CAF50';
+    int colorValue = int.tryParse(colorStr) ?? 0xFF4CAF50;
+
     return ClassModel(
-      name:          json['name'] as String,
-      code:          json['code'] as String,
-      semester:      json['semester'] as String,
-      studentCount:  json['student_count'] as int,
-      avgCompletion: (json['avg_completion'] as num).toDouble(),
-      atRiskCount:   json['at_risk_count'] as int,
-      accentColor:   Color(int.parse('FF${json['accent_color'] as String}', radix: 16)),
-      enrollments: (json['enrollments'] as List<dynamic>? ?? [])
-          .map((e) => ClassEnrollmentModel.fromJson(e as Map<String, dynamic>))
-          .toList(),
+      id: doc.id,
+      lecturerId: data['lecturerId'] ?? '',
+      name: data['name'] ?? '',
+      code: data['code'] ?? '',
+      semester: data['semester'] ?? '',
+      accentColor: Color(colorValue),
+      studentCount: data['studentCount'] ?? 0,
+      avgCompletion: (data['avgCompletion'] as num?)?.toDouble() ?? 0.0,
+      atRiskCount: data['atRiskCount'] ?? 0,
     );
   }
 
-  ClassModel copyWith({
-    String? name,
-    String? code,
-    String? semester,
-    int? studentCount,
-    double? avgCompletion,
-    int? atRiskCount,
-    Color? accentColor,
-    List<ClassEnrollmentModel>? enrollments,
-  }) =>
-      ClassModel(
-        name:          name          ?? this.name,
-        code:          code          ?? this.code,
-        semester:      semester      ?? this.semester,
-        studentCount:  studentCount  ?? this.studentCount,
-        avgCompletion: avgCompletion ?? this.avgCompletion,
-        atRiskCount:   atRiskCount   ?? this.atRiskCount,
-        accentColor:   accentColor   ?? this.accentColor,
-        enrollments:   enrollments   ?? this.enrollments,
-      );
+  Map<String, dynamic> toFirestore() {
+    return {
+      'lecturerId': lecturerId,
+      'name': name,
+      'code': code,
+      'semester': semester,
+      'accentColor': '0x${accentColor.value.toRadixString(16).toUpperCase()}',
+      'studentCount': studentCount,
+      'avgCompletion': avgCompletion,
+      'atRiskCount': atRiskCount,
+    };
+  }
 }
