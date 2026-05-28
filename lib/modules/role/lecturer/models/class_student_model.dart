@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class ClassStudentModel {
   // 1. Database Engine Data (from ClassEnrollmentModel)
   final String studentId;

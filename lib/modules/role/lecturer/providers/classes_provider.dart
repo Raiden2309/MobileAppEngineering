@@ -11,22 +11,18 @@ class ClassesProvider with ChangeNotifier {
   List<ClassModel> availableClasses = [];
   bool isLoading = false;
 
-  // 1. Alias Getter to match 'classes' view requirements
   List<ClassModel> get classes => availableClasses;
 
-  // 2. Alias Method to support 'addClass' calls from create_class_sheet.dart
   Future<void> addClass(ClassModel newClass) async {
     await _db.collection('classes').doc(newClass.id).set(newClass.toFirestore());
     await fetchAllClasses();
   }
 
-  // 3. Delete Class Method
   Future<void> deleteClass(ClassModel targetClass) async {
     await _db.collection('classes').doc(targetClass.id).delete();
     await fetchAllClasses();
   }
 
-  // 4. Fetch All Classes
   Future<void> fetchAllClasses() async {
     isLoading = true;
     notifyListeners();
@@ -44,7 +40,6 @@ class ClassesProvider with ChangeNotifier {
     }
   }
 
-  // 5. Query Active Students matching a Course ID reference code
   Stream<List<ClassStudentModel>> getStudents(String classId) {
     return _db
         .collection('enrollments')
@@ -53,5 +48,38 @@ class ClassesProvider with ChangeNotifier {
         .map((snap) => snap.docs
         .map((doc) => ClassStudentModel.fromFirestore(doc))
         .toList());
+  }
+
+  // --- Student Integration Interface Queries ---
+  Future<List<ClassModel>> getAllAvailableClasses() async {
+    try {
+      final snapshot = await _db.collection('classes').get();
+      return snapshot.docs
+          .map((doc) => ClassModel.fromFirestore(doc))
+          .toList();
+    } catch (e) {
+      debugPrint("Error fetching all classes for student browse: $e");
+      return [];
+    }
+  }
+
+  Future<void> enrollInClass(ClassModel targetClass) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final enrollmentId = "${uid}_${targetClass.id}";
+
+    await _db.collection('enrollments').doc(enrollmentId).set({
+      'studentId': uid,
+      'classId': targetClass.id,
+      'studentName': _auth.currentUser?.displayName ?? 'Edwin Chin',
+      'joinedAt': FieldValue.serverTimestamp(),
+      'weeklyStudyHours': 0.0,
+      'completedTasks': 0,
+      'pendingTasks': 0,
+      'burnoutIndex': 0.0,
+    });
+
+    notifyListeners();
   }
 }

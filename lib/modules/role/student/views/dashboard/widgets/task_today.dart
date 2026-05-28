@@ -11,7 +11,7 @@ class TaskToday extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<DashboardProvider>();
+    final provider = context.watch<StudentDashboardProvider>();
     final tasks = provider.data?.todayTasks ?? [];
 
     return Column(
