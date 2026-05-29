@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/app_enums.dart';
 import '../models/tasks_model.dart';
+import '../models/app_enums.dart';
+import '../../../../../../modules/role/student/models/tasks_model.dart';
 import '../providers/task_provider.dart';
 import '../views/tasks/widget/task_bottom_sheet.dart';
 
@@ -49,8 +51,7 @@ class TaskController extends ChangeNotifier {
   String get completionSummary => '$completedTasks of $totalTasks completed';
 
   Future<void> init() async {
-    if (hasData) return;
-    await fetch();
+    _provider.listenToLiveTasks();
   }
 
   Future<void> fetch()   async => _provider.fetch();

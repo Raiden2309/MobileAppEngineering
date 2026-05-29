@@ -116,7 +116,7 @@ class StudentSetupPageState extends State<StudentSetupPage> {
         await firestore.collection('enrollments').doc('${uid}_$safeClassId').set({
           'studentId': uid,
           'classId': safeClassId,
-          'studentName': studentModel.name,
+          'qstudentName': studentModel.name,
           'joinedAt': FieldValue.serverTimestamp(),
           'weeklyStudyHours': 0.0,
           'completedTasks': 0,

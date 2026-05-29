@@ -4,6 +4,7 @@ import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
 import '../../../models/app_enums.dart';
 import '../../../models/tasks_model.dart';
+import 'dart:async'; // --- Added for runtime interval loops ---
 
 Color subjectColor(String key) {
   switch (key) {
@@ -97,13 +98,8 @@ class TaskCardState extends State<TaskCard> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    Text(
-                      widget.task.estimatedTime,
-                      style: const TextStyle(
-                        fontSize: FontStyles.titleSmall,
-                        color: AppColors.legendText,
-                      ),
-                    ),
+                    // --- WIRED SELF-UPDATING LIVE TIMER ---
+                    _TaskCardCountdownText(task: widget.task),
                     const SizedBox(width: 8),
                     StatusChip(task: widget.task),
                   ],
@@ -246,6 +242,99 @@ class SubjectGroupSection extends StatelessWidget {
         )),
         const SizedBox(height: 12),
       ],
+    );
+  }
+}
+
+// --- SELF-CONTAINED SUB-TICKER IMPLEMENTATION WITH LIFECYCLE REBIND OVERRIDES ---
+class _TaskCardCountdownText extends StatefulWidget {
+  final Task task;
+  const _TaskCardCountdownText({required this.task});
+
+  @override
+  State<_TaskCardCountdownText> createState() => _TaskCardCountdownTextState();
+}
+
+class _TaskCardCountdownTextState extends State<_TaskCardCountdownText> {
+  Timer? _cardTicker;
+  late String _cardDisplayString;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshCardRemainingTime();
+
+    if (widget.task.status == TaskStatus.inProgress && widget.task.startedAt != null) {
+      _cardTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+        _refreshCardRemainingTime();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_TaskCardCountdownText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.task.status != widget.task.status || oldWidget.task.startedAt != widget.task.startedAt) {
+      _cardTicker?.cancel();
+      _refreshCardRemainingTime();
+      if (widget.task.status == TaskStatus.inProgress && widget.task.startedAt != null) {
+        _cardTicker = Timer.periodic(const Duration(seconds: 1), (_) {
+          _refreshCardRemainingTime();
+        });
+      }
+    }
+  }
+
+  void _refreshCardRemainingTime() {
+    if (widget.task.status != TaskStatus.inProgress || widget.task.startedAt == null) {
+      _cardDisplayString = widget.task.estimatedTime;
+      return;
+    }
+
+    final totalMinutesLimit = (widget.task.estimatedHours * 60).round();
+    final elapsedMinutes = DateTime.now().difference(widget.task.startedAt!).inMinutes;
+    final minutesLeft = totalMinutesLimit - elapsedMinutes;
+
+    if (minutesLeft <= 0) {
+      if (mounted) {
+        setState(() {
+          _cardDisplayString = "Time Overdue!";
+        });
+      }
+      return;
+    }
+
+    final hoursOut = minutesLeft ~/ 60;
+    final minutesOut = minutesLeft % 60;
+
+    if (mounted) {
+      setState(() {
+        if (hoursOut > 0) {
+          _cardDisplayString = '$hoursOut hr $minutesOut min left';
+        } else {
+          _cardDisplayString = '$minutesOut min left';
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _cardTicker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isInProgress = widget.task.status == TaskStatus.inProgress;
+
+    return Text(
+      _cardDisplayString,
+      style: TextStyle(
+        fontSize: FontStyles.titleSmall,
+        color: isInProgress ? AppColors.californiaBlue : AppColors.legendText,
+        fontWeight: isInProgress ? FontWeight.bold : FontWeight.normal,
+      ),
     );
   }
 }
