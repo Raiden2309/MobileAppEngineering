@@ -35,7 +35,9 @@ class SettingsRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                borderRadius: BorderRadius.circular(
+                  AppColors.glassIconBorderRadius,
+                ),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -50,7 +52,7 @@ class SettingsRow extends StatelessWidget {
                 ),
               ),
             ),
-            if (value != null)
+            if (value != null) ...[
               Text(
                 value!,
                 style: const TextStyle(
@@ -58,14 +60,14 @@ class SettingsRow extends StatelessWidget {
                   color: AppColors.legendText,
                 ),
               ),
-            if (showArrow) ...[
-              const SizedBox(width: 6),
+              if (showArrow) const SizedBox(width: 6),
+            ],
+            if (showArrow)
               Icon(
                 Icons.chevron_right_rounded,
                 size: 18,
                 color: AppColors.white.withValues(alpha: 0.4),
               ),
-            ],
           ],
         ),
       ),

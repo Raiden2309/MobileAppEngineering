@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/settings/widget/lecturer_profile_header.dart';
 import 'package:provider/provider.dart';
 import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
+import '../../../lecturer/views/settings/widget/settings_group.dart';
+import '../../../lecturer/views/settings/widget/settings_row.dart';
+import '../../../lecturer/views/settings/widget/toggle_row.dart';
 import '../../controllers/lecturer_settings_controller.dart';
 import '../../providers/lecturer_settings_provider.dart';
 
@@ -109,117 +112,6 @@ class LecturerSettingsPage extends StatelessWidget {
             },
           ),
         ),
-      ),
-    );
-  }
-}
-
-// ── Custom Settings Group Container ──
-class SettingsGroup extends StatelessWidget {
-  final String title;
-  final List<Widget> children;
-
-  const SettingsGroup({required this.title, required this.children, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 8),
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white70),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.06),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.05)),
-          ),
-          child: Column(
-            children: children,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Custom Settings Action/Value Row ──
-class SettingsRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final String label;
-  final String? value;
-  final Color? labelColor;
-  final VoidCallback onTap;
-
-  const SettingsRow({
-    required this.icon,
-    required this.iconBg,
-    required this.label,
-    this.value,
-    this.labelColor,
-    required this.onTap,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-        child: Icon(icon, color: labelColor ?? Colors.white, size: 20),
-      ),
-      title: Text(
-        label,
-        style: TextStyle(color: labelColor ?? Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
-      ),
-      trailing: value != null
-          ? Text(value!, style: const TextStyle(color: Colors.white54, fontSize: 14))
-          : const Icon(Icons.chevron_right_rounded, color: Colors.white30),
-    );
-  }
-}
-
-// ── Custom Settings Interactive Toggle Row ──
-class ToggleRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconBg;
-  final String label;
-  final bool value;
-  final VoidCallback onToggle;
-
-  const ToggleRow({
-    required this.icon,
-    required this.iconBg,
-    required this.label,
-    required this.value,
-    required this.onToggle,
-    super.key,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-      title: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500),
-      ),
-      trailing: Switch(
-        value: value,
-        onChanged: (_) => onToggle(),
-        activeColor: AppColors.californiaBlue,
       ),
     );
   }
