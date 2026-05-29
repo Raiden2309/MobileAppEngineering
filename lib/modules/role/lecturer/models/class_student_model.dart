@@ -1,8 +1,7 @@
 import 'dart:ui';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import '../../../../shared/styles/app_colors.dart';
+import 'package:flutter/material.dart';
 
 class ClassStudentModel {
   // 1. Database Engine Data (from ClassEnrollmentModel)

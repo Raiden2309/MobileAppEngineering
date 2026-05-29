@@ -10,7 +10,7 @@ class TaskStatisticsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final stats = context.watch<DashboardProvider>().data?.stats;
+    final stats = context.watch<StudentDashboardProvider>().data?.stats;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

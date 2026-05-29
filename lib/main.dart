@@ -48,7 +48,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => StudentDashboardProvider()),
         ChangeNotifierProvider(create: (_) => StudyPlanProvider()),
         ChangeNotifierProvider(create: (_) => TasksProvider()),
         ChangeNotifierProvider(create: (_) => SemesterProvider()),

@@ -9,7 +9,7 @@ class CurrentTaskPopup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentTask = context.watch<DashboardProvider>().data?.currentTask;
+    final currentTask = context.watch<StudentDashboardProvider>().data?.currentTask;
 
     return Container(
       width: double.infinity,

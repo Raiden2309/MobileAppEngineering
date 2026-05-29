@@ -9,7 +9,7 @@ class WorkloadMonitor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final workloadPlan = context.watch<DashboardProvider>().data?.workloadPlan;
+    final workloadPlan = context.watch<StudentDashboardProvider>().data?.workloadPlan;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

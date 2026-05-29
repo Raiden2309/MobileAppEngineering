@@ -1,45 +1,33 @@
 import 'package:flutter/material.dart';
-import '../../../../shared/services/api_service.dart';
-import '../models/dashboard_models.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../lecturer/models/class_student_model.dart';
 
-class DashboardProvider with ChangeNotifier {
-  DashboardModel? data;
-  bool loading = false;
-  String? error;
+class StudentDashboardProvider with ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // remember to remove mock data
-  void loadMock() {
-    data = DashboardModel.mockData();
-    notifyListeners();
-  }
+  bool isLoading = false;
 
-  Future<void> fetch() async {
-    loading = true;
-    error = null;
-    notifyListeners();
-
-    try {
-      final json = await ApiService.get('/dashboard_student');
-      data = DashboardModel.fromJson(json);
-    } catch (e) {
-      error = e.toString();
-    } finally {
-      loading = false;
-      notifyListeners();
+  // Real-time stream tracking student modules from the enrollments collection
+  Stream<List<ClassStudentModel>> get myEnrolledClassesStream {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) {
+      return Stream.value([]);
     }
+
+    return _db
+        .collection('enrollments')
+        .where('studentId', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => ClassStudentModel.fromFirestore(doc))
+        .toList());
   }
 
-  void toggleTask(int index) {
-    if (data == null) return;
-    final updated = List<TaskItem>.from(data!.todayTasks);
-    updated[index] = updated[index].copyWith(checked: !updated[index].checked);
-    data = DashboardModel(
-      summary:      data!.summary,
-      stats:        data!.stats,
-      currentTask:  data!.currentTask,
-      workloadPlan: data!.workloadPlan,
-      todayTasks:   updated,
-    );
-    notifyListeners();
-  }
+  // Placeholder fallback mock loader if requested by the views
+  void loadMock() {}
+
+  // Dummy data getter container preventing crashes inside legacy metrics sub-widgets
+  dynamic get data => null;
 }

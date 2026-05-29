@@ -17,7 +17,7 @@ class DashboardGreeting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final summary = context.watch<DashboardProvider>().data?.summary;
+    final summary = context.watch<StudentDashboardProvider>().data?.summary;
     final userName = summary?.userName ?? '';
     final taskCount = summary?.taskCountToday ?? 0;
 
