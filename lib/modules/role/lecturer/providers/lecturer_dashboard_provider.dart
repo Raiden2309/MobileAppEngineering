@@ -37,6 +37,13 @@ class LecturerDashboardProvider with ChangeNotifier {
         icon: Icons.check_circle,
         accent: Colors.green
     ),
+    StatCardModel(
+        label: 'Total Classes',
+        value: '${classes.length}',
+        sub: 'Active',
+        icon: Icons.class_,
+        accent: Colors.orange
+    ),
   ];
 
   final List<ClassModel> classes = [

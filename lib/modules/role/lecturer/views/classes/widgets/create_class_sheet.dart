@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
-import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../role/lecturer/models/class_model.dart';
 import '../../../../../role/lecturer/providers/classes_provider.dart';
+import '../../../../../../shared/styles/app_colors.dart';
 
 class CreateClassSheet extends StatefulWidget {
   const CreateClassSheet({super.key});
@@ -41,7 +40,7 @@ class _CreateClassSheetState extends State<CreateClassSheet> {
 
   void _submitData() async {
     if (nameController.text.isEmpty || codeController.text.isEmpty) {
-      setState(() => _error = "Name and Code are required");
+      setState(() => _error = 'Name and Code are required');
       return;
     }
 
@@ -71,57 +70,167 @@ class _CreateClassSheetState extends State<CreateClassSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: 16, right: 16, top: 24,
-      ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E), // Fallback hex color if AppColors is missing
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1E2330),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: EdgeInsets.fromLTRB(
+            24,
+            20,
+            24,
+            MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Create Class', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white)),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.white)),
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Create Class',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppColors.white),
+                    onPressed: () => Navigator.pop(context),
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Fill in the details below to create a new class.',
+                style: TextStyle(fontSize: 12, color: Colors.white54),
+              ),
+
+              // Error message
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: AppColors.red, fontSize: 12),
+                ),
+              ],
+              const SizedBox(height: 20),
+
+              // Fields label
+              Text(
+                'CLASS DETAILS',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.legendText,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Class Name
+              _buildTextField(
+                controller: nameController,
+                hint: 'Class Name',
+              ),
+              const SizedBox(height: 10),
+
+              // Class Code
+              _buildTextField(
+                controller: codeController,
+                hint: 'Class Code',
+              ),
+              const SizedBox(height: 10),
+
+              // Semester
+              _buildTextField(
+                controller: semesterController,
+                hint: 'Semester (e.g. Semester 2)',
+              ),
+              const SizedBox(height: 24),
+
+              // Submit button
+              SizedBox(
+                width: double.infinity,
+                height: 46,
+                child: isLoading
+                    ? const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                    : GestureDetector(
+                  onTap: _submitData,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.californiaBlue.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Create Class',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          if (_error != null) ...[
-            const SizedBox(height: 10),
-            Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-          ],
-          const SizedBox(height: 20),
-          TextField(
-            controller: nameController,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: const InputDecoration(labelText: 'Class Name', labelStyle: TextStyle(color: Colors.white54), filled: true, fillColor: Colors.black),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: codeController,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: const InputDecoration(labelText: 'Class Code', labelStyle: TextStyle(color: Colors.white54), filled: true, fillColor: Colors.black),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: semesterController,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-            decoration: const InputDecoration(labelText: 'Semester', labelStyle: TextStyle(color: Colors.white54), filled: true, fillColor: Colors.black),
-          ),
-          const SizedBox(height: 20),
-          isLoading
-              ? const CircularProgressIndicator(color: Colors.white)
-              : ElevatedButton(
-            onPressed: _submitData,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black),
-            child: const Text('Create Class'),
-          ),
-          const SizedBox(height: 20),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+  }) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(color: AppColors.white, fontSize: 14),
+      cursorColor: AppColors.white,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.07),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.white, width: 1.5),
+        ),
       ),
     );
   }

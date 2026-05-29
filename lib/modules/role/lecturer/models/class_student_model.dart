@@ -1,3 +1,9 @@
+import 'dart:ui';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../../../../shared/styles/app_colors.dart';
+
 class ClassStudentModel {
   // 1. Database Engine Data (from ClassEnrollmentModel)
   final String studentId;
@@ -7,7 +13,7 @@ class ClassStudentModel {
 
   // 2. UI Display Data (calculated on the fly)
   String get initials => name.isNotEmpty ? name[0].toUpperCase() : 'S';
-  Color get chipColor => burnoutIndex > 0.7 ? Colors.red : Colors.green;
+  Color get chipColor => burnoutIndex > 0.7 ? AppColors.red : AppColors.green;
   String get meta => "Study Hours: $weeklyStudyHours";
   String get chip => burnoutIndex > 0.7 ? "At Risk" : "Stable";
 

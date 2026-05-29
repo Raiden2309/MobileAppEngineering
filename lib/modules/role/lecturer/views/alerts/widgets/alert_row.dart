@@ -7,8 +7,14 @@ import '../../../models/alert_model.dart';
 class AlertRow extends StatelessWidget {
   final AlertModel alert;
   final VoidCallback? onTap;
+  final VoidCallback? onViewProfile;
 
-  const AlertRow({super.key, required this.alert, this.onTap});
+  const AlertRow({
+    super.key,
+    required this.alert,
+    this.onTap,
+    this.onViewProfile,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +41,9 @@ class AlertRow extends StatelessWidget {
                     width: 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: isRead ? Colors.white.withValues(alpha: 0.3) : dotColor,
+                      color: isRead
+                          ? Colors.white.withValues(alpha: 0.3)
+                          : dotColor,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -76,12 +84,15 @@ class AlertRow extends StatelessWidget {
               ),
               if (!isRead) ...[
                 const SizedBox(height: 8),
-                Text(
-                  'View student profile ›',
-                  style: TextStyle(
-                    fontSize: FontStyles.titleTiny,
-                    fontWeight: FontStyles.weightHeavy,
-                    color: dotColor,
+                GestureDetector(
+                  onTap: onViewProfile,
+                  child: Text(
+                    'View student profile ›',
+                    style: TextStyle(
+                      fontSize: FontStyles.titleTiny,
+                      fontWeight: FontStyles.weightHeavy,
+                      color: dotColor,
+                    ),
                   ),
                 ),
               ],

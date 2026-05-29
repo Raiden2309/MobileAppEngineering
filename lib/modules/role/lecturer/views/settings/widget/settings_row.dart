@@ -9,6 +9,7 @@ class SettingsRow extends StatelessWidget {
   final Color? labelColor;
   final String? value;
   final VoidCallback onTap;
+  final bool showArrow;
 
   const SettingsRow({
     super.key,
@@ -18,6 +19,7 @@ class SettingsRow extends StatelessWidget {
     required this.onTap,
     this.labelColor,
     this.value,
+    this.showArrow = true,
   });
 
   @override
@@ -56,12 +58,14 @@ class SettingsRow extends StatelessWidget {
                   color: AppColors.legendText,
                 ),
               ),
-            const SizedBox(width: 6),
-            Icon(
-              Icons.chevron_right_rounded,
-              size: 18,
-              color: AppColors.white.withValues(alpha: 0.4),
-            ),
+            if (showArrow) ...[
+              const SizedBox(width: 6),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppColors.white.withValues(alpha: 0.4),
+              ),
+            ],
           ],
         ),
       ),

@@ -4,12 +4,16 @@ class AlertModel {
   final String title;
   final String meta;
   final bool read;
+  final String studentId;
+  final String studentName;
 
   const AlertModel({
     required this.type,
     required this.emoji,
     required this.title,
     required this.meta,
+    required this.studentId,
+    required this.studentName,
     this.read = false,
   });
 
@@ -18,6 +22,8 @@ class AlertModel {
     String? emoji,
     String? title,
     String? meta,
+    String? studentId,
+    String? studentName,
     bool? read,
   }) =>
       AlertModel(
@@ -25,6 +31,8 @@ class AlertModel {
         emoji: emoji ?? this.emoji,
         title: title ?? this.title,
         meta: meta ?? this.meta,
+        studentId: studentId ?? this.studentId,
+        studentName: studentName ?? this.studentName,
         read: read ?? this.read,
       );
 }

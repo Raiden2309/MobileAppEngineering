@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/settings/widget/lecturer_profile_header.dart';
 import 'package:provider/provider.dart';
 import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
-
-import '../../../student/views/settings/student_settings.dart';
+import '../../../lecturer/views/settings/widget/settings_group.dart';
+import '../../../lecturer/views/settings/widget/settings_row.dart';
+import '../../../lecturer/views/settings/widget/toggle_row.dart';
 import '../../controllers/lecturer_settings_controller.dart';
 import '../../providers/lecturer_settings_provider.dart';
 
@@ -93,6 +94,7 @@ class LecturerSettingsPage extends StatelessWidget {
                           iconBg: Colors.white.withValues(alpha: 0.1),
                           label: 'App Version',
                           value: data.appVersion,
+                          showArrow: false,
                           onTap: () {},
                         ),
                         SettingsRow(
