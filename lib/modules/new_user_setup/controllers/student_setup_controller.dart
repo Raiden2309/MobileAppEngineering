@@ -14,11 +14,7 @@ class SetupController extends ChangeNotifier {
   DateTime? semEnd;
   List<DateTime> examDates = [];
 
-  final List<Map<String, String>> subjects = [
-    {'name': 'CT124 System Proposal', 'color': '#2dd4bf'},
-    {'name': 'Research Methods',      'color': '#f59e0b'},
-    {'name': 'Mobile Development',    'color': '#a78bfa'},
-  ];
+  final List<Map<String, dynamic>> subjects = [];
 
   final newSubjectController = TextEditingController();
 
