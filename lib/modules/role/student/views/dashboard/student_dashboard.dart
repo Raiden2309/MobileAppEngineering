@@ -17,6 +17,14 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<StudentDashboardProvider>().loadMock();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final dashboardProvider = context.read<StudentDashboardProvider>();
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
