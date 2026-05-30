@@ -16,8 +16,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   void initState() {
     super.initState();
-    // Safely execute layout startup parameters
-    context.read<StudentDashboardProvider>().loadMock();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<StudentDashboardProvider>().loadMock();
+    });
   }
 
   @override

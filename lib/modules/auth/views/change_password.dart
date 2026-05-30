@@ -6,6 +6,7 @@ import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/styles/font_styles.dart';
 import '../controllers/change_password_controller.dart';
 import '../models/change_password_request.dart';
+import '../providers/reset_password_provider.dart';
 
 class ChangePassword {
   static void startForgotPassword(BuildContext context) {
@@ -274,9 +275,16 @@ class EmailPage extends StatefulWidget {
 }
 
 class EmailPageState extends State<EmailPage> {
+  final changePassProvider = ChangePasswordProvider();
   final emailController = TextEditingController();
   bool loading = false;
   String? error;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
 
   Future<void> submit() async {
     setState(() {
@@ -284,7 +292,7 @@ class EmailPageState extends State<EmailPage> {
       loading = true;
     });
 
-    final result = await widget.controller.sendOtp(emailController.text.trim());
+    final result = await changePassProvider.sendOtp(emailController.text.trim());
 
     setState(() {
       loading = false;
@@ -340,6 +348,7 @@ class OtpPage extends StatefulWidget {
 class OtpPageState extends State<OtpPage> {
   final List<TextEditingController> controllers =
   List.generate(6, (_) => TextEditingController());
+  final changePassProvider = ChangePasswordProvider();
   final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
   bool loading = false;
   String? error;
@@ -352,7 +361,7 @@ class OtpPageState extends State<OtpPage> {
       loading = true;
     });
 
-    final result = await widget.controller.verifyOtp(widget.email, otp);
+    final result = await changePassProvider.verifyOtp(widget.email, otp);
 
     setState(() {
       loading = false;
@@ -426,7 +435,7 @@ class OtpPageState extends State<OtpPage> {
           child: GestureDetector(
             onTap: () async {
               setState(() => error = null);
-              await widget.controller.sendOtp(widget.email);
+              await changePassProvider.sendOtp(widget.email);
             },
             child: Text(
               'Resend code',

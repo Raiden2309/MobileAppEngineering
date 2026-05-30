@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/styles/app_colors.dart';
 import '../controllers/change_password_controller.dart';
+import '../providers/reset_password_provider.dart';
 import 'change_password.dart';
 
 class ResetPasswordPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class ResetPasswordPage extends StatefulWidget {
 class ResetPasswordPageState extends State<ResetPasswordPage> {
   final passController = TextEditingController();
   final confirmController = TextEditingController();
+  final changePassProvider = ChangePasswordProvider();
   bool obscurePass = true;
   bool obscureConfirm = true;
   bool loading = false;
@@ -35,7 +37,7 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
       loading = true;
     });
 
-    final error = await widget.controller.updatePassword(
+    final error = await changePassProvider.updatePassword(
       password: passController.text,
       confirm: confirmController.text,
       request: widget.request,
