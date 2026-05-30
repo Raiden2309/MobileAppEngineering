@@ -106,7 +106,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                 child: StudentHeader(
-                  burnoutAlertController: BurnoutAlertController(),
+                  burnoutAlertController: BurnoutAlertController(context),
                   settingsController: StudentSettingsController(),
                   onProfileTapped: () {
                     context

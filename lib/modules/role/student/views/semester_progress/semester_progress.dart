@@ -9,14 +9,50 @@ import '../../controllers/semester_progress_controller.dart';
 import '../../models/semester_progress_model.dart';
 import '../settings/bottom_sheet_widgets/subjects_sheet.dart';
 
-class SemesterProgressPage extends StatelessWidget {
+class SemesterProgressPage extends StatefulWidget {
   final SemesterProgressController controller;
 
   const SemesterProgressPage({super.key, required this.controller});
 
   @override
+  State<SemesterProgressPage> createState() => _SemesterProgressPageState();
+}
+
+class _SemesterProgressPageState extends State<SemesterProgressPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Safely attach the controller listener pipeline on page boot
+    widget.controller.addListener(_onControllerUpdate);
+    widget.controller.init();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerUpdate);
+    super.dispose();
+  }
+
+  void _onControllerUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final data = controller.data ?? SemesterProgressModel.mockData();
+    final data = widget.controller.data;
+
+    // Fixed: If data is still streaming down, show a clean, isolated centered spinner
+    if (data == null) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.black),
+          ),
+        ),
+      );
+    }
+
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -41,8 +77,8 @@ class SemesterProgressPage extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              '${data.semesterName} · ${data.dateRange}',
-              style: TextStyle(color: AppColors.black, fontSize: 13),
+              widget.controller.semesterLabel,
+              style: const TextStyle(color: AppColors.black, fontSize: 13),
             ),
 
             const SizedBox(height: 20),

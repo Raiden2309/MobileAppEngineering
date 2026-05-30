@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../models/app_enums.dart';
@@ -22,12 +21,12 @@ class StudySchedule extends StatelessWidget {
               Icon(
                 Icons.event_available_rounded,
                 size: 44,
-                color: AppColors.white.withValues(alpha: 0.4),
+                color: AppColors.white.withOpacity(0.4),
               ),
               const SizedBox(height: 12),
               Text(
                 'No sessions planned for this day',
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.legendText,
                   fontSize: FontStyles.titleSmall,
                 ),
@@ -93,7 +92,7 @@ class ScheduleRow extends StatelessWidget {
 
     return IntrinsicHeight(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch, // FIXED: Dynamic card matching bounds constraints
         children: [
           SizedBox(
             width: 48,
@@ -140,7 +139,7 @@ class ScheduleRow extends StatelessWidget {
                       boxShadow: [
                         if (block.type != BlockType.blocked)
                           BoxShadow(
-                            color: dotColor.withValues(alpha: 0.5),
+                            color: dotColor.withOpacity(0.5),
                             blurRadius: 6,
                             spreadRadius: 1,
                           ),
@@ -155,7 +154,7 @@ class ScheduleRow extends StatelessWidget {
 
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.only(bottom: 12), // FIXED: Extra padding guard to prevent RenderFlex edge collision
               child: BlockCard(
                 block: block,
                 accentColor: dotColor,
@@ -187,6 +186,7 @@ class BlockCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
+        color: AppColors.white, // FIXED: Ensure background color is explicitly set inside layout limits
         borderRadius: BorderRadius.circular(AppColors.glassTileBorderRadius),
         border: Border.all(color: AppColors.black),
         gradient: LinearGradient(
@@ -198,9 +198,10 @@ class BlockCard extends StatelessWidget {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+        padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center, // Center text layouts cleanly within row lines
           children: [
             Text(
               block.title,
@@ -210,7 +211,7 @@ class BlockCard extends StatelessWidget {
                 fontWeight: FontStyles.weightMedium,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               subtitleText,
               style: const TextStyle(

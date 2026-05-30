@@ -5,7 +5,8 @@ class Task {
   final String title;
   final double estimatedHours;
   final TaskStatus status;
-  final DateTime? startedAt; // --- Track when the countdown clock began ---
+  final DateTime? startedAt;
+  final DateTime? dueDate; // --- NEW: Track calendar deadline target dates ---
 
   const Task({
     required this.id,
@@ -13,6 +14,7 @@ class Task {
     required this.estimatedHours,
     required this.status,
     this.startedAt,
+    this.dueDate, // --- Optional calendar date target parameter ---
   });
 
   String get estimatedTime => 'Est. $estimatedHours hrs';
@@ -33,12 +35,14 @@ class Task {
     double? estimatedHours,
     TaskStatus? status,
     DateTime? startedAt,
+    DateTime? dueDate,
   }) => Task(
     id:             id             ?? this.id,
     title:          title          ?? this.title,
     estimatedHours: estimatedHours ?? this.estimatedHours,
     status:         status         ?? this.status,
     startedAt:      startedAt      ?? this.startedAt,
+    dueDate:        dueDate        ?? this.dueDate,
   );
 
   factory Task.fromJson(Map<String, dynamic> json) => Task(
@@ -47,6 +51,7 @@ class Task {
     estimatedHours: (json['estimated_hours'] as num).toDouble(),
     status:         TaskStatus.values.byName(json['status'] as String),
     startedAt:      json['started_at'] != null ? DateTime.parse(json['started_at'] as String) : null,
+    dueDate:        json['due_date'] != null ? DateTime.parse(json['due_date'] as String) : null, // --- Parse due date string safely ---
   );
 
   Map<String, dynamic> toJson() => {
@@ -55,10 +60,10 @@ class Task {
     'estimated_hours': estimatedHours,
     'status':          status.name,
     'started_at':      startedAt?.toIso8601String(),
+    'due_date':        dueDate?.toIso8601String(), // --- Export due date string safely ---
   };
 }
 
-/// --- REINSTATED SUBJECT GROUP HOUSING DATA MODEL ---
 class SubjectGroup {
   final String id;
   final String name;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart'; // Ensure you run 'flutter pub add intl' if missing
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
@@ -52,6 +53,7 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
 
   late TaskStatus _status;
   late SubjectGroup? _selectedGroup;
+  DateTime? _selectedDueDate; // --- NEW: Track user deadline selections ---
   bool _saving = false;
   bool _isAddingCustomSubject = false;
 
@@ -69,6 +71,7 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           (g) => g.id == (widget.group?.id ?? widget.groups.first.id),
       orElse: () => widget.groups.first,
     );
+    _selectedDueDate = widget.existing?.dueDate; // --- Read incoming deadlines if editing ---
   }
 
   @override
@@ -77,6 +80,35 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     _hoursController.dispose();
     _newSubjectController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDueDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDueDate ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.californiaBlue,
+              onPrimary: AppColors.black,
+              surface: Color(0xFF1E2330),
+              onSurface: AppColors.white,
+            ),
+            dialogBackgroundColor: const Color(0xFF1E2330),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDueDate) {
+      setState(() {
+        _selectedDueDate = picked;
+      });
+    }
   }
 
   Future<void> _createNewSubject() async {
@@ -89,7 +121,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid == null) return;
 
-      // Format clean name string to a database safe structural ID reference path key
       final safeClassKey = newSubjectName
           .toLowerCase()
           .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
@@ -97,7 +128,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
 
       final targetDocId = '${uid}_$safeClassKey';
 
-      // Save a new enrollment layout entry document directly into Firestore collection
       await FirebaseFirestore.instance
           .collection('enrollments')
           .doc(targetDocId)
@@ -115,7 +145,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
       setState(() {
         _isAddingCustomSubject = false;
         _saving = false;
-        // Search matching reference links or set up placeholder object safely until stream catches up
         _selectedGroup = widget.groups.firstWhere(
               (g) => g.id == targetDocId,
           orElse: () => SubjectGroup(
@@ -141,17 +170,39 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     final hours = double.tryParse(_hoursController.text.trim()) ?? 0;
     if (title.isEmpty || _selectedGroup == null) return;
     setState(() => _saving = true);
+
     if (isEditing) {
+      // Pass copyWith values with due date payload mapping directly
       await widget.controller.updateTask(
-        widget.existing!.copyWith(title: title, estimatedHours: hours, status: _status),
+        widget.existing!.copyWith(
+          title: title,
+          estimatedHours: hours,
+          status: _status,
+          dueDate: _selectedDueDate,
+        ),
       );
     } else {
-      await widget.controller.addTask(
-        groupId: _selectedGroup!.id,
-        title: title,
-        estimatedHours: hours,
-        status: _status,
-      );
+      // Intercept execution path maps inside custom provider arrays to support due_date strings
+      try {
+        final docRef = FirebaseFirestore.instance.collection('enrollments').doc(_selectedGroup!.id);
+        final newTaskMap = {
+          'id': DateTime.now().millisecondsSinceEpoch.toString(),
+          'title': title,
+          'estimated_hours': hours,
+          'status': _status.name,
+          'due_date': _selectedDueDate?.toIso8601String(), // --- Save selected due date string safely ---
+        };
+
+        await docRef.update({
+          'tasksList': FieldValue.arrayUnion([newTaskMap]),
+          'pendingTasks': FieldValue.increment(_status != TaskStatus.completed ? 1 : 0),
+          'completedTasks': FieldValue.increment(_status == TaskStatus.completed ? 1 : 0),
+        });
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to save task document: $e')),
+        );
+      }
     }
     if (mounted) Navigator.pop(context);
   }
@@ -197,7 +248,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
 
-    // Dynamically check if our selected group is still present inside the groups array list
     if (_selectedGroup != null && widget.groups.isNotEmpty) {
       final matches = widget.groups.any((g) => g.id == _selectedGroup!.id);
       if (!matches && !_isAddingCustomSubject) {
@@ -272,7 +322,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           _Label('Subject'),
           const SizedBox(height: 6),
 
-          // --- INTEGRATED INLINE CUSTOM SUBJECT FIELD SYSTEM ---
           if (!_isAddingCustomSubject) ...[
             Row(
               children: [
@@ -339,6 +388,7 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           _Label('Task Title'),
           const SizedBox(height: 6),
           _Field(controller: _titleController, hint: 'e.g. Write introduction'),
+
           const SizedBox(height: 12),
           _Label('Estimated Hours'),
           const SizedBox(height: 6),
@@ -347,6 +397,38 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
             hint: 'e.g. 1.5',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
+
+          // --- NEW: INLINE DATE PICKER INTERFACE TARGET FIELD ---
+          const SizedBox(height: 12),
+          _Label('Due Date deadline'),
+          const SizedBox(height: 6),
+          GestureDetector(
+            onTap: _pickDueDate,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppColors.black,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _selectedDueDate == null
+                        ? 'Select deadline date...'
+                        : DateFormat('yyyy-MM-dd (EEEE)').format(_selectedDueDate!),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _selectedDueDate == null ? Colors.white38 : AppColors.white,
+                    ),
+                  ),
+                  const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.white54),
+                ],
+              ),
+            ),
+          ),
+
           const SizedBox(height: 12),
           _Label('Status'),
           const SizedBox(height: 6),

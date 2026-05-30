@@ -78,11 +78,9 @@ class StudyPlanController extends ChangeNotifier {
   // Data loading
 
   Future<void> init() async {
-    if (hasData) {
-      selectToday();
-      return;
-    }
-    await fetch();
+    // Starts the real-time background enrollment task array mapping listener
+    provider.listenToLiveStudyPlan();
+    selectToday();
   }
 
   Future<void> fetch() async {
@@ -97,7 +95,7 @@ class StudyPlanController extends ChangeNotifier {
 
   /// Regenerates the week plan with fresh mock data (mirrors the view's onTap logic).
   void regenerate() {
-    provider.setPlan(WeekPlan.mockData());
+    provider.generateAiWeeklyPlan();
     selectToday();
   }
 

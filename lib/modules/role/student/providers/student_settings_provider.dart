@@ -2,12 +2,16 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../shared/services/api_service.dart';
 import '../models/student_settings_models.dart';
 import '../models/semester_details_model.dart';
 
-class StudentSettingsProvider extends ChangeNotifier {
+class StudentSettingsProvider with ChangeNotifier {
   static const _storage = FlutterSecureStorage();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   static const _keyStudyStart = 'settings_study_start';
   static const _keyStudyEnd = 'settings_study_end';
@@ -30,6 +34,11 @@ class StudentSettingsProvider extends ChangeNotifier {
 
   StudentSettingsModel? data;
 
+  // --- LIVE VARIABLE OVERRIDES ---
+  String currentLiveName = 'Edwin Chin Chun Wui';
+  String currentLiveSemester = '1';
+  int currentLiveYear = 1;
+
   TimeOfDay studyStart = const TimeOfDay(hour: 8, minute: 0);
   TimeOfDay studyEnd = const TimeOfDay(hour: 22, minute: 0);
 
@@ -51,13 +60,11 @@ class StudentSettingsProvider extends ChangeNotifier {
       '${_formatTime(studyStart)} – ${_formatTime(studyEnd)}';
 
   int get blockedSlotsCount => blockedSlots.length;
-
   int get subjectCount => subjects.length;
-
   int get joinedClassCount => joinedClasses.length;
 
   String? get currentSemesterName => semesters.firstWhere(
-    (s) => s['isCurrent'] == 'true',
+        (s) => s['isCurrent'] == 'true',
     orElse: () => {},
   )['name'];
 
@@ -65,26 +72,59 @@ class StudentSettingsProvider extends ChangeNotifier {
     setData(StudentSettingsModel.mockData());
   }
 
+  /// DYNAMIC: Loads configurations and explicitly updates active state variables
   Future<void> load() async {
     loading = true;
     error = null;
     notifyListeners();
 
     await _loadFromCache();
-    loading = false;
-    notifyListeners();
 
     try {
-      final json = await ApiService.get('/student/settings');
-      _applyFromApi(json);
-      await _saveToCache();
-      notifyListeners();
-    } catch (_) {}
+      final uid = _auth.currentUser?.uid;
+      if (uid != null) {
+        final userDoc = await _db.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          final docMap = userDoc.data();
+
+          // Pull variables straight out of your Firestore document fields
+          currentLiveName = docMap?['name']?.toString() ?? 'Edwin Chin Chun Wui';
+          currentLiveSemester = docMap?['semester']?.toString() ?? '1';
+          currentLiveYear = (docMap?['year'] as num? ?? 1).toInt();
+
+          // Force reconstruct the main data model used by your layout widgets
+          data = StudentSettingsModel(
+            userId: data?.userId ?? 1,
+            userName: currentLiveName,
+            semester: currentLiveSemester,
+            year: currentLiveYear,
+            subjectCount: subjectCount,
+            studyHoursStart: _formatTime(studyStart),
+            studyHoursEnd: _formatTime(studyEnd),
+            blockedSlotsCount: blockedSlotsCount,
+            taskReminders: taskReminders,
+            slotEndPrompts: slotEndPrompts,
+            burnoutWarnings: burnoutWarnings,
+            weeklyResetSummary: weeklyResetSummary,
+            appVersion: data?.appVersion ?? 'v1.0',
+            joinedClassCount: joinedClassCount,
+            semesters: data?.semesters ?? [],
+            avatarUrl: avatarUrl,
+          );
+
+          await _saveToCache();
+        }
+      }
+    } catch (e) {
+      debugPrint("Firebase Profile Fetch Failed: $e");
+    }
+
+    loading = false;
+    notifyListeners();
   }
 
   void _applyFromApi(Map<String, dynamic> json) {
     data = StudentSettingsModel.fromJson(json);
-
     avatarUrl = data!.avatarUrl;
     studyStart = _parseTimeString(data!.studyHoursStart);
     studyEnd = _parseTimeString(data!.studyHoursEnd);
@@ -92,30 +132,22 @@ class StudentSettingsProvider extends ChangeNotifier {
     slotEndPrompts = data!.slotEndPrompts;
     burnoutWarnings = data!.burnoutWarnings;
     weeklyResetSummary = data!.weeklyResetSummary;
-    semesters = data!.semesters
-        .map(
-          (s) => {
-            'name': s.name,
-            'isCurrent': s.isCurrent.toString(),
-            'subjectCount': s.subjectCount.toString(),
-            'studyHoursStart': s.studyHoursStart,
-            'studyHoursEnd': s.studyHoursEnd,
-          },
-        )
-        .toList();
+    semesters = data!.semesters.map((s) => {
+      'name': s.name,
+      'isCurrent': s.isCurrent.toString(),
+      'subjectCount': s.subjectCount.toString(),
+      'studyHoursStart': s.studyHoursStart,
+      'studyHoursEnd': s.studyHoursEnd,
+    }).toList();
 
     if (json['blocked_slots'] != null) {
       blockedSlots = Set<String>.from(json['blocked_slots'] as List);
     }
     if (json['subjects'] != null) {
-      subjects = (json['subjects'] as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
+      subjects = (json['subjects'] as List).map((e) => Map<String, String>.from(e as Map)).toList();
     }
     if (json['joined_classes'] != null) {
-      joinedClasses = (json['joined_classes'] as List)
-          .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      joinedClasses = (json['joined_classes'] as List).map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>)).toList();
     }
   }
 
@@ -142,23 +174,16 @@ class StudentSettingsProvider extends ChangeNotifier {
     if (avatarRaw != null) avatarUrl = avatarRaw;
     if (start != null) studyStart = _parseTimeString(start);
     if (end != null) studyEnd = _parseTimeString(end);
-    if (slots != null)
-      blockedSlots = Set<String>.from(jsonDecode(slots) as List);
+    if (slots != null) blockedSlots = Set<String>.from(jsonDecode(slots) as List);
 
     if (subjRaw != null) {
-      subjects = (jsonDecode(subjRaw) as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
+      subjects = (jsonDecode(subjRaw) as List).map((e) => Map<String, String>.from(e as Map)).toList();
     }
     if (semRaw != null) {
-      semesters = (jsonDecode(semRaw) as List)
-          .map((e) => Map<String, String>.from(e as Map))
-          .toList();
+      semesters = (jsonDecode(semRaw) as List).map((e) => Map<String, String>.from(e as Map)).toList();
     }
     if (classesRaw != null) {
-      joinedClasses = (jsonDecode(classesRaw) as List)
-          .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
-          .toList();
+      joinedClasses = (jsonDecode(classesRaw) as List).map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>)).toList();
     }
 
     if (trRaw != null) taskReminders = trRaw == 'true';
@@ -166,12 +191,16 @@ class StudentSettingsProvider extends ChangeNotifier {
     if (bwRaw != null) burnoutWarnings = bwRaw == 'true';
     if (wrsRaw != null) weeklyResetSummary = wrsRaw == 'true';
 
+    currentLiveName = userNameRaw ?? 'Edwin Chin Chun Wui';
+    currentLiveSemester = semesterRaw ?? '1';
+    currentLiveYear = int.tryParse(yearRaw ?? '1') ?? 1;
+
     if (semesters.isNotEmpty || userIdRaw != null) {
       data = StudentSettingsModel(
         userId: int.tryParse(userIdRaw ?? '0') ?? 0,
-        userName: userNameRaw ?? '',
-        semester: semesterRaw ?? '',
-        year: int.tryParse(yearRaw ?? '0') ?? 0,
+        userName: currentLiveName,
+        semester: currentLiveSemester,
+        year: currentLiveYear,
         subjectCount: int.tryParse(subjCountRaw ?? '0') ?? 0,
         studyHoursStart: _formatTime(studyStart),
         studyHoursEnd: _formatTime(studyEnd),
@@ -182,17 +211,13 @@ class StudentSettingsProvider extends ChangeNotifier {
         weeklyResetSummary: weeklyResetSummary,
         appVersion: appVersionRaw ?? 'v1.0',
         joinedClassCount: joinedClasses.length,
-        semesters: semesters
-            .map(
-              (s) => SemesterModel(
-                name: s['name'] ?? '',
-                isCurrent: s['isCurrent'] == 'true',
-                subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-                studyHoursStart: s['studyHoursStart'] ?? '',
-                studyHoursEnd: s['studyHoursEnd'] ?? '',
-              ),
-            )
-            .toList(),
+        semesters: semesters.map((s) => SemesterModel(
+          name: s['name'] ?? '',
+          isCurrent: s['isCurrent'] == 'true',
+          subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
+          studyHoursStart: s['studyHoursStart'] ?? '',
+          studyHoursEnd: s['studyHoursEnd'] ?? '',
+        )).toList(),
       );
     }
   }
@@ -200,48 +225,22 @@ class StudentSettingsProvider extends ChangeNotifier {
   Future<void> _saveToCache() async {
     await _storage.write(key: _keyStudyStart, value: _formatTime(studyStart));
     await _storage.write(key: _keyStudyEnd, value: _formatTime(studyEnd));
-    await _storage.write(
-      key: _keyBlockedSlots,
-      value: jsonEncode(blockedSlots.toList()),
-    );
+    await _storage.write(key: _keyBlockedSlots, value: jsonEncode(blockedSlots.toList()));
     await _storage.write(key: _keySubjects, value: jsonEncode(subjects));
     await _storage.write(key: _keySemesters, value: jsonEncode(semesters));
-    await _storage.write(
-      key: _keyTaskReminders,
-      value: taskReminders.toString(),
-    );
-    await _storage.write(
-      key: _keySlotEndPrompts,
-      value: slotEndPrompts.toString(),
-    );
-    await _storage.write(
-      key: _keyBurnoutWarnings,
-      value: burnoutWarnings.toString(),
-    );
-    await _storage.write(
-      key: _keyWeeklyReset,
-      value: weeklyResetSummary.toString(),
-    );
-    await _storage.write(
-      key: _keyJoinedClasses,
-      value: jsonEncode(
-        joinedClasses.map((c) => {'id': c.id, 'name': c.name}).toList(),
-      ),
-    );
+    await _storage.write(key: _keyTaskReminders, value: taskReminders.toString());
+    await _storage.write(key: _keySlotEndPrompts, value: slotEndPrompts.toString());
+    await _storage.write(key: _keyBurnoutWarnings, value: burnoutWarnings.toString());
+    await _storage.write(key: _keyWeeklyReset, value: weeklyResetSummary.toString());
+    await _storage.write(key: _keyJoinedClasses, value: jsonEncode(joinedClasses.map((c) => {'id': c.id, 'name': c.name}).toList()));
 
     if (data != null) {
       await _storage.write(key: _keyUserId, value: data!.userId.toString());
-      await _storage.write(key: _keyUserName, value: data!.userName);
-      await _storage.write(key: _keySemester, value: data!.semester);
-      await _storage.write(key: _keyYear, value: data!.year.toString());
-      await _storage.write(
-        key: _keySubjectCount,
-        value: data!.subjectCount.toString(),
-      );
-      await _storage.write(
-        key: _keyBlockedCount,
-        value: data!.blockedSlotsCount.toString(),
-      );
+      await _storage.write(key: _keyUserName, value: currentLiveName);
+      await _storage.write(key: _keySemester, value: currentLiveSemester);
+      await _storage.write(key: _keyYear, value: currentLiveYear.toString());
+      await _storage.write(key: _keySubjectCount, value: subjectCount.toString());
+      await _storage.write(key: _keyBlockedCount, value: blockedSlotsCount.toString());
       await _storage.write(key: _keyAppVersion, value: data!.appVersion);
       if (avatarUrl != null) {
         await _storage.write(key: _keyAvatarUrl, value: avatarUrl!);
@@ -251,12 +250,8 @@ class StudentSettingsProvider extends ChangeNotifier {
 
   Future<bool> joinClass(String code) async {
     try {
-      final response = await ApiService.post('/student/classes/join', {
-        'code': code,
-      });
-      final joined = JoinedClassModel.fromJson(
-        response as Map<String, dynamic>,
-      );
+      final response = await ApiService.post('/student/classes/join', {'code': code});
+      final joined = JoinedClassModel.fromJson(response as Map<String, dynamic>);
       if (!joinedClasses.any((c) => c.id == joined.id)) {
         joinedClasses = [...joinedClasses, joined];
         data = data?.copyWith(joinedClassCount: joinedClasses.length);
@@ -335,17 +330,13 @@ class StudentSettingsProvider extends ChangeNotifier {
   Future<void> saveSemesters(List<Map<String, String>> updated) async {
     semesters = updated;
     data = data?.copyWith(
-      semesters: updated
-          .map(
-            (s) => SemesterModel(
-              name: s['name'] ?? '',
-              isCurrent: s['isCurrent'] == 'true',
-              subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-              studyHoursStart: s['studyHoursStart'] ?? '',
-              studyHoursEnd: s['studyHoursEnd'] ?? '',
-            ),
-          )
-          .toList(),
+      semesters: updated.map((s) => SemesterModel(
+        name: s['name'] ?? '',
+        isCurrent: s['isCurrent'] == 'true',
+        subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
+        studyHoursStart: s['studyHoursStart'] ?? '',
+        studyHoursEnd: s['studyHoursEnd'] ?? '',
+      )).toList(),
     );
     await _saveToCache();
     _tryApiPatch({'semesters': updated});
@@ -357,36 +348,58 @@ class StudentSettingsProvider extends ChangeNotifier {
       return {...s, 'isCurrent': (s['name'] == name).toString()};
     }).toList();
     data = data?.copyWith(
-      semesters: semesters
-          .map(
-            (s) => SemesterModel(
-              name: s['name'] ?? '',
-              isCurrent: s['isCurrent'] == 'true',
-              subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-              studyHoursStart: s['studyHoursStart'] ?? '',
-              studyHoursEnd: s['studyHoursEnd'] ?? '',
-            ),
-          )
-          .toList(),
+      semesters: semesters.map((s) => SemesterModel(
+        name: s['name'] ?? '',
+        isCurrent: s['isCurrent'] == 'true',
+        subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
+        studyHoursStart: s['studyHoursStart'] ?? '',
+        studyHoursEnd: s['studyHoursEnd'] ?? '',
+      )).toList(),
     );
     _saveToCache();
     _tryApiPatch({'semesters': semesters});
     notifyListeners();
   }
 
+  /// Writes modifications back into the user documentation node in Firestore
   Future<void> updateUserName(String name) async {
-    data = data?.copyWith(userName: name);
+    currentLiveName = name;
+    if (data != null) {
+      data = StudentSettingsModel(
+        userId: data!.userId,
+        userName: currentLiveName,
+        semester: currentLiveSemester,
+        year: currentLiveYear,
+        subjectCount: subjectCount,
+        studyHoursStart: _formatTime(studyStart),
+        studyHoursEnd: _formatTime(studyEnd),
+        blockedSlotsCount: blockedSlotsCount,
+        taskReminders: taskReminders,
+        slotEndPrompts: slotEndPrompts,
+        burnoutWarnings: burnoutWarnings,
+        weeklyResetSummary: weeklyResetSummary,
+        appVersion: data!.appVersion,
+        joinedClassCount: joinedClassCount,
+        semesters: data!.semesters,
+        avatarUrl: data!.avatarUrl,
+      );
+    }
     await _storage.write(key: _keyUserName, value: name);
-    _tryApiPatch({'name': name});
     notifyListeners();
+
+    try {
+      final uid = _auth.currentUser?.uid;
+      if (uid != null) {
+        await _db.collection('users').doc(uid).update({'name': name});
+      }
+    } catch (e) {
+      debugPrint("Failed to write updated user profile identity fields: $e");
+    }
   }
 
   Future<void> updateAvatar(XFile file) async {
     try {
-      final response = await ApiService.uploadImage(
-        '/student/settings/avatar',
-        file.path,
-      );
+      final response = await ApiService.uploadImage('/student/settings/avatar', file.path);
       final remoteUrl = response['avatar_url'] as String;
       avatarUrl = remoteUrl;
       data = data?.copyWith(avatarUrl: remoteUrl);
@@ -405,31 +418,28 @@ class StudentSettingsProvider extends ChangeNotifier {
     slotEndPrompts = model.slotEndPrompts;
     burnoutWarnings = model.burnoutWarnings;
     weeklyResetSummary = model.weeklyResetSummary;
-    subjects = model.subjects
-        .map(
-          (s) => {
-            'id': s.id.toString(),
-            'student_id': s.studentId.toString(),
-            'semester_id': s.semesterId.toString(),
-            'subject_id': s.subjectId.toString(),
-            'name': s.name,
-            'code': s.code,
-            'color_hex': s.colorHex,
-          },
-        )
-        .toList();
+
+    currentLiveName = model.userName;
+    currentLiveSemester = model.semester;
+    currentLiveYear = model.year;
+
+    subjects = model.subjects.map((s) => {
+      'id': s.id.toString(),
+      'student_id': s.studentId.toString(),
+      'semester_id': s.semesterId.toString(),
+      'subject_id': s.subjectId.toString(),
+      'name': s.name,
+      'code': s.code,
+      'color_hex': s.colorHex,
+    }).toList();
     blockedSlots = Set.from(model.blockedSlots);
-    semesters = model.semesters
-        .map(
-          (s) => {
-            'name': s.name,
-            'isCurrent': s.isCurrent.toString(),
-            'subjectCount': s.subjectCount.toString(),
-            'studyHoursStart': s.studyHoursStart,
-            'studyHoursEnd': s.studyHoursEnd,
-          },
-        )
-        .toList();
+    semesters = model.semesters.map((s) => {
+      'name': s.name,
+      'isCurrent': s.isCurrent.toString(),
+      'subjectCount': s.subjectCount.toString(),
+      'studyHoursStart': s.studyHoursStart,
+      'studyHoursEnd': s.studyHoursEnd,
+    }).toList();
     avatarUrl = model.avatarUrl;
     notifyListeners();
   }
