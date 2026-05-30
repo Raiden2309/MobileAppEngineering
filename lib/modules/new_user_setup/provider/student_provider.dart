@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../shared/services/api_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/student_model.dart';
 
 class StudentProvider extends ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
   StudentModel? student;
   bool loading = false;
   String? error;
@@ -30,37 +31,41 @@ class StudentProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetch() async {
-    loading = true;
-    error = null;
-    notifyListeners();
-    try {
-      final data = await ApiService.get('/student/profile');
-      student = StudentModel.fromJson(data);
-    } catch (e) {
-      error = e.toString();
-    }
-    loading = false;
-    notifyListeners();
-  }
-
+  // ─── ADDED: THE SAVE METHOD EXPECTED BY YOUR SETUP WIZARD ───
   Future<void> save(StudentModel model) async {
     loading = true;
     error = null;
     notifyListeners();
+
     try {
-      await ApiService.post('/student/profile', model.toJson());
+      // Update our local app state memory reference
       student = model;
+
+      // Save the primary student profile document data into the global users collection
+      await _db.collection('users').doc(model.id).set({
+        'uid': model.id,
+        'name': model.name,
+        'email': model.email,
+        'programme': model.programme,
+        'semester': model.semester,
+        'year': model.year,
+        'semStart': model.semStart != null ? Timestamp.fromDate(model.semStart!) : null,
+        'semEnd': model.semEnd != null ? Timestamp.fromDate(model.semEnd!) : null,
+        'dayStart': '${model.dayStart.hour}:${model.dayStart.minute}',
+        'dayEnd': '${model.dayEnd.hour}:${model.dayEnd.minute}',
+        'blockedSlots': model.blockedSlots,
+        'setupCompleted': true,
+        'role': 'student',
+      });
+
     } catch (e) {
       error = e.toString();
+      debugPrint("Error storing student metadata: $e");
+      rethrow; // Pass error up to the UI layout page to display alert snacks
+    } finally {
+      loading = false;
+      notifyListeners();
     }
-    loading = false;
-    notifyListeners();
-  }
-
-  void setStudent(StudentModel model) {
-    student = model;
-    notifyListeners();
   }
 
   void clear() {

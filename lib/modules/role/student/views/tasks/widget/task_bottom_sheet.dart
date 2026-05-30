@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
@@ -46,9 +48,12 @@ class TaskBottomSheet extends StatefulWidget {
 class _TaskBottomSheetState extends State<TaskBottomSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _hoursController;
+  final TextEditingController _newSubjectController = TextEditingController();
+
   late TaskStatus _status;
   late SubjectGroup? _selectedGroup;
   bool _saving = false;
+  bool _isAddingCustomSubject = false;
 
   bool get isEditing => widget.existing != null;
 
@@ -70,7 +75,65 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
   void dispose() {
     _titleController.dispose();
     _hoursController.dispose();
+    _newSubjectController.dispose();
     super.dispose();
+  }
+
+  Future<void> _createNewSubject() async {
+    final newSubjectName = _newSubjectController.text.trim();
+    if (newSubjectName.isEmpty) return;
+
+    setState(() => _saving = true);
+
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      // Format clean name string to a database safe structural ID reference path key
+      final safeClassKey = newSubjectName
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+          .replaceAll(RegExp(r'[\s-]'), '_');
+
+      final targetDocId = '${uid}_$safeClassKey';
+
+      // Save a new enrollment layout entry document directly into Firestore collection
+      await FirebaseFirestore.instance
+          .collection('enrollments')
+          .doc(targetDocId)
+          .set({
+        'studentId': uid,
+        'classId': newSubjectName,
+        'completedTasks': 0,
+        'pendingTasks': 0,
+        'burnoutIndex': 0.0,
+        'tasksList': [],
+      });
+
+      _newSubjectController.clear();
+
+      setState(() {
+        _isAddingCustomSubject = false;
+        _saving = false;
+        // Search matching reference links or set up placeholder object safely until stream catches up
+        _selectedGroup = widget.groups.firstWhere(
+              (g) => g.id == targetDocId,
+          orElse: () => SubjectGroup(
+            id: targetDocId,
+            name: newSubjectName,
+            colorKey: 'blue',
+            totalTasks: 0,
+            completedTasks: 0,
+            tasks: [],
+          ),
+        );
+      });
+    } catch (e) {
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add custom subject: $e')),
+      );
+    }
   }
 
   Future<void> _save() async {
@@ -133,6 +196,16 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+
+    // Dynamically check if our selected group is still present inside the groups array list
+    if (_selectedGroup != null && widget.groups.isNotEmpty) {
+      final matches = widget.groups.any((g) => g.id == _selectedGroup!.id);
+      if (!matches && !_isAddingCustomSubject) {
+        _selectedGroup = widget.groups.first;
+      } else if (matches) {
+        _selectedGroup = widget.groups.firstWhere((g) => g.id == _selectedGroup!.id);
+      }
+    }
 
     return Container(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottom),
@@ -198,12 +271,70 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           const SizedBox(height: 20),
           _Label('Subject'),
           const SizedBox(height: 6),
-          _Dropdown<SubjectGroup>(
-            value: _selectedGroup,
-            items: widget.groups,
-            labelOf: (g) => g.name,
-            onChanged: isEditing ? null : (g) => setState(() => _selectedGroup = g),
-          ),
+
+          // --- INTEGRATED INLINE CUSTOM SUBJECT FIELD SYSTEM ---
+          if (!_isAddingCustomSubject) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _Dropdown<SubjectGroup>(
+                    value: _selectedGroup,
+                    items: widget.groups,
+                    labelOf: (g) => g.name,
+                    onChanged: isEditing ? null : (g) => setState(() => _selectedGroup = g),
+                  ),
+                ),
+                if (!isEditing) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => _isAddingCustomSubject = true),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.black,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.add, color: AppColors.californiaBlue, size: 20),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _newSubjectController,
+                    autofocus: true,
+                    style: const TextStyle(color: AppColors.white, fontSize: 13),
+                    cursorColor: AppColors.white,
+                    decoration: InputDecoration(
+                      hintText: 'New subject name...',
+                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                      filled: true,
+                      fillColor: AppColors.black,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                TextButton(
+                  onPressed: _saving ? null : _createNewSubject,
+                  child: const Text('Create', style: TextStyle(color: AppColors.californiaBlue, fontWeight: FontWeight.bold)),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white38, size: 20),
+                  onPressed: () => setState(() => _isAddingCustomSubject = false),
+                ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 12),
           _Label('Task Title'),
           const SizedBox(height: 6),

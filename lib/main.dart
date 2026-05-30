@@ -18,6 +18,7 @@ import 'modules/role/student/providers/semester_progress_provider.dart';
 import 'modules/role/student/providers/student_settings_provider.dart';
 import 'modules/role/student/providers/study_plan_provider.dart';
 import 'modules/role/student/providers/task_provider.dart';
+import 'package:mae_assignment_frontend/modules/new_user_setup/provider/student_provider.dart';
 import 'shared/widgets/splash_screen.dart';
 
 void main() async {
@@ -48,6 +49,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
+        ChangeNotifierProvider(create: (_) => StudentProvider()),
         ChangeNotifierProvider(create: (_) => StudentDashboardProvider()),
         ChangeNotifierProvider(create: (_) => StudyPlanProvider()),
         ChangeNotifierProvider(create: (_) => TasksProvider()),

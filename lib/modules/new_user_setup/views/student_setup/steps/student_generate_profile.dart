@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../shared/styles/app_colors.dart';
-import '../../../../../shared/widgets/setup_widgets.dart';
+import 'package:mae_assignment_frontend/shared/widgets/setup_widgets.dart';
 
 class StudentGenerateProfile extends StatefulWidget {
   final VoidCallback onDone;
@@ -35,31 +35,30 @@ class StudentGenerateProfileState extends State<StudentGenerateProfile> {
 
   void _runProgress() async {
     for (int i = 1; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 700));
+      await Future.delayed(const Duration(milliseconds: 600));
       if (!mounted) return;
       setState(() {
         _progress = i / 10;
-        _messageIndex = i - 1;
+        _messageIndex = i < _messages.length ? i : _messages.length - 1;
       });
     }
+
+    // --- FIXED: Add a short pause once the progress reaches 100% ---
+    // This allows the "Your plan is ready!" message to stay visible
+    // and lets the animation complete cleanly before triggering the Firestore upload.
     await Future.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
-    widget.onDone();
+
+    widget.onDone(); // Safely invoke backend batch save now
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.californiaBlue, AppColors.greenSheen],
-        ),
-      ),
-      child: Center(
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -73,41 +72,32 @@ class StudentGenerateProfileState extends State<StudentGenerateProfile> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
+              const SizedBox(height: 48),
 
-              // Animated changing message
+              // Animated message switcher text block
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 400),
-                transitionBuilder: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0, 0.2),
-                      end: Offset.zero,
-                    ).animate(animation),
-                    child: child,
-                  ),
-                ),
+                duration: const Duration(milliseconds: 300),
                 child: Text(
                   _messages[_messageIndex],
                   key: ValueKey(_messageIndex),
-                  style: const TextStyle(fontSize: 13, color: AppColors.black, height: 1.65),
+                  style: const TextStyle(fontSize: 13, color: AppColors.black, height: 1.65, fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
               ),
 
               const SizedBox(height: 28),
 
-              // Smooth animated progress bar
+              // Progress bar track container element
               Container(
                 width: 200,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.white,
+                  color: AppColors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0, end: _progress),
-                  duration: const Duration(milliseconds: 600),
+                  duration: const Duration(milliseconds: 400),
                   curve: Curves.easeInOut,
                   builder: (context, value, _) => FractionallySizedBox(
                     alignment: Alignment.centerLeft,

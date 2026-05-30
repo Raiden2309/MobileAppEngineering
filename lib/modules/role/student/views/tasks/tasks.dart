@@ -20,6 +20,7 @@ class MyTasksPageState extends State<MyTasksPage> {
   void initState() {
     super.initState();
     controller.addListener(_onControllerUpdate);
+    controller.init();
   }
 
   void _onControllerUpdate() => setState(() {});
