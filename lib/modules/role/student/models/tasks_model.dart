@@ -6,7 +6,7 @@ class Task {
   final double estimatedHours;
   final TaskStatus status;
   final DateTime? startedAt;
-  final DateTime? dueDate; // --- NEW: Track calendar deadline target dates ---
+  final DateTime? dueDate;
 
   const Task({
     required this.id,
@@ -14,7 +14,7 @@ class Task {
     required this.estimatedHours,
     required this.status,
     this.startedAt,
-    this.dueDate, // --- Optional calendar date target parameter ---
+    this.dueDate,
   });
 
   String get estimatedTime => 'Est. $estimatedHours hrs';
@@ -68,33 +68,28 @@ class SubjectGroup {
   final String id;
   final String name;
   final String colorKey;
-  final int totalTasks;
-  final int completedTasks;
   final List<Task> tasks;
 
   const SubjectGroup({
     required this.id,
     required this.name,
     this.colorKey = 'blue',
-    this.totalTasks = 0,
-    this.completedTasks = 0,
     required this.tasks,
   });
+
+  int get totalTasks => tasks.length;
+  int get completedTasks => tasks.where((t) => t.status == TaskStatus.completed).length;
 
   SubjectGroup copyWith({
     String? id,
     String? name,
     String? colorKey,
-    int? totalTasks,
-    int? completedTasks,
     List<Task>? tasks,
   }) => SubjectGroup(
-    id:             id             ?? this.id,
-    name:           name           ?? this.name,
-    colorKey:       colorKey       ?? this.colorKey,
-    totalTasks:     totalTasks     ?? this.totalTasks,
-    completedTasks: completedTasks ?? this.completedTasks,
-    tasks:          tasks          ?? this.tasks,
+    id:       id       ?? this.id,
+    name:     name     ?? this.name,
+    colorKey: colorKey ?? this.colorKey,
+    tasks:    tasks    ?? this.tasks,
   );
 
   static List<SubjectGroup> mockData() => [
@@ -102,8 +97,6 @@ class SubjectGroup {
       id: 'mock_1',
       name: 'Sigma',
       colorKey: 'purple',
-      totalTasks: 3,
-      completedTasks: 1,
       tasks: [
         Task(id: 't1', title: 'Review Chapter 1 Documentation', estimatedHours: 2.0, status: TaskStatus.toDo),
         Task(id: 't2', title: 'Complete Core Formula Sheet', estimatedHours: 1.5, status: TaskStatus.inProgress),

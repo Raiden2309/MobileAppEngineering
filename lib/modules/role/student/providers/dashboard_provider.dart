@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/app_enums.dart';
 import '../models/student_subject_model.dart';
 import '../models/dashboard_models.dart';
 
@@ -108,6 +109,85 @@ class StudentDashboardProvider with ChangeNotifier {
     );
 
     notifyListeners();
+  }
+
+  Stream<List<TaskItem>> get todayTasksStream {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return Stream.value([]);
+
+    final today = DateTime.now();
+
+    return _db
+        .collection('enrollments')
+        .where('studentId', isEqualTo: uid)
+        .snapshots()
+        .map((snapshot) {
+      final List<TaskItem> result = [];
+
+      for (var doc in snapshot.docs) {
+        final mapData = doc.data();
+        final String className = mapData['classId']?.toString() ?? '';
+        final List<dynamic> rawTasks = mapData['tasksList'] ?? [];
+
+        for (var t in rawTasks) {
+          final String status = t['status']?.toString() ?? '';
+          if (status == 'completed') continue;
+
+          final String? dueDateStr = t['due_date'];
+          bool isToday = false;
+
+          if (dueDateStr != null) {
+            final due = DateTime.tryParse(dueDateStr);
+            if (due != null) {
+              isToday = due.day == today.day &&
+                  due.month == today.month &&
+                  due.year == today.year;
+            }
+          }
+
+          final bool isInProgress = status == 'inProgress';
+
+          if (isToday || isInProgress) {
+            result.add(TaskItem(
+              title: t['title']?.toString() ?? 'Task',
+              subtitle: '$className · ${t['estimated_hours']}h',
+              status: isInProgress ? TaskStatus.inProgress : TaskStatus.dueToday,
+              classId: className,
+              taskId: t['id']?.toString() ?? '',
+            ));
+          }
+        }
+      }
+
+      return result;
+    });
+  }
+
+  Future<void> toggleTaskCompletion(String classId, String taskId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    final snapshot = await _db
+        .collection('enrollments')
+        .where('studentId', isEqualTo: uid)
+        .where('classId', isEqualTo: classId)
+        .get();
+
+    if (snapshot.docs.isEmpty) return;
+
+    final doc = snapshot.docs.first;
+    final List<dynamic> tasks = List.from(doc.data()['tasksList'] ?? []);
+
+    final index = tasks.indexWhere((t) => t['id'].toString() == taskId);
+    if (index == -1) return;
+
+    final current = tasks[index]['status']?.toString() ?? '';
+    tasks[index] = {
+      ...tasks[index],
+      'status': current == 'completed' ? 'toDo' : 'completed',
+    };
+
+    await doc.reference.update({'tasksList': tasks});
   }
 
   @override

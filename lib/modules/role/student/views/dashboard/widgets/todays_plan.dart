@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../models/app_enums.dart';
-import '../../../models/dashboard_models.dart';
 import '../../../models/study_plan_model.dart';
 import '../../../providers/study_plan_provider.dart';
 import '../../central_student_navigation.dart';

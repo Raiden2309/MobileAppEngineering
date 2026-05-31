@@ -17,12 +17,10 @@ class SubjectGroupList extends StatelessWidget {
           ...controller.visibleGroups.map((group) => SubjectGroupSection(
             controller: controller,
             group: SubjectGroup(
-              id:             group.id,
-              name:           group.name,
-              colorKey:       group.colorKey,
-              totalTasks:     group.totalTasks,
-              completedTasks: group.completedTasks,
-              tasks:          controller.filteredTasksFor(group),
+              id:       group.id,
+              name:     group.name,
+              colorKey: group.colorKey,
+              tasks:    controller.filteredTasksFor(group),
             ),
           )),
           const SizedBox(height: 24),

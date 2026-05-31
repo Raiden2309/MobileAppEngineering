@@ -55,12 +55,11 @@ class TaskCard extends StatefulWidget {
 }
 
 class TaskCardState extends State<TaskCard> {
-  late bool isCompleted;
+  bool get isCompleted => widget.task.status == TaskStatus.completed;
 
   @override
   void initState() {
     super.initState();
-    isCompleted = widget.task.status == TaskStatus.completed;
   }
 
   @override
@@ -77,7 +76,14 @@ class TaskCardState extends State<TaskCard> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: () => setState(() => isCompleted = !isCompleted),
+            onTap: () async {
+              final newStatus = widget.task.status == TaskStatus.completed
+                  ? TaskStatus.toDo
+                  : TaskStatus.completed;
+              await widget.controller.updateTask(
+                widget.task.copyWith(status: newStatus),
+              );
+            },
             child: TaskCheckbox(isCompleted: isCompleted),
           ),
           const SizedBox(width: 12),

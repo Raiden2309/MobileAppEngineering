@@ -153,8 +153,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
             id: targetDocId,
             name: newSubjectName,
             colorKey: 'blue',
-            totalTasks: 0,
-            completedTasks: 0,
             tasks: [],
           ),
         );

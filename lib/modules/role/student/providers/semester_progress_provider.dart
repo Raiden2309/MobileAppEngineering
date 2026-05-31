@@ -53,25 +53,24 @@ class SemesterProvider with ChangeNotifier {
         final String subjectNameStr = dataMap['classId']?.toString() ?? 'General';
         final String subjectCodeStr = doc.id.split('_').last.toUpperCase();
 
-        final int subjectCompleted = (dataMap['completedTasks'] as num? ?? 0).toInt();
-        final int subjectPending = (dataMap['pendingTasks'] as num? ?? 0).toInt();
-        final int subjectTotal = subjectCompleted + subjectPending;
+        final List<dynamic> rawTasks = dataMap["tasksList"] ?? [];
+        final int subjectCompleted = rawTasks.where((t) => t["status"] == "completed").length;
+        final int subjectDueSoon   = rawTasks.where((t) => t["status"] == "dueSoon").length;
+        final int subjectTotal     = rawTasks.length;
+        final int subjectRemaining = subjectTotal - subjectCompleted;
 
-        final List<dynamic> rawTasks = dataMap['tasksList'] ?? [];
-        final int subjectDueSoon = rawTasks.where((t) => t['status'] == 'dueSoon').length;
-
-        overallTotalTasks += subjectTotal;
+        overallTotalTasks     += subjectTotal;
         overallCompletedTasks += subjectCompleted;
 
-        double subjectProgressRatio = subjectTotal > 0 ? (subjectCompleted / subjectTotal) : 0.0;
+        final double subjectProgressRatio = subjectTotal > 0 ? (subjectCompleted / subjectTotal) : 0.0;
 
         liveSubjectsList.add(SubjectProgress(
-          name: subjectNameStr,
-          code: subjectCodeStr,
-          progress: subjectProgressRatio,
+          name:      subjectNameStr,
+          code:      subjectCodeStr,
+          progress:  subjectProgressRatio,
           completed: subjectCompleted,
-          remaining: subjectPending,
-          dueSoon: subjectDueSoon,
+          remaining: subjectRemaining,
+          dueSoon:   subjectDueSoon,
         ));
       }
 

@@ -35,20 +35,13 @@ class TasksProvider with ChangeNotifier {
         final dataMap = doc.data();
         final String subjectNameStr = dataMap['classId']?.toString() ?? 'General';
 
-        final int liveCompleted = (dataMap['completedTasks'] as num? ?? 0).toInt();
-        final int livePending = (dataMap['pendingTasks'] as num? ?? 0).toInt();
-
-        // Extract the tasks array map collection hosted inside the enrollment doc
         final List<dynamic> rawTasksList = dataMap['tasksList'] ?? [];
         final parsedTasks = rawTasksList.map((t) => Task.fromJson(Map<String, dynamic>.from(t))).toList();
 
-        // Fixed: Pass named parameter properties into your newly reinstated class fields
         return SubjectGroup(
           id: doc.id,
-          name: subjectNameStr, // Feeds to SubjectGroup.name
+          name: subjectNameStr,
           colorKey: 'blue',
-          totalTasks: liveCompleted + livePending,
-          completedTasks: liveCompleted,
           tasks: parsedTasks,
         );
       }).toList();

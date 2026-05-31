@@ -165,12 +165,16 @@ class TaskItem {
   final String subtitle;
   final TaskStatus status;
   final bool checked;
+  final String classId;
+  final String taskId;
 
   const TaskItem({
     required this.title,
     required this.subtitle,
     required this.status,
     this.checked = false,
+    this.classId = '',
+    this.taskId = '',
   });
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
@@ -188,6 +192,8 @@ class TaskItem {
       subtitle: subtitle,
       status:   status,
       checked:  checked ?? this.checked,
+      classId: classId,
+      taskId: taskId,
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../models/dashboard_models.dart';
 import '../../../providers/dashboard_provider.dart';
 import '../../central_student_navigation.dart';
 import 'task_card.dart';
@@ -11,9 +12,6 @@ class TaskToday extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<StudentDashboardProvider>();
-    final tasks = provider.data?.todayTasks ?? [];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -49,13 +47,33 @@ class TaskToday extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        Column(
-          children: List.generate(tasks.length, (index) {
-            return TaskCard(
-              task: tasks[index],
-              onToggle: () => provider.toggleTask(index),
+        StreamBuilder<List<TaskItem>>(
+          stream: context.read<StudentDashboardProvider>().todayTasksStream,
+          builder: (context, snapshot) {
+            final tasks = snapshot.data ?? [];
+
+            if (tasks.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    'No tasks for today.',
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: List.generate(tasks.length, (index) {
+                return TaskCard(
+                  task: tasks[index],
+                  onToggle: () => context.read<StudentDashboardProvider>()
+                      .toggleTaskCompletion(tasks[index].classId, tasks[index].taskId),
+                );
+              }),
             );
-          }),
+          },
         ),
       ],
     );
