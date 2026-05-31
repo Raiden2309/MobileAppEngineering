@@ -1,19 +1,29 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../../shared/services/api_service.dart';
+import 'dart:math';
 import '../models/lecturer_model.dart';
 
 class LecturerProvider extends ChangeNotifier {
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   LecturerModel? lecturer;
   bool loading = false;
   String? error;
 
+  String? get _uid => _auth.currentUser?.uid;
+
   Future<void> fetch() async {
+    if (_uid == null) return;
     loading = true;
     error = null;
     notifyListeners();
     try {
-      final data = await ApiService.get('/lecturer/profile');
-      lecturer = LecturerModel.fromJson(data);
+      final doc = await _db.collection('lecturers').doc(_uid).get();
+      if (doc.exists && doc.data() != null) {
+        lecturer = LecturerModel.fromJson(doc.data()!);
+      }
     } catch (e) {
       error = e.toString();
     }
@@ -22,11 +32,12 @@ class LecturerProvider extends ChangeNotifier {
   }
 
   Future<void> save(LecturerModel model) async {
+    if (_uid == null) return;
     loading = true;
     error = null;
     notifyListeners();
     try {
-      await ApiService.post('/lecturer/profile', model.toJson());
+      await _db.collection('lecturers').doc(_uid).set(model.toJson());
       lecturer = model;
     } catch (e) {
       error = e.toString();
@@ -36,20 +47,32 @@ class LecturerProvider extends ChangeNotifier {
   }
 
   Future<String> generateJoinCode(String subjectName) async {
+    if (_uid == null) return '';
     loading = true;
     error = null;
     notifyListeners();
     try {
-      final data = await ApiService.post('/lecturer/generate-code', {'subjectName': subjectName});
+      final code = _generateCode();
+      await _db.collection('join_codes').doc(code).set({
+        'lecturerUid': _uid,
+        'subjectName': subjectName,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
       loading = false;
       notifyListeners();
-      return data['joinCode'];
+      return code;
     } catch (e) {
       error = e.toString();
       loading = false;
       notifyListeners();
       return '';
     }
+  }
+
+  String _generateCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random.secure();
+    return List.generate(6, (_) => chars[random.nextInt(chars.length)]).join();
   }
 
   void setLecturer(LecturerModel model) {

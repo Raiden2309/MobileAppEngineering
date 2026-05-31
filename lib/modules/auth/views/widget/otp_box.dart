@@ -26,18 +26,20 @@ class OtpBox extends StatelessWidget {
         controller: controller,
         focusNode: focusNode,
         textAlign: TextAlign.center,
+        textAlignVertical: TextAlignVertical.center,
         keyboardType: TextInputType.number,
         maxLength: 1,
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         style: const TextStyle(
           color: AppColors.black,
-          fontSize: FontStyles.titleLarge,
+          fontSize: FontStyles.titleMedium,
           fontWeight: FontStyles.titleWeight,
         ),
         decoration: InputDecoration(
           counterText: '',
           filled: true,
           fillColor: Colors.white,
+          contentPadding: const EdgeInsets.only(bottom: 2),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: Colors.grey.shade300),

@@ -1,31 +1,35 @@
+import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
-import '../../../shared/services/api_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/change_password_controller.dart';
-import '../models/change_password_request.dart';
+import 'otp_provider.dart';
 
 class ChangePasswordProvider extends ChangeNotifier {
   final ChangePasswordController _controller = ChangePasswordController();
+  final FirebaseAuth             _auth        = FirebaseAuth.instance;
+  final OtpProvider              _otpProvider = OtpProvider();
 
-  bool _isLoading = false;
+  // ── EmailJS credentials ──
+  static const _serviceId  = 'service_50epfyk';
+  static const _templateId = 'template_havuzqk';
+  static const _publicKey  = 'xfa3Hu7FTxgXDjoy7';
+  static const _privateKey = 'mEY96UCMdyUyABePWYJw0';
+
+
+  bool    _isLoading    = false;
   String? _errorMessage;
 
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  bool    get isLoading     => _isLoading;
+  String? get errorMessage  => _errorMessage;
 
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
+  void _setLoading(bool value) { _isLoading = value; notifyListeners(); }
+  void _setError(String? msg)  { _errorMessage = msg; notifyListeners(); }
 
-  void _setError(String? message) {
-    _errorMessage = message;
-    notifyListeners();
-  }
-
-  String? validateEmail(String email) => _controller.validateEmail(email);
-  String? validatePassword(String password) => _controller.validatePassword(password);
-  String? validateConfirmPassword(String password, String confirm) =>
-      _controller.validateConfirmPassword(password, confirm);
+  String? validateEmail(String email)                              => _controller.validateEmail(email);
+  String? validatePassword(String password)                        => _controller.validatePassword(password);
+  String? validateConfirmPassword(String password, String confirm) => _controller.validateConfirmPassword(password, confirm);
 
   Future<String?> sendOtp(String email) async {
     final error = _controller.validateEmail(email);
@@ -33,10 +37,33 @@ class ChangePasswordProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      await ApiService.post('/auth/forgot-password', {'email': email});
+      final otp = _generateOtp();
+      _otpProvider.store(otp);
+
+      final response = await http.post(
+        Uri.parse('https://api.emailjs.com/api/v1.0/email/send'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'service_id':  _serviceId,
+          'template_id': _templateId,
+          'user_id':     _publicKey,
+          'accessToken': _privateKey,
+          'template_params': {
+            'to_email': email.trim(),
+            'otp':      otp,
+          },
+        }),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('EmailJS error: ${response.body}');
+      }
+
       _setError(null);
       return null;
     } catch (e) {
+      print('EmailJS error: $e'); // add this
+      _setError(e.toString());
       _setError('Failed to send code. Please try again.');
       return _errorMessage;
     } finally {
@@ -46,18 +73,9 @@ class ChangePasswordProvider extends ChangeNotifier {
 
   Future<String?> verifyOtp(String email, String otp) async {
     if (otp.length < 6) return 'Enter all 6 digits.';
-
-    _setLoading(true);
-    try {
-      await ApiService.post('/auth/verify-otp', {'email': email, 'otp': otp});
-      _setError(null);
-      return null;
-    } catch (e) {
-      _setError('Incorrect or expired code.');
-      return _errorMessage;
-    } finally {
-      _setLoading(false);
-    }
+    if (!_otpProvider.verify(otp)) return 'Incorrect or expired code.';
+    _otpProvider.clear();
+    return null;
   }
 
   Future<String?> updatePassword({
@@ -73,23 +91,19 @@ class ChangePasswordProvider extends ChangeNotifier {
 
     _setLoading(true);
     try {
-      final hashed = _controller.hashPassword(password);
-
-      if (request is ChangePasswordRequest) {
-        final payload = request.copyWith(hashedNewPassword: hashed);
-        await ApiService.post('/auth/change-password', payload.toJson());
-      } else if (request is ForgotPasswordRequest) {
-        final payload = request.copyWith(hashedNewPassword: hashed);
-        await ApiService.post('/auth/reset-password', payload.toJson());
-      }
-
+      await _auth.currentUser?.updatePassword(password);
       _setError(null);
       return null;
-    } catch (e) {
-      _setError('Failed to update password. Please try again.');
+    } on FirebaseAuthException catch (e) {
+      _setError(e.message ?? 'Failed to update password.');
       return _errorMessage;
     } finally {
       _setLoading(false);
     }
+  }
+
+  String _generateOtp() {
+    final random = Random.secure();
+    return List.generate(6, (_) => random.nextInt(10)).join();
   }
 }
