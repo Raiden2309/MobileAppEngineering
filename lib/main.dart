@@ -3,6 +3,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
 import 'modules/auth/providers/auth_provider.dart';
@@ -21,6 +22,16 @@ import 'modules/role/student/providers/task_provider.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/provider/student_provider.dart';
 import 'shared/widgets/splash_screen.dart';
 
+/// Top-level function to handle incoming background/terminated push notifications.
+/// Must be annotated with @pragma('vm:entry-point') so it doesn't get stripped during compilation.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
 void main() async {
   WidgetsBinding widgetsBinding =
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,6 +43,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize the background messaging handler as early as possible
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   const storage = FlutterSecureStorage();
 
@@ -46,7 +60,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ClassesProvider()), // Kept here globally
+        ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
         ChangeNotifierProvider(create: (_) => StudentProvider()),
@@ -60,7 +74,6 @@ void main() async {
 
         // Lecturer
         ChangeNotifierProvider(create: (_) => AlertProvider()),
-        // FIXED: Removed the second duplicate ClassesProvider creation block from here
         ChangeNotifierProvider(create: (_) => LecturerDashboardProvider()),
         ChangeNotifierProvider(create: (_) => EngagementProvider()),
         ChangeNotifierProvider(create: (_) => LecturerSettingsProvider()),

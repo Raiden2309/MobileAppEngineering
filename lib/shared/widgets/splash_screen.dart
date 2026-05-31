@@ -5,6 +5,7 @@ import '../../modules/auth/views/login_page.dart';
 import '../../modules/new_user_setup/views/role_setup.dart';
 import '../../modules/role/lecturer/views/central_lecturer_navigation.dart';
 import '../../modules/role/student/views/central_student_navigation.dart';
+import '../services/notification_service.dart'; // REQUIRED IMPORT
 import '../styles/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -69,7 +70,6 @@ class SplashScreenState extends State<SplashScreen>
       curve: Curves.easeIn,
     );
 
-    // Placeholder values — overwritten in didChangeDependencies before use
     logoSlideAnimation = Tween<Offset>(
       begin: Offset.zero,
       end: Offset.zero,
@@ -127,6 +127,14 @@ class SplashScreenState extends State<SplashScreen>
       destination = const RoleSetupPage();
     } else {
       final int? role = await AuthService.getRole();
+
+      // FIXED: Safely invoke background push registration pipeline upon valid session confirmations
+      try {
+        NotificationService().setupNotificationTokenPipeline();
+      } catch (e) {
+        debugPrint("Failed to initialize system notification payload maps: $e");
+      }
+
       if (role == 1) {
         destination = const CentralStudentNavigation();
       } else if (role == 2) {
