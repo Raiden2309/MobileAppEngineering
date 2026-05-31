@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <application
-        android:label="mae_assignment_frontend"
+        android:label="mae_assignment"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
