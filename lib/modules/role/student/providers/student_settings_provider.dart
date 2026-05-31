@@ -6,37 +6,42 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/study_plan_provider.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/task_provider.dart';
 import '../models/student_settings_models.dart';
 import '../models/semester_details_model.dart';
 
 class StudentSettingsProvider with ChangeNotifier {
   static const _storage = FlutterSecureStorage();
-  final FirebaseFirestore _db   = FirebaseFirestore.instance;
-  final FirebaseAuth      _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db        = FirebaseFirestore.instance;
+  final FirebaseAuth      _auth      = FirebaseAuth.instance;
   final FirebaseStorage   _fbStorage = FirebaseStorage.instance;
 
-  static const _keyStudyStart       = 'settings_study_start';
-  static const _keyStudyEnd         = 'settings_study_end';
-  static const _keyBlockedSlots     = 'settings_blocked_slots';
-  static const _keySubjects         = 'settings_subjects';
-  static const _keySemesters        = 'settings_semesters';
-  static const _keyTaskReminders    = 'settings_task_reminders';
-  static const _keySlotEndPrompts   = 'settings_slot_end_prompts';
-  static const _keyBurnoutWarnings  = 'settings_burnout_warnings';
-  static const _keyWeeklyReset      = 'settings_weekly_reset_summary';
-  static const _keyUserId           = 'settings_user_id';
-  static const _keyUserName         = 'settings_user_name';
-  static const _keySemester         = 'settings_semester';
-  static const _keyYear             = 'settings_year';
-  static const _keySubjectCount     = 'settings_subject_count';
-  static const _keyBlockedCount     = 'settings_blocked_slots_count';
-  static const _keyAppVersion       = 'settings_app_version';
-  static const _keyAvatarUrl        = 'settings_avatar_url';
-  static const _keyJoinedClasses    = 'settings_joined_classes';
+  // ── Cache keys ──────────────────────────────────────────────────────────────
+  static const _keyStudyStart      = 'settings_study_start';
+  static const _keyStudyEnd        = 'settings_study_end';
+  static const _keyBlockedSlots    = 'settings_blocked_slots';
+  static const _keySubjects        = 'settings_subjects';
+  static const _keySemesters       = 'settings_semesters';
+  static const _keyTaskReminders   = 'settings_task_reminders';
+  static const _keySlotEndPrompts  = 'settings_slot_end_prompts';
+  static const _keyBurnoutWarnings = 'settings_burnout_warnings';
+  static const _keyWeeklyReset     = 'settings_weekly_reset_summary';
+  static const _keyUserId          = 'settings_user_id';
+  static const _keyUserName        = 'settings_user_name';
+  static const _keySemester        = 'settings_semester';
+  static const _keyYear            = 'settings_year';
+  static const _keySubjectCount    = 'settings_subject_count';
+  static const _keyBlockedCount    = 'settings_blocked_slots_count';
+  static const _keyAppVersion      = 'settings_app_version';
+  static const _keyAvatarUrl       = 'settings_avatar_url';
+  static const _keyJoinedClasses   = 'settings_joined_classes';
+  static const _keyCurrentSemId    = 'settings_current_sem_id';
 
+  // ── State ────────────────────────────────────────────────────────────────────
   StudentSettingsModel? data;
 
-  String currentLiveName     = 'Edwin Chin Chun Wui';
+  String currentLiveName     = '';
   String currentLiveSemester = '1';
   int    currentLiveYear     = 1;
 
@@ -44,33 +49,45 @@ class StudentSettingsProvider with ChangeNotifier {
   TimeOfDay studyEnd   = const TimeOfDay(hour: 22, minute: 0);
 
   Set<String>               blockedSlots  = {};
-  List<Map<String, String>> subjects      = [];
-  List<Map<String, String>> semesters     = [];
+  List<Map<String, String>> subjects      = [];   // subjects of active semester
+  List<Map<String, String>> semesters     = [];   // flat list for UI display
   List<JoinedClassModel>    joinedClasses = [];
 
-  bool taskReminders     = false;
-  bool slotEndPrompts    = false;
-  bool burnoutWarnings   = false;
+  String? currentSemesterId;
+
+  bool taskReminders      = false;
+  bool slotEndPrompts     = false;
+  bool burnoutWarnings    = false;
   bool weeklyResetSummary = false;
 
   String? avatarUrl;
   bool    loading = false;
   String? error;
 
+  // ── Computed ────────────────────────────────────────────────────────────────
   String get studyHoursDisplay => '${_formatTime(studyStart)} – ${_formatTime(studyEnd)}';
-  int get blockedSlotsCount  => blockedSlots.length;
-  int get subjectCount       => subjects.length;
-  int get joinedClassCount   => joinedClasses.length;
+  int    get blockedSlotsCount => blockedSlots.length;
+  int    get subjectCount      => subjects.length;
+  int    get joinedClassCount  => joinedClasses.length;
+
+  String? get _uid => _auth.currentUser?.uid;
 
   String? get currentSemesterName => semesters.firstWhere(
         (s) => s['isCurrent'] == 'true',
     orElse: () => {},
   )['name'];
 
-  String? get _uid => _auth.currentUser?.uid;
+  String get activeSemesterName {
+    final current = semesters.firstWhere(
+          (s) => s['isCurrent'] == 'true',
+      orElse: () => semesters.isNotEmpty ? semesters.first : {},
+    );
+    return current['id'] ?? current['semesterKey'] ?? current['name'] ?? '';
+  }
 
-  void loadMock() => setData(StudentSettingsModel.mockData());
+  void loadMock() => load();
 
+  // ── Load ─────────────────────────────────────────────────────────────────────
   Future<void> load() async {
     loading = true;
     error   = null;
@@ -80,54 +97,70 @@ class StudentSettingsProvider with ChangeNotifier {
 
     try {
       if (_uid != null) {
+        // 1. Load user document (global fields)
         final userDoc = await _db.collection('users').doc(_uid).get();
         if (userDoc.exists) {
-          final docMap = userDoc.data();
+          final d = userDoc.data()!;
 
-          currentLiveName     = docMap?['name']?.toString()            ?? currentLiveName;
-          currentLiveSemester = docMap?['semester']?.toString()        ?? currentLiveSemester;
-          currentLiveYear     = (docMap?['year'] as num? ?? currentLiveYear).toInt();
+          currentLiveName     = d['name']?.toString()            ?? currentLiveName;
+          currentLiveSemester = d['semester']?.toString()        ?? currentLiveSemester;
+          currentLiveYear     = (d['year'] as num? ?? currentLiveYear).toInt();
+          currentSemesterId   = d['currentSemesterId']?.toString() ?? currentSemesterId;
 
-          // Load settings sub-fields if stored in Firestore
-          if (docMap?['blocked_slots'] != null) {
-            blockedSlots = Set<String>.from(docMap!['blocked_slots'] as List);
-          }
-          if (docMap?['subjects'] != null) {
-            subjects = (docMap!['subjects'] as List)
-                .map((e) => Map<String, String>.from(e as Map))
-                .toList();
-          }
-          if (docMap?['joined_classes'] != null) {
-            joinedClasses = (docMap!['joined_classes'] as List)
+          if (d['study_hours_start'] != null) studyStart = _parseTimeString(d['study_hours_start'].toString());
+          if (d['study_hours_end']   != null) studyEnd   = _parseTimeString(d['study_hours_end'].toString());
+          if (d['blocked_slots']     != null) blockedSlots = Set<String>.from(d['blocked_slots'] as List);
+          if (d['joined_classes']    != null) {
+            joinedClasses = (d['joined_classes'] as List)
                 .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
                 .toList();
           }
 
-          taskReminders      = docMap?['task_reminders']      as bool? ?? taskReminders;
-          slotEndPrompts     = docMap?['slot_end_prompts']     as bool? ?? slotEndPrompts;
-          burnoutWarnings    = docMap?['burnout_warnings']     as bool? ?? burnoutWarnings;
-          weeklyResetSummary = docMap?['weekly_reset_summary'] as bool? ?? weeklyResetSummary;
-          avatarUrl          = docMap?['avatar_url']?.toString() ?? avatarUrl;
+          taskReminders      = d['task_reminders']      as bool? ?? taskReminders;
+          slotEndPrompts     = d['slot_end_prompts']    as bool? ?? slotEndPrompts;
+          burnoutWarnings    = d['burnout_warnings']    as bool? ?? burnoutWarnings;
+          weeklyResetSummary = d['weekly_reset_summary'] as bool? ?? weeklyResetSummary;
+          avatarUrl          = d['avatar_url']?.toString() ?? avatarUrl;
 
-          data = StudentSettingsModel(
-            userId:            data?.userId ?? 1,
-            userName:          currentLiveName,
-            semester:          currentLiveSemester,
-            year:              currentLiveYear,
-            subjectCount:      subjectCount,
-            studyHoursStart:   _formatTime(studyStart),
-            studyHoursEnd:     _formatTime(studyEnd),
-            blockedSlotsCount: blockedSlotsCount,
-            taskReminders:     taskReminders,
-            slotEndPrompts:    slotEndPrompts,
-            burnoutWarnings:   burnoutWarnings,
-            weeklyResetSummary: weeklyResetSummary,
-            appVersion:        data?.appVersion ?? 'v1.0',
-            joinedClassCount:  joinedClassCount,
-            semesters:         data?.semesters ?? [],
-            avatarUrl:         avatarUrl,
-          );
+          // 2. Load all semesters from subcollection
+          final semSnap = await _db
+              .collection('users')
+              .doc(_uid)
+              .collection('semesters')
+              .orderBy('semester')
+              .get();
 
+          semesters = semSnap.docs.map((doc) {
+            final sd = doc.data();
+            final isCurrent = doc.id == currentSemesterId;
+            return {
+              'id':           doc.id,
+              'name':         'Semester ${sd['semester']} Year ${sd['year']}',
+              'semesterKey':  doc.id,
+              'start':        sd['semStart']?.toString() ?? '',
+              'end':          sd['semEnd']?.toString()   ?? '',
+              'isCurrent':    isCurrent.toString(),
+              'subjectCount': ((sd['subjects'] as List?)?.length ?? 0).toString(),
+            };
+          }).toList();
+
+          // 3. Load subjects from active semester subcollection doc
+          if (currentSemesterId != null) {
+            final semDoc = await _db
+                .collection('users')
+                .doc(_uid)
+                .collection('semesters')
+                .doc(currentSemesterId)
+                .get();
+            if (semDoc.exists) {
+              final sd = semDoc.data()!;
+              subjects = (sd['subjects'] as List? ?? [])
+                  .map((e) => Map<String, String>.from(e as Map))
+                  .toList();
+            }
+          }
+
+          _rebuildDataModel();
           await _saveToCache();
         }
       }
@@ -139,15 +172,267 @@ class StudentSettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Join class via Firestore join_codes collection ──
+  // ── Save subjects to active semester subcollection ───────────────────────────
+  Future<void> saveSubjects(List<Map<String, String>> updated) async {
+    subjects = updated;
+    _rebuildDataModel();
+    await _saveToCache();
+
+    if (_uid != null && currentSemesterId != null) {
+      try {
+        await _db
+            .collection('users')
+            .doc(_uid)
+            .collection('semesters')
+            .doc(currentSemesterId)
+            .update({'subjects': updated});
+
+        // Sync enrollment docs so dashboard/progress/tasks see the subjects
+        for (final subject in updated) {
+          final subjectName = subject['name'] ?? '';
+          if (subjectName.isEmpty) continue;
+          final safeClassId = subjectName
+              .toLowerCase()
+              .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+              .replaceAll(RegExp(r'[\s-]'), '_');
+          final enrollmentId = '${_uid}_$safeClassId';
+
+          await _db.collection('enrollments').doc(enrollmentId).set({
+            'studentId':        _uid,
+            'classId':          safeClassId,
+            'semester':         currentSemesterId,
+            'weeklyStudyHours': 0.0,
+            'completedTasks':   0,
+            'pendingTasks':     0,
+            'burnoutIndex':     0.0,
+            'tasksList':        [],
+          }, SetOptions(merge: true)); // merge: true preserves existing tasksList
+        }
+
+        // Update subjectCount on semester list
+        semesters = semesters.map((s) {
+          if (s['id'] == currentSemesterId) {
+            return {...s, 'subjectCount': updated.length.toString()};
+          }
+          return s;
+        }).toList();
+      } catch (e) {
+        debugPrint('saveSubjects error: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  // ── Save / Edit / Delete semesters (subcollection) ───────────────────────────
+  Future<void> saveSemesters(List<Map<String, String>> updated) async {
+    final newEntry = updated.last;
+
+    // Parse semester number and year from the name, e.g. "Semester 5 Year 2"
+    final nameParts = (newEntry['name'] ?? '').split(' ');
+    final semNum  = int.tryParse(nameParts.length > 1 ? nameParts[1] : '1') ?? 1;
+    final semYear = int.tryParse(nameParts.length > 3 ? nameParts[3] : '1') ?? 1;
+    final semId   = 'sem_${semNum}_yr$semYear';
+
+    if (_uid != null) {
+      await _db
+          .collection('users')
+          .doc(_uid)
+          .collection('semesters')
+          .doc(semId)
+          .set({
+        'id':       semId,
+        'semester': semNum,
+        'year':     semYear,
+        'semStart': newEntry['start'] ?? '',
+        'semEnd':   newEntry['end']   ?? '',
+        'examDates': [],
+        'subjects':  [],
+      });
+    }
+
+    semesters = [...semesters, {
+      'id':           semId,
+      'name':         newEntry['name'] ?? 'Semester $semNum Year $semYear',
+      'semesterKey':  semId,
+      'start':        newEntry['start'] ?? '',
+      'end':          newEntry['end']   ?? '',
+      'isCurrent':    'false',
+      'subjectCount': '0',
+    }];
+
+    _rebuildDataModel();
+    await _saveToCache();
+    notifyListeners();
+  }
+
+  Future<void> editSemester(String oldName, Map<String, String> updated) async {
+    final existing = semesters.firstWhere(
+          (s) => s['name'] == oldName,
+      orElse: () => {},
+    );
+    final semId = existing['id'] ?? existing['semesterKey'];
+
+    semesters = semesters.map((s) {
+      if (s['name'] == oldName) return {...s, ...updated};
+      return s;
+    }).toList();
+
+    _rebuildDataModel();
+    await _saveToCache();
+
+    if (_uid != null && semId != null) {
+      try {
+        await _db
+            .collection('users')
+            .doc(_uid)
+            .collection('semesters')
+            .doc(semId)
+            .update({
+          'semStart': updated['start'] ?? '',
+          'semEnd':   updated['end']   ?? '',
+        });
+      } catch (e) {
+        debugPrint('editSemester error: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> deleteSemester(String name) async {
+    final existing = semesters.firstWhere(
+          (s) => s['name'] == name,
+      orElse: () => {},
+    );
+    final semId = existing['id'] ?? existing['semesterKey'];
+
+    semesters = semesters.where((s) => s['name'] != name).toList();
+    _rebuildDataModel();
+    await _saveToCache();
+
+    if (_uid != null && semId != null) {
+      try {
+        await _db
+            .collection('users')
+            .doc(_uid)
+            .collection('semesters')
+            .doc(semId)
+            .delete();
+      } catch (e) {
+        debugPrint('deleteSemester error: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  void selectSemester(String name, {TasksProvider? tasks, StudyPlanProvider? studyPlan}) {
+    semesters = semesters.map((s) {
+      return {...s, 'isCurrent': (s['name'] == name).toString()};
+    }).toList();
+
+    final selected = semesters.firstWhere(
+          (s) => s['name'] == name,
+      orElse: () => {},
+    );
+    final newSemId = selected['id'] ?? selected['semesterKey'];
+
+    if (newSemId != null && newSemId != currentSemesterId) {
+      currentSemesterId = newSemId;
+
+      // Clear subjects immediately so old ones don't persist while loading
+      subjects = [];
+
+      _tryFirestorePatch({'currentSemesterId': newSemId});
+      _loadSubjectsForSemester(newSemId);
+    }
+
+    tasks?.switchSemester(newSemId ?? name);
+    studyPlan?.switchSemester(newSemId ?? name);
+
+    _rebuildDataModel();
+    _saveToCache();
+    notifyListeners();
+  }
+
+  Future<void> _loadSubjectsForSemester(String semId) async {
+    if (_uid == null) return;
+    try {
+      final semDoc = await _db
+          .collection('users')
+          .doc(_uid)
+          .collection('semesters')
+          .doc(semId)
+          .get();
+      if (semDoc.exists) {
+        subjects = (semDoc.data()?['subjects'] as List? ?? [])
+            .map((e) => Map<String, String>.from(e as Map))
+            .toList();
+        _rebuildDataModel();
+        await _saveToCache();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('_loadSubjectsForSemester error: $e');
+    }
+  }
+
+  // ── Study hours & blocked slots (global) ─────────────────────────────────────
+  Future<void> saveStudyHours(TimeOfDay start, TimeOfDay end) async {
+    studyStart = start;
+    studyEnd   = end;
+    _rebuildDataModel();
+    await _saveToCache();
+    _tryFirestorePatch({
+      'study_hours_start': _formatTime(start),
+      'study_hours_end':   _formatTime(end),
+    });
+    notifyListeners();
+  }
+
+  Future<void> saveBlockedSlots(Set<String> slots) async {
+    blockedSlots = slots;
+    _rebuildDataModel();
+    await _saveToCache();
+    _tryFirestorePatch({'blocked_slots': slots.toList()});
+    notifyListeners();
+  }
+
+  // ── Notification toggles ──────────────────────────────────────────────────────
+  Future<void> toggleTaskReminders() async {
+    taskReminders = !taskReminders;
+    _rebuildDataModel();
+    await _persistToggle({'task_reminders': taskReminders});
+  }
+
+  Future<void> toggleSlotEndPrompts() async {
+    slotEndPrompts = !slotEndPrompts;
+    _rebuildDataModel();
+    await _persistToggle({'slot_end_prompts': slotEndPrompts});
+  }
+
+  Future<void> toggleBurnoutWarnings() async {
+    burnoutWarnings = !burnoutWarnings;
+    _rebuildDataModel();
+    await _persistToggle({'burnout_warnings': burnoutWarnings});
+  }
+
+  Future<void> toggleWeeklyResetSummary() async {
+    weeklyResetSummary = !weeklyResetSummary;
+    _rebuildDataModel();
+    await _persistToggle({'weekly_reset_summary': weeklyResetSummary});
+  }
+
+  Future<void> _persistToggle(Map<String, dynamic> fields) async {
+    await _saveToCache();
+    _tryFirestorePatch(fields);
+    notifyListeners();
+  }
+
+  // ── Join / leave class ────────────────────────────────────────────────────────
   Future<bool> joinClass(String code) async {
     if (_uid == null) return false;
     try {
       final codeDoc = await _db.collection('join_codes').doc(code).get();
-      if (!codeDoc.exists) {
-        debugPrint('joinClass: code not found');
-        return false;
-      }
+      if (!codeDoc.exists) return false;
 
       final classData = codeDoc.data()!;
       final joined = JoinedClassModel(
@@ -157,9 +442,8 @@ class StudentSettingsProvider with ChangeNotifier {
 
       if (!joinedClasses.any((c) => c.id == joined.id)) {
         joinedClasses = [...joinedClasses, joined];
-        data = data?.copyWith(joinedClassCount: joinedClasses.length);
+        _rebuildDataModel();
 
-        // Write joined class back to user's Firestore doc
         await _db.collection('users').doc(_uid).update({
           'joined_classes': joinedClasses
               .map((c) => {'id': c.id, 'name': c.name})
@@ -178,149 +462,37 @@ class StudentSettingsProvider with ChangeNotifier {
 
   Future<void> leaveClass(String classId) async {
     joinedClasses = joinedClasses.where((c) => c.id != classId).toList();
-    data = data?.copyWith(joinedClassCount: joinedClasses.length);
+    _rebuildDataModel();
     await _saveToCache();
     _tryFirestorePatch({
-      'joined_classes': joinedClasses
-          .map((c) => {'id': c.id, 'name': c.name})
-          .toList(),
+      'joined_classes': joinedClasses.map((c) => {'id': c.id, 'name': c.name}).toList(),
     });
     notifyListeners();
   }
 
-  Future<void> toggleTaskReminders() async {
-    taskReminders = !taskReminders;
-    data = data?.copyWith(taskReminders: taskReminders);
-    await _persistToggle({'task_reminders': taskReminders});
-  }
-
-  Future<void> toggleSlotEndPrompts() async {
-    slotEndPrompts = !slotEndPrompts;
-    data = data?.copyWith(slotEndPrompts: slotEndPrompts);
-    await _persistToggle({'slot_end_prompts': slotEndPrompts});
-  }
-
-  Future<void> toggleBurnoutWarnings() async {
-    burnoutWarnings = !burnoutWarnings;
-    data = data?.copyWith(burnoutWarnings: burnoutWarnings);
-    await _persistToggle({'burnout_warnings': burnoutWarnings});
-  }
-
-  Future<void> toggleWeeklyResetSummary() async {
-    weeklyResetSummary = !weeklyResetSummary;
-    data = data?.copyWith(weeklyResetSummary: weeklyResetSummary);
-    await _persistToggle({'weekly_reset_summary': weeklyResetSummary});
-  }
-
-  Future<void> _persistToggle(Map<String, dynamic> fields) async {
-    await _saveToCache();
-    _tryFirestorePatch(fields);
-    notifyListeners();
-  }
-
-  Future<void> saveStudyHours(TimeOfDay start, TimeOfDay end) async {
-    studyStart = start;
-    studyEnd   = end;
-    await _saveToCache();
-    _tryFirestorePatch({
-      'study_hours_start': _formatTime(start),
-      'study_hours_end':   _formatTime(end),
-    });
-    notifyListeners();
-  }
-
-  Future<void> saveBlockedSlots(Set<String> slots) async {
-    blockedSlots = slots;
-    await _saveToCache();
-    _tryFirestorePatch({'blocked_slots': slots.toList()});
-    notifyListeners();
-  }
-
-  Future<void> saveSubjects(List<Map<String, String>> updated) async {
-    subjects = updated;
-    await _saveToCache();
-    _tryFirestorePatch({'subjects': updated});
-    notifyListeners();
-  }
-
-  Future<void> saveSemesters(List<Map<String, String>> updated) async {
-    semesters = updated;
-    data = data?.copyWith(
-      semesters: updated.map((s) => SemesterModel(
-        name:            s['name']            ?? '',
-        isCurrent:       s['isCurrent']       == 'true',
-        subjectCount:    int.tryParse(s['subjectCount']    ?? '0') ?? 0,
-        studyHoursStart: s['studyHoursStart'] ?? '',
-        studyHoursEnd:   s['studyHoursEnd']   ?? '',
-      )).toList(),
-    );
-    await _saveToCache();
-    _tryFirestorePatch({'semesters': updated});
-    notifyListeners();
-  }
-
-  void selectSemester(String name) {
-    semesters = semesters.map((s) {
-      return {...s, 'isCurrent': (s['name'] == name).toString()};
-    }).toList();
-    data = data?.copyWith(
-      semesters: semesters.map((s) => SemesterModel(
-        name:            s['name']            ?? '',
-        isCurrent:       s['isCurrent']       == 'true',
-        subjectCount:    int.tryParse(s['subjectCount']    ?? '0') ?? 0,
-        studyHoursStart: s['studyHoursStart'] ?? '',
-        studyHoursEnd:   s['studyHoursEnd']   ?? '',
-      )).toList(),
-    );
-    _saveToCache();
-    _tryFirestorePatch({'semesters': semesters});
-    notifyListeners();
-  }
-
+  // ── User name & avatar ────────────────────────────────────────────────────────
   Future<void> updateUserName(String name) async {
     currentLiveName = name;
-    if (data != null) {
-      data = StudentSettingsModel(
-        userId:            data!.userId,
-        userName:          currentLiveName,
-        semester:          currentLiveSemester,
-        year:              currentLiveYear,
-        subjectCount:      subjectCount,
-        studyHoursStart:   _formatTime(studyStart),
-        studyHoursEnd:     _formatTime(studyEnd),
-        blockedSlotsCount: blockedSlotsCount,
-        taskReminders:     taskReminders,
-        slotEndPrompts:    slotEndPrompts,
-        burnoutWarnings:   burnoutWarnings,
-        weeklyResetSummary: weeklyResetSummary,
-        appVersion:        data!.appVersion,
-        joinedClassCount:  joinedClassCount,
-        semesters:         data!.semesters,
-        avatarUrl:         data!.avatarUrl,
-      );
-    }
+    _rebuildDataModel();
     await _storage.write(key: _keyUserName, value: name);
     notifyListeners();
-
     try {
       if (_uid != null) {
         await _db.collection('users').doc(_uid).update({'name': name});
       }
     } catch (e) {
-      debugPrint('Failed to update user name in Firestore: $e');
+      debugPrint('updateUserName error: $e');
     }
   }
 
-  // ── Upload avatar to Firebase Storage ──
   Future<void> updateAvatar(XFile file) async {
     if (_uid == null) return;
     try {
       final ref = _fbStorage.ref().child('avatars/students/$_uid.jpg');
       await ref.putFile(File(file.path));
       final url = await ref.getDownloadURL();
-
       avatarUrl = url;
-      data = data?.copyWith(avatarUrl: url);
+      _rebuildDataModel();
       await _storage.write(key: _keyAvatarUrl, value: url);
       _tryFirestorePatch({'avatar_url': url});
       notifyListeners();
@@ -329,111 +501,90 @@ class StudentSettingsProvider with ChangeNotifier {
     }
   }
 
-  void setData(StudentSettingsModel model) {
-    data               = model;
-    studyStart         = _parseTimeString(model.studyHoursStart);
-    studyEnd           = _parseTimeString(model.studyHoursEnd);
-    taskReminders      = model.taskReminders;
-    slotEndPrompts     = model.slotEndPrompts;
-    burnoutWarnings    = model.burnoutWarnings;
-    weeklyResetSummary = model.weeklyResetSummary;
-    currentLiveName     = model.userName;
-    currentLiveSemester = model.semester;
-    currentLiveYear     = model.year;
-    subjects = model.subjects.map((s) => {
-      'id':           s.id.toString(),
-      'student_id':   s.studentId.toString(),
-      'semester_id':  s.semesterId.toString(),
-      'subject_id':   s.subjectId.toString(),
-      'name':         s.name,
-      'code':         s.code,
-      'color_hex':    s.colorHex,
-    }).toList();
-    blockedSlots = Set.from(model.blockedSlots);
-    semesters = model.semesters.map((s) => {
-      'name':            s.name,
-      'isCurrent':       s.isCurrent.toString(),
-      'subjectCount':    s.subjectCount.toString(),
-      'studyHoursStart': s.studyHoursStart,
-      'studyHoursEnd':   s.studyHoursEnd,
-    }).toList();
-    avatarUrl = model.avatarUrl;
-    notifyListeners();
-  }
-
-  void clear() {
-    data               = null;
-    studyStart         = const TimeOfDay(hour: 8,  minute: 0);
-    studyEnd           = const TimeOfDay(hour: 22, minute: 0);
-    blockedSlots       = {};
-    subjects           = [];
-    semesters          = [];
-    joinedClasses      = [];
-    taskReminders      = false;
-    slotEndPrompts     = false;
-    burnoutWarnings    = false;
-    weeklyResetSummary = false;
-    loading            = false;
-    error              = null;
-    avatarUrl          = null;
-    notifyListeners();
-  }
-
-  void setLoading(bool value) {
-    loading = value;
-    notifyListeners();
-  }
-
-  void setError(String message) {
-    error   = message;
-    loading = false;
-    notifyListeners();
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  void _rebuildDataModel() {
+    data = StudentSettingsModel(
+      userId:            data?.userId ?? 1,
+      userName:          currentLiveName,
+      semester:          currentLiveSemester,
+      year:              currentLiveYear,
+      subjectCount:      subjects.length,
+      studyHoursStart:   _formatTime(studyStart),
+      studyHoursEnd:     _formatTime(studyEnd),
+      blockedSlotsCount: blockedSlots.length,
+      taskReminders:     taskReminders,
+      slotEndPrompts:    slotEndPrompts,
+      burnoutWarnings:   burnoutWarnings,
+      weeklyResetSummary: weeklyResetSummary,
+      appVersion:        data?.appVersion ?? 'v1.0',
+      joinedClassCount:  joinedClasses.length,
+      joinedClasses:     joinedClasses,
+      semesters: semesters.map((s) {
+        final isCurrent = s['isCurrent'] == 'true';
+        // Active semester uses the live subjects list; others use their stored count
+        final count = isCurrent
+            ? subjects.length
+            : int.tryParse(s['subjectCount'] ?? '0') ?? 0;
+        return SemesterModel(
+          name:            s['name']  ?? '',
+          start:           s['start'] ?? '',
+          end:             s['end']   ?? '',
+          isCurrent:       isCurrent,
+          subjectCount:    count,
+          studyHoursStart: _formatTime(studyStart),
+          studyHoursEnd:   _formatTime(studyEnd),
+        );
+      }).toList(),
+      avatarUrl: avatarUrl,
+    );
   }
 
   void _tryFirestorePatch(Map<String, dynamic> fields) async {
     if (_uid == null) return;
     try {
-      await _db.collection('users').doc(_uid).update(fields);
+      await _db.collection('users').doc(_uid).set(fields, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Firestore patch failed: $e');
     }
   }
 
   Future<void> _loadFromCache() async {
-    final start           = await _storage.read(key: _keyStudyStart);
-    final end             = await _storage.read(key: _keyStudyEnd);
-    final slots           = await _storage.read(key: _keyBlockedSlots);
-    final subjRaw         = await _storage.read(key: _keySubjects);
-    final semRaw          = await _storage.read(key: _keySemesters);
-    final trRaw           = await _storage.read(key: _keyTaskReminders);
-    final sepRaw          = await _storage.read(key: _keySlotEndPrompts);
-    final bwRaw           = await _storage.read(key: _keyBurnoutWarnings);
-    final wrsRaw          = await _storage.read(key: _keyWeeklyReset);
-    final userIdRaw       = await _storage.read(key: _keyUserId);
-    final userNameRaw     = await _storage.read(key: _keyUserName);
-    final semesterRaw     = await _storage.read(key: _keySemester);
-    final yearRaw         = await _storage.read(key: _keyYear);
-    final subjCountRaw    = await _storage.read(key: _keySubjectCount);
-    final blockedCountRaw = await _storage.read(key: _keyBlockedCount);
-    final appVersionRaw   = await _storage.read(key: _keyAppVersion);
-    final avatarRaw       = await _storage.read(key: _keyAvatarUrl);
-    final classesRaw      = await _storage.read(key: _keyJoinedClasses);
+    final start        = await _storage.read(key: _keyStudyStart);
+    final end          = await _storage.read(key: _keyStudyEnd);
+    final slots        = await _storage.read(key: _keyBlockedSlots);
+    final subjRaw      = await _storage.read(key: _keySubjects);
+    final semRaw       = await _storage.read(key: _keySemesters);
+    final trRaw        = await _storage.read(key: _keyTaskReminders);
+    final sepRaw       = await _storage.read(key: _keySlotEndPrompts);
+    final bwRaw        = await _storage.read(key: _keyBurnoutWarnings);
+    final wrsRaw       = await _storage.read(key: _keyWeeklyReset);
+    final userIdRaw    = await _storage.read(key: _keyUserId);
+    final userNameRaw  = await _storage.read(key: _keyUserName);
+    final semesterRaw  = await _storage.read(key: _keySemester);
+    final yearRaw      = await _storage.read(key: _keyYear);
+    final subjCountRaw = await _storage.read(key: _keySubjectCount);
+    final blockedCntRaw= await _storage.read(key: _keyBlockedCount);
+    final appVersionRaw= await _storage.read(key: _keyAppVersion);
+    final avatarRaw    = await _storage.read(key: _keyAvatarUrl);
+    final classesRaw   = await _storage.read(key: _keyJoinedClasses);
+    final currentSemRaw= await _storage.read(key: _keyCurrentSemId);
 
-    if (avatarRaw != null) avatarUrl              = avatarRaw;
-    if (start     != null) studyStart             = _parseTimeString(start);
-    if (end       != null) studyEnd               = _parseTimeString(end);
-    if (slots     != null) blockedSlots           = Set<String>.from(jsonDecode(slots) as List);
-    if (trRaw     != null) taskReminders          = trRaw  == 'true';
-    if (sepRaw    != null) slotEndPrompts         = sepRaw == 'true';
-    if (bwRaw     != null) burnoutWarnings        = bwRaw  == 'true';
-    if (wrsRaw    != null) weeklyResetSummary     = wrsRaw == 'true';
+    if (avatarRaw    != null) avatarUrl          = avatarRaw;
+    if (start        != null) studyStart         = _parseTimeString(start);
+    if (end          != null) studyEnd           = _parseTimeString(end);
+    if (slots        != null) blockedSlots       = Set<String>.from(jsonDecode(slots) as List);
+    if (trRaw        != null) taskReminders      = trRaw  == 'true';
+    if (sepRaw       != null) slotEndPrompts     = sepRaw == 'true';
+    if (bwRaw        != null) burnoutWarnings    = bwRaw  == 'true';
+    if (wrsRaw       != null) weeklyResetSummary = wrsRaw == 'true';
+    if (currentSemRaw!= null) currentSemesterId  = currentSemRaw;
 
-    currentLiveName     = userNameRaw ?? currentLiveName;
-    currentLiveSemester = semesterRaw ?? currentLiveSemester;
+    currentLiveName     = userNameRaw  ?? currentLiveName;
+    currentLiveSemester = semesterRaw  ?? currentLiveSemester;
     currentLiveYear     = int.tryParse(yearRaw ?? '') ?? currentLiveYear;
 
-    if (subjRaw   != null) subjects      = (jsonDecode(subjRaw)   as List).map((e) => Map<String, String>.from(e as Map)).toList();
-    if (semRaw    != null) semesters     = (jsonDecode(semRaw)    as List).map((e) => Map<String, String>.from(e as Map)).toList();
+    if (subjRaw  != null) subjects  = (jsonDecode(subjRaw)  as List).map((e) => Map<String, String>.from(e as Map)).toList();
+    if (semRaw   != null) semesters = (jsonDecode(semRaw)   as List).map((e) => Map<String, String>.from(e as Map)).toList();
     if (classesRaw != null) joinedClasses = (jsonDecode(classesRaw) as List).map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>)).toList();
 
     if (userIdRaw != null || semesters.isNotEmpty) {
@@ -442,40 +593,46 @@ class StudentSettingsProvider with ChangeNotifier {
         userName:          currentLiveName,
         semester:          currentLiveSemester,
         year:              currentLiveYear,
-        subjectCount:      int.tryParse(subjCountRaw    ?? '0') ?? 0,
+        subjectCount:      int.tryParse(subjCountRaw  ?? '0') ?? 0,
         studyHoursStart:   _formatTime(studyStart),
         studyHoursEnd:     _formatTime(studyEnd),
-        blockedSlotsCount: int.tryParse(blockedCountRaw ?? '0') ?? 0,
+        blockedSlotsCount: int.tryParse(blockedCntRaw ?? '0') ?? 0,
         taskReminders:     taskReminders,
         slotEndPrompts:    slotEndPrompts,
         burnoutWarnings:   burnoutWarnings,
         weeklyResetSummary: weeklyResetSummary,
         appVersion:        appVersionRaw ?? 'v1.0',
         joinedClassCount:  joinedClasses.length,
-        semesters:         semesters.map((s) => SemesterModel(
+        joinedClasses:     joinedClasses,
+        semesters: semesters.map((s) => SemesterModel(
           name:            s['name']            ?? '',
+          start:           s['start']           ?? '',
+          end:             s['end']             ?? '',
           isCurrent:       s['isCurrent']       == 'true',
-          subjectCount:    int.tryParse(s['subjectCount']    ?? '0') ?? 0,
-          studyHoursStart: s['studyHoursStart'] ?? '',
-          studyHoursEnd:   s['studyHoursEnd']   ?? '',
+          subjectCount:    int.tryParse(s['subjectCount'] ?? '0') ?? 0,
+          studyHoursStart: _formatTime(studyStart),
+          studyHoursEnd:   _formatTime(studyEnd),
         )).toList(),
       );
     }
   }
 
   Future<void> _saveToCache() async {
-    await _storage.write(key: _keyStudyStart,    value: _formatTime(studyStart));
-    await _storage.write(key: _keyStudyEnd,      value: _formatTime(studyEnd));
-    await _storage.write(key: _keyBlockedSlots,  value: jsonEncode(blockedSlots.toList()));
-    await _storage.write(key: _keySubjects,      value: jsonEncode(subjects));
-    await _storage.write(key: _keySemesters,     value: jsonEncode(semesters));
-    await _storage.write(key: _keyTaskReminders, value: taskReminders.toString());
-    await _storage.write(key: _keySlotEndPrompts,value: slotEndPrompts.toString());
+    await _storage.write(key: _keyStudyStart,     value: _formatTime(studyStart));
+    await _storage.write(key: _keyStudyEnd,       value: _formatTime(studyEnd));
+    await _storage.write(key: _keyBlockedSlots,   value: jsonEncode(blockedSlots.toList()));
+    await _storage.write(key: _keySubjects,       value: jsonEncode(subjects));
+    await _storage.write(key: _keySemesters,      value: jsonEncode(semesters));
+    await _storage.write(key: _keyTaskReminders,  value: taskReminders.toString());
+    await _storage.write(key: _keySlotEndPrompts, value: slotEndPrompts.toString());
     await _storage.write(key: _keyBurnoutWarnings,value: burnoutWarnings.toString());
-    await _storage.write(key: _keyWeeklyReset,   value: weeklyResetSummary.toString());
-    await _storage.write(key: _keyJoinedClasses, value: jsonEncode(
+    await _storage.write(key: _keyWeeklyReset,    value: weeklyResetSummary.toString());
+    await _storage.write(key: _keyJoinedClasses,  value: jsonEncode(
       joinedClasses.map((c) => {'id': c.id, 'name': c.name}).toList(),
     ));
+    if (currentSemesterId != null) {
+      await _storage.write(key: _keyCurrentSemId, value: currentSemesterId!);
+    }
     if (data != null) {
       await _storage.write(key: _keyUserId,      value: data!.userId.toString());
       await _storage.write(key: _keyUserName,    value: currentLiveName);
@@ -499,7 +656,7 @@ class StudentSettingsProvider with ChangeNotifier {
     final num  = int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
     int hour   = num;
     if (isPm && hour != 12) hour += 12;
-    if (isAm && hour == 12) hour = 0;
+    if (isAm && hour == 12) hour  = 0;
     return TimeOfDay(hour: hour, minute: 0);
   }
 
@@ -507,5 +664,56 @@ class StudentSettingsProvider with ChangeNotifier {
     final h    = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
     final ampm = t.period == DayPeriod.am ? 'AM' : 'PM';
     return '$h $ampm';
+  }
+
+  void setData(StudentSettingsModel model) {
+    data               = model;
+    studyStart         = _parseTimeString(model.studyHoursStart);
+    studyEnd           = _parseTimeString(model.studyHoursEnd);
+    taskReminders      = model.taskReminders;
+    slotEndPrompts     = model.slotEndPrompts;
+    burnoutWarnings    = model.burnoutWarnings;
+    weeklyResetSummary = model.weeklyResetSummary;
+    currentLiveName    = model.userName;
+    currentLiveSemester= model.semester;
+    currentLiveYear    = model.year;
+    blockedSlots       = Set.from(model.blockedSlots);
+    semesters = model.semesters.map((s) => {
+      'name':         s.name,
+      'isCurrent':    s.isCurrent.toString(),
+      'subjectCount': s.subjectCount.toString(),
+    }).toList();
+    avatarUrl = model.avatarUrl;
+    notifyListeners();
+  }
+
+  void setLoading(bool value) {
+    loading = value;
+    notifyListeners();
+  }
+
+  void setError(String message) {
+    error   = message;
+    loading = false;
+    notifyListeners();
+  }
+
+  void clear() {
+    data               = null;
+    studyStart         = const TimeOfDay(hour: 8,  minute: 0);
+    studyEnd           = const TimeOfDay(hour: 22, minute: 0);
+    blockedSlots       = {};
+    subjects           = [];
+    semesters          = [];
+    joinedClasses      = [];
+    currentSemesterId  = null;
+    taskReminders      = false;
+    slotEndPrompts     = false;
+    burnoutWarnings    = false;
+    weeklyResetSummary = false;
+    loading            = false;
+    error              = null;
+    avatarUrl          = null;
+    notifyListeners();
   }
 }

@@ -15,29 +15,29 @@ class StudyPlanProvider with ChangeNotifier {
   bool loading = false;
   String? error;
   StreamSubscription? _enrollmentSubscription;
+  String? _currentSemester;
 
   List<Map<String, dynamic>> _latestFirestoreTasks = [];
 
-  /// Instantly sets up a real-time stream that uses fast local distribution rules on load.
-  void listenToLiveStudyPlan() {
+  void listenToLiveStudyPlan({String? semester}) {
+    _currentSemester = semester;
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    // Only show loading spinner on initial boot if no plan has been built locally yet
-    if (plan == null) {
-      loading = true;
-    }
+    if (plan == null) loading = true;
 
     _enrollmentSubscription?.cancel();
-    _enrollmentSubscription = _db
-        .collection('enrollments')
-        .where('studentId', isEqualTo: uid)
-        .snapshots()
-        .listen((snapshot) {
 
+    final query = _db.collection('enrollments').where('studentId', isEqualTo: uid);
+
+    _enrollmentSubscription = query.snapshots().listen((snapshot) {
       _latestFirestoreTasks.clear();
       for (var doc in snapshot.docs) {
-        final dataMap = doc.data();
+        final dataMap = doc.data() as Map<String, dynamic>;
+        final sem = dataMap['semester'] as String?;
+        // Skip docs that belong to a different semester (but include legacy docs with no semester)
+        if (sem != null && semester != null && semester.isNotEmpty && sem != semester) continue;
+
         final String className = dataMap['classId']?.toString() ?? 'General';
         final List<dynamic> rawTasks = dataMap['tasksList'] ?? [];
 
@@ -53,14 +53,20 @@ class StudyPlanProvider with ChangeNotifier {
           }
         }
       }
-
-      // FIXED: Generate using local fast rules instantly instead of blocking the app with an API call
       _generateLocalFastPlan();
     }, onError: (e) {
       error = e.toString();
       loading = false;
       notifyListeners();
     });
+  }
+
+  void switchSemester(String semester) {
+    listenToLiveStudyPlan(semester: semester);
+  }
+
+  Future<void> fetch({String? semester}) async {
+    listenToLiveStudyPlan(semester: semester);
   }
 
   /// FAST LOCAL ALGORITHM: Arranges tasks instantly into the calendar without hitting the internet
@@ -231,13 +237,8 @@ class StudyPlanProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetch() async {
-    listenToLiveStudyPlan();
-  }
 
-  void loadMock() {
-    listenToLiveStudyPlan();
-  }
+  void loadMock() => listenToLiveStudyPlan();
 
   void setPlan(WeekPlan newPlan) {
     plan = newPlan;
