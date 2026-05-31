@@ -3,9 +3,18 @@ import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../providers/dashboard_provider.dart';
+import '../../../providers/student_settings_provider.dart';
 
 class DashboardGreeting extends StatelessWidget {
   const DashboardGreeting({super.key});
+
+  /// Dynamically computes the appropriate greeting based on the current hour of the day
+  String _getGreetingSnippet() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  }
 
   String _formattedDate() {
     final now = DateTime.now();
@@ -18,8 +27,10 @@ class DashboardGreeting extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = context.watch<StudentDashboardProvider>().data?.summary;
-    final userName = summary?.userName ?? '';
     final taskCount = summary?.taskCountToday ?? 0;
+
+    final settingsProvider = context.watch<StudentSettingsProvider>();
+    final String userName = settingsProvider.data?.userName ?? 'Student';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -27,7 +38,7 @@ class DashboardGreeting extends StatelessWidget {
         Container(
           margin: const EdgeInsets.only(top: 16),
           child: Text(
-            'Good Morning, $userName',
+            '${_getGreetingSnippet()}, $userName', // FIXED: Reflects real-time hour state values natively
             style: const TextStyle(
               fontSize: FontStyles.titleGreeting,
               fontWeight: FontStyles.titleWeight,

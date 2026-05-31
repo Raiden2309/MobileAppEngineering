@@ -1,60 +1,64 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ClassModel {
   final String id;
-  final String lecturerId;
   final String name;
   final String code;
+  final String subjectCode;
+  final String classCode;
   final String semester;
+  final String lecturerId;
   final Color accentColor;
-
-  // Runtime placeholders calculated dynamically via your stream metrics
-  final int studentCount;
-  final double avgCompletion;
-  final int atRiskCount;
+  int studentCount;
+  double avgCompletion;
+  int atRiskCount;
 
   ClassModel({
     required this.id,
-    required this.lecturerId,
     required this.name,
     required this.code,
-    required this.semester,
-    required this.accentColor,
+    this.subjectCode = '',
+    this.classCode = '',
+    this.semester = 'Semester 1',
+    this.lecturerId = '',
+    this.accentColor = const Color(0xff4F86C6),
     this.studentCount = 0,
     this.avgCompletion = 0.0,
     this.atRiskCount = 0,
   });
 
+  /// Factory constructor required by ClassesProvider mapping pipelines
   factory ClassModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
-
-    String colorStr = data['accentColor'] ?? '0xFF4CAF50';
-    int colorValue = int.tryParse(colorStr) ?? 0xFF4CAF50;
-
     return ClassModel(
       id: doc.id,
-      lecturerId: data['lecturerId'] ?? '',
-      name: data['name'] ?? '',
-      code: data['code'] ?? '',
-      semester: data['semester'] ?? '',
-      accentColor: Color(colorValue),
-      studentCount: data['studentCount'] ?? 0,
-      avgCompletion: (data['avgCompletion'] as num?)?.toDouble() ?? 0.0,
-      atRiskCount: data['atRiskCount'] ?? 0,
+      name: data['name']?.toString() ?? 'Unknown Class',
+      code: data['subjectCode']?.toString() ?? data['classCode']?.toString() ?? 'COMP000',
+      subjectCode: data['subjectCode']?.toString() ?? '',
+      classCode: data['classCode']?.toString() ?? '',
+      semester: data['semester']?.toString() ?? 'Semester 1',
+      lecturerId: data['lecturerId']?.toString() ?? '',
+      accentColor: const Color(0xff4F86C6),
+      studentCount: (data['studentCount'] as num? ?? 0).toInt(),
+      avgCompletion: (data['avgCompletion'] as num? ?? 0.0).toDouble(),
+      atRiskCount: (data['atRiskCount'] as num? ?? 0).toInt(),
     );
   }
 
+  /// Map converter utility required by creation sub-forms
   Map<String, dynamic> toFirestore() {
     return {
-      'lecturerId': lecturerId,
       'name': name,
-      'code': code,
+      'subjectCode': subjectCode,
+      'classCode': classCode,
       'semester': semester,
-      'accentColor': '0x${accentColor.value.toRadixString(16).toUpperCase()}',
+      'lecturerId': lecturerId,
       'studentCount': studentCount,
       'avgCompletion': avgCompletion,
       'atRiskCount': atRiskCount,
+      'initialTasks': [],
+      'createdAt': FieldValue.serverTimestamp(),
     };
   }
 }

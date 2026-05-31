@@ -11,7 +11,6 @@ import '../../../../../../shared/styles/app_colors.dart';
 import '../../models/student_subject_model.dart';
 import '../../providers/dashboard_provider.dart';
 import 'widgets/workload_monitor.dart';
-import 'widgets/subject_tasks_sheet.dart';
 
 class StudentDashboard extends StatefulWidget {
   const StudentDashboard({super.key});
@@ -24,6 +23,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<StudentDashboardProvider>().listenToLiveDashboardStats();
+      }
+    });
   }
 
   @override
@@ -44,7 +48,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
           final enrolledCourses = classSnapshot.data ?? [];
 
-          // Query live tasks parameters matching enrollment tracking collections
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
                 .collection('enrollments')
@@ -75,20 +78,17 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   children: [
                     const DashboardGreeting(),
                     const SizedBox(height: 16),
-
                     WorkloadMonitor(
                       pendingTasksCount: totalPendingTasks,
                       completionProgress: overallProgress,
                       burnoutRatio: meanBurnoutValue,
                     ),
-
                     const SizedBox(height: 16),
                     const TaskStatisticsSection(),
                     const CurrentTaskPopup(),
                     const TodaysPlan(),
                     const SizedBox(height: 16),
                     const TaskToday(),
-                    const SizedBox(height: 16),
                   ],
                 ),
               );

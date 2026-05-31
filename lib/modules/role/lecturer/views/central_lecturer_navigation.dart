@@ -30,7 +30,7 @@ class CentralLecturerNavigationState
     super.initState();
 
     pages = [
-      LecturerDashboard(onNavigateToClasses: () => goToTab(1)),
+      const LecturerDashboard(),
       const LecturerClassesSection(),
       const LecturerEngagementPage(),
       const LecturerAlertsPage(),

@@ -17,20 +17,36 @@ class SemesterProvider with ChangeNotifier {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    // If we have a cached state already, keep using it instantly instead of dropping into a loading loop
+    // Academic Term Configuration
+    final DateTime termStartDate = DateTime(2026, 3, 2); // Term started first week of March
+    final DateTime termEndDate = DateTime(2026, 7, 10);  // Term ends second week of July
+    final DateTime now = DateTime.now();
+
+    // Calculate Semester Week Metrics Dynamically
+    final int totalDaysInTerm = termEndDate.difference(termStartDate).inDays;
+    final int totalWeeksInTerm = (totalDaysInTerm / 7).ceil();
+
+    int currentWeekCalculated = ((now.difference(termStartDate).inDays) / 7).ceil();
+    currentWeekCalculated = currentWeekCalculated.clamp(1, totalWeeksInTerm);
+
+    int weeksRemainingCalculated = totalWeeksInTerm - currentWeekCalculated;
+    weeksRemainingCalculated = weeksRemainingCalculated.clamp(0, totalWeeksInTerm);
+
+    double liveTimelineProgress = now.difference(termStartDate).inDays / totalDaysInTerm;
+    liveTimelineProgress = liveTimelineProgress.clamp(0.0, 1.0);
+
     if (data == null) {
       loading = true;
-      // Pre-seed a clean structural backup layout to avoid blocking the viewport render grid lines
-      data = const SemesterProgressModel(
+      data = SemesterProgressModel(
         semesterName: 'Degree Level 1',
         dateRange: 'March – July 2026',
         overallProgress: 0.0,
         completedTasks: 0,
         totalTasks: 0,
-        currentWeek: 8,
-        totalWeeks: 14,
-        timelineProgress: 0.57,
-        weeksRemaining: 6,
+        currentWeek: currentWeekCalculated,
+        totalWeeks: totalWeeksInTerm,
+        timelineProgress: liveTimelineProgress,
+        weeksRemaining: weeksRemainingCalculated,
         finalExamDate: '14 July',
         subjects: [],
       );
@@ -51,11 +67,14 @@ class SemesterProvider with ChangeNotifier {
       for (var doc in snapshot.docs) {
         final dataMap = doc.data();
         final String subjectNameStr = dataMap['classId']?.toString() ?? 'General';
-        final String subjectCodeStr = doc.id.split('_').last.toUpperCase();
+
+        // Grab code safely from fields or break down your string patterns
+        final String subjectCodeStr = dataMap['subjectCode']?.toString() ??
+            (doc.id.contains('_') ? doc.id.split('_').last.toUpperCase() : 'COMP000');
 
         final List<dynamic> rawTasks = dataMap["tasksList"] ?? [];
-        final int subjectCompleted = rawTasks.where((t) => t["status"] == "completed").length;
-        final int subjectDueSoon   = rawTasks.where((t) => t["status"] == "dueSoon").length;
+        final int subjectCompleted = rawTasks.where((t) => t["status"] == "completed" || t["status"] == "done").length;
+        final int subjectDueSoon   = rawTasks.where((t) => t["status"] == "dueSoon" || t["status"] == "due_soon").length;
         final int subjectTotal     = rawTasks.length;
         final int subjectRemaining = subjectTotal - subjectCompleted;
 
@@ -84,10 +103,10 @@ class SemesterProvider with ChangeNotifier {
         overallProgress: liveOverallProgressRatio,
         completedTasks: overallCompletedTasks,
         totalTasks: overallTotalTasks,
-        currentWeek: 8,
-        totalWeeks: 14,
-        timelineProgress: 0.57,
-        weeksRemaining: 6,
+        currentWeek: currentWeekCalculated,
+        totalWeeks: totalWeeksInTerm,
+        timelineProgress: liveTimelineProgress,
+        weeksRemaining: weeksRemainingCalculated,
         finalExamDate: '14 July',
         subjects: liveSubjectsList,
       );
