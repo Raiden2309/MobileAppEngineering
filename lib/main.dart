@@ -46,7 +46,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ClassesProvider()),
+        ChangeNotifierProvider(create: (_) => ClassesProvider()), // Kept here globally
 
         // Student
         ChangeNotifierProvider(create: (_) => StudentProvider()),
@@ -60,7 +60,7 @@ void main() async {
 
         // Lecturer
         ChangeNotifierProvider(create: (_) => AlertProvider()),
-        ChangeNotifierProvider(create: (_) => ClassesProvider()),
+        // FIXED: Removed the second duplicate ClassesProvider creation block from here
         ChangeNotifierProvider(create: (_) => LecturerDashboardProvider()),
         ChangeNotifierProvider(create: (_) => EngagementProvider()),
         ChangeNotifierProvider(create: (_) => LecturerSettingsProvider()),
@@ -78,6 +78,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
+      initialRoute: '/',
     );
   }
 }
