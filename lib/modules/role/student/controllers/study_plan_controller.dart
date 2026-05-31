@@ -78,8 +78,9 @@ class StudyPlanController extends ChangeNotifier {
   // Data loading
 
   Future<void> init() async {
-    // Starts the real-time background enrollment task array mapping listener
-    provider.listenToLiveStudyPlan();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      provider.listenToLiveStudyPlan();
+    });
     selectToday();
   }
 

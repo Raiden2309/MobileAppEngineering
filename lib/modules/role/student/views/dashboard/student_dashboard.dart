@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/current_task_popup.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/dashboard_greeting.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_statistics.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_today.dart';
+import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/todays_plan.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,14 +24,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<StudentDashboardProvider>().loadMock();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final dashboardProvider = context.read<StudentDashboardProvider>();
+    final dashboardProvider = context.watch<StudentDashboardProvider>();
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
@@ -71,15 +73,21 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const DashboardGreeting(),
                     const SizedBox(height: 16),
 
-                    // Display work metric widgets using live aggregated calculations
                     WorkloadMonitor(
                       pendingTasksCount: totalPendingTasks,
                       completionProgress: overallProgress,
                       burnoutRatio: meanBurnoutValue,
                     ),
 
+                    const SizedBox(height: 16),
+                    const TaskStatisticsSection(),
+                    const CurrentTaskPopup(),
+                    const TodaysPlan(),
+                    const SizedBox(height: 16),
+                    const TaskToday(),
                     const SizedBox(height: 16),
 
                     if (enrolledCourses.isEmpty)

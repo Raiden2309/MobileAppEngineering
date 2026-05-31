@@ -41,10 +41,8 @@ class StudyPlanPageState extends State<StudyPlanPage> {
     final selectedDayIndex = controller.selectedDayIndex;
 
     if (weekPlan == null) {
-      return const Expanded(
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.californiaBlue),
-        ),
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.californiaBlue),
       );
     }
 

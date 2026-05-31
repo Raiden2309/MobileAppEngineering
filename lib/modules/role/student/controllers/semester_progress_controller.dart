@@ -43,9 +43,10 @@ class SemesterProgressController extends ChangeNotifier {
 
   // Data loading
 
-  // FIXED: Initialize live listeners immediately on attach to stream documents without async locks
   Future<void> init() async {
-    provider.listenToLiveProgress();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      provider.listenToLiveProgress();
+    });
   }
 
   Future<void> fetch() async {

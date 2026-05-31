@@ -14,7 +14,7 @@ class AiService {
 
     // 1. Initialize the target generation model
     final model = GenerativeModel(
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       apiKey: _apiKey,
       // Force the engine to output strict JSON compliance structure layouts
       generationConfig: GenerationConfig(

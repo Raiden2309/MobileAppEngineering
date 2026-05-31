@@ -1,133 +1,163 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../lecturer/models/class_model.dart';
-import '../../../../lecturer/providers/classes_provider.dart';
+import '../../../../student/providers/student_settings_provider.dart';
 
-class JoinedClassesSheet extends StatelessWidget {
+class JoinedClassesSheet extends StatefulWidget {
   const JoinedClassesSheet({super.key});
 
   static void show(BuildContext context) {
+    final provider = context.read<StudentSettingsProvider>();
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const JoinedClassesSheet(),
+      builder: (_) => ChangeNotifierProvider.value(
+        value: provider,
+        child: const JoinedClassesSheet(),
+      ),
     );
   }
 
   @override
+  State<JoinedClassesSheet> createState() => _JoinedClassesSheetState();
+}
+
+class _JoinedClassesSheetState extends State<JoinedClassesSheet> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _joinClass() async {
+    final code = _searchController.text.trim();
+    if (code.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    final provider = context.read<StudentSettingsProvider>();
+    final success = await provider.joinClass(code);
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Successfully joined the class!')),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No class found with that code. Please try again.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final classesProvider = context.read<ClassesProvider>();
-
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF141414),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 36, height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.45,
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Color(0xFF141414),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
-          ),
-          const Text(
-            'Available Courses',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Select a class below to register yourself directly onto the lecturer\'s system roster.',
-            style: TextStyle(fontSize: 13, color: Colors.white54),
-          ),
-          const SizedBox(height: 20),
-          Expanded(
-            child: FutureBuilder<List<ClassModel>>(
-              future: classesProvider.getAllAvailableClasses(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AppColors.californiaBlue));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text('No university courses are currently online.', style: TextStyle(color: Colors.white38)),
-                  );
-                }
 
-                final list = snapshot.data!;
-
-                return ListView.builder(
-                  itemCount: list.length, // Corrected to .length
-                  itemBuilder: (context, index) {
-                    final course = list[index];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 6, height: 36,
-                            decoration: BoxDecoration(
-                              color: course.accentColor,
-                              borderRadius: BorderRadius.circular(3),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  course.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 15),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${course.code} · ${course.semester}',
-                                  style: const TextStyle(color: Colors.white38, fontSize: 12),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () async {
-                              await classesProvider.enrollInClass(course);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Successfully registered for ${course.name}!')),
-                                );
-                                Navigator.pop(context);
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: course.accentColor,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            ),
-                            child: const Text('Join', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
+            const Text(
+              'Join a Class',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            const Text(
+              'Enter the class code provided by your lecturer.',
+              style: TextStyle(fontSize: 13, color: Colors.white54),
+            ),
+            const SizedBox(height: 24),
+
+            // Search row
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      textCapitalization: TextCapitalization.characters,
+                      onSubmitted: (_) => _joinClass(),
+                      decoration: const InputDecoration(
+                        hintText: 'Enter class code…',
+                        hintStyle: TextStyle(color: Colors.white38, fontSize: 14),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: _isLoading ? null : _joinClass,
+                  child: Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: AppColors.californiaBlue,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: _isLoading
+                        ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                        : const Icon(Icons.search_rounded, color: Colors.white, size: 22),
+                  ),
+                ),
+              ],
+            ),
+
+            const Spacer(),
+
+            // Bottom hint
+            const Center(
+              child: Text(
+                'Ask your lecturer for the class code.',
+                style: TextStyle(color: Colors.white24, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }

@@ -251,6 +251,7 @@ class StudentSettingsProvider with ChangeNotifier {
   Future<bool> joinClass(String code) async {
     try {
       final response = await ApiService.post('/student/classes/join', {'code': code});
+      debugPrint('joinClass response: $response');
       final joined = JoinedClassModel.fromJson(response as Map<String, dynamic>);
       if (!joinedClasses.any((c) => c.id == joined.id)) {
         joinedClasses = [...joinedClasses, joined];
@@ -259,7 +260,8 @@ class StudentSettingsProvider with ChangeNotifier {
         notifyListeners();
       }
       return true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('joinClass error: $e');
       return false;
     }
   }

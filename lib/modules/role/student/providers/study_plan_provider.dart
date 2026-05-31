@@ -26,7 +26,6 @@ class StudyPlanProvider with ChangeNotifier {
     // Only show loading spinner on initial boot if no plan has been built locally yet
     if (plan == null) {
       loading = true;
-      notifyListeners();
     }
 
     _enrollmentSubscription?.cancel();

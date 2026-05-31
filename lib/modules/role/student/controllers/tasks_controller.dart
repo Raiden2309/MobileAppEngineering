@@ -51,7 +51,9 @@ class TaskController extends ChangeNotifier {
   String get completionSummary => '$completedTasks of $totalTasks completed';
 
   Future<void> init() async {
-    _provider.listenToLiveTasks();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _provider.listenToLiveTasks();
+    });
   }
 
   Future<void> fetch()   async => _provider.fetch();
