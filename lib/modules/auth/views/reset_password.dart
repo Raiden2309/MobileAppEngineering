@@ -1,19 +1,20 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
 import '../../../shared/styles/app_colors.dart';
 import '../controllers/change_password_controller.dart';
+import '../models/change_password_request.dart';
 import '../providers/reset_password_provider.dart';
 import 'change_password.dart';
 
 class ResetPasswordPage extends StatefulWidget {
   final ChangePasswordController controller;
-  final Object request;
+  final PasswordRequest request;
+  final ChangePasswordProvider   provider;
 
   const ResetPasswordPage({
     super.key,
     required this.controller,
     required this.request,
+    required this.provider,
   });
 
   @override
@@ -21,26 +22,25 @@ class ResetPasswordPage extends StatefulWidget {
 }
 
 class ResetPasswordPageState extends State<ResetPasswordPage> {
-  final passController = TextEditingController();
+  final passController    = TextEditingController();
   final confirmController = TextEditingController();
-  final changePassProvider = ChangePasswordProvider();
-  bool obscurePass = true;
-  bool obscureConfirm = true;
-  bool loading = false;
+  bool    obscurePass    = true;
+  bool    obscureConfirm = true;
+  bool    loading        = false;
   String? passError;
   String? confirmError;
 
   Future<void> submit() async {
     setState(() {
-      passError = null;
+      passError    = null;
       confirmError = null;
-      loading = true;
+      loading      = true;
     });
 
-    final error = await changePassProvider.updatePassword(
+    final error = await widget.provider.updatePassword( // fixed
       password: passController.text,
-      confirm: confirmController.text,
-      request: widget.request,
+      confirm:  confirmController.text,
+      request:  widget.request,
     );
 
     setState(() => loading = false);
@@ -64,15 +64,15 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return FlowScaffold(
-      title: 'New Password',
+      title:    'New Password',
       subtitle: 'Choose a strong password for your account.',
       children: [
         GlassField(
-          label: 'New Password',
-          hint: '••••••••',
+          label:      'New Password',
+          hint:       '••••••••',
           controller: passController,
-          obscure: obscurePass,
-          errorText: passError,
+          obscure:    obscurePass,
+          errorText:  passError,
           suffix: IconButton(
             icon: Icon(
               obscurePass
@@ -86,11 +86,11 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
         ),
         const SizedBox(height: 16),
         GlassField(
-          label: 'Confirm Password',
-          hint: '••••••••',
+          label:      'Confirm Password',
+          hint:       '••••••••',
           controller: confirmController,
-          obscure: obscureConfirm,
-          errorText: confirmError,
+          obscure:    obscureConfirm,
+          errorText:  confirmError,
           suffix: IconButton(
             icon: Icon(
               obscureConfirm
@@ -104,9 +104,9 @@ class ResetPasswordPageState extends State<ResetPasswordPage> {
         ),
         const SizedBox(height: 24),
         PrimaryButton(
-          label: 'Update Password',
+          label:   'Update Password',
           loading: loading,
-          onTap: submit,
+          onTap:   submit,
         ),
       ],
     );

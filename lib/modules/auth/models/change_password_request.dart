@@ -1,4 +1,8 @@
-class ChangePasswordRequest {
+abstract class PasswordRequest {
+  const PasswordRequest();
+}
+
+class ChangePasswordRequest extends PasswordRequest {
   final int userId;
   final String hashedNewPassword;
 
@@ -20,7 +24,7 @@ class ChangePasswordRequest {
   };
 }
 
-class ForgotPasswordRequest {
+class ForgotPasswordRequest extends PasswordRequest {
   final String email;
   final String hashedNewPassword;
 
