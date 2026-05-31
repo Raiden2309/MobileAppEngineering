@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async'; // REQUIRED for real-time StreamSubscription tracking
-import '../../../../shared/services/api_service.dart';
 import '../models/student_settings_models.dart';
 import '../models/semester_details_model.dart';
 
@@ -320,33 +319,24 @@ class StudentSettingsProvider with ChangeNotifier {
     if (user == null || code.trim().isEmpty) return false;
 
     try {
-      // Search across the database to find the master class tracking record matching the entry code
       final classQuery = await _db
           .collection('classes')
           .where('classCode', isEqualTo: code.trim().toUpperCase())
           .limit(1)
           .get();
 
-      if (classQuery.docs.isEmpty) {
-        debugPrint("Validation broken: No master class records discovered matching code: $code");
-        return false;
-      }
+      if (classQuery.docs.isEmpty) return false;
 
       final classDoc = classQuery.docs.first;
       final classData = classDoc.data();
       final String className = classData['name']?.toString() ?? 'Unknown Class';
       final String subjectCode = classData['subjectCode']?.toString() ?? classDoc.id.toUpperCase();
 
-      // Prevent duplicate enrollments by checking if the user is already joined
       final safeDocId = '${user.uid}_${className.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s-]'), '').replaceAll(RegExp(r'[\s-]'), '_')}';
       final duplicateCheck = await _db.collection('enrollments').doc(safeDocId).get();
 
-      if (duplicateCheck.exists) {
-        debugPrint("Enrollment aborted: Student is already registered inside this class path container.");
-        return true;
-      }
+      if (duplicateCheck.exists) return true;
 
-      // Generate a new real-time tracking document inside the enrollments collection
       await _db.collection('enrollments').doc(safeDocId).set({
         'studentId': user.uid,
         'classId': className,
@@ -355,18 +345,12 @@ class StudentSettingsProvider with ChangeNotifier {
         'completedTasks': 0,
         'pendingTasks': 0,
         'burnoutIndex': 0.0,
-        'tasksList': classData['initialTasks'] ?? [], // Inherits master template tasks from lecturer
+        'tasksList': classData['initialTasks'] ?? [],
         'joinedAt': FieldValue.serverTimestamp(),
       });
 
-      // Forward event records to backend API compatibility layer if necessary
-      try {
-        await ApiService.post('/student/class/join', {'code': code.trim().toUpperCase()});
-      } catch (_) {}
-
       return true;
     } catch (e) {
-      debugPrint("Failed to process live enrollment mapping transaction: $e");
       return false;
     }
   }
@@ -413,17 +397,9 @@ class StudentSettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void _tryApiPatch(Map<String, dynamic> body) async {
-    try {
-      await ApiService.patch('/student/settings', body);
-    } catch (_) {}
-  }
+  void _tryApiPatch(Map<String, dynamic> body) async {}
 
-  void _tryApiDelete(String path) async {
-    try {
-      await ApiService.delete(path);
-    } catch (_) {}
-  }
+  void _tryApiDelete(String path) async{}
 
   TimeOfDay _parseTimeString(String s) {
     s = s.trim();

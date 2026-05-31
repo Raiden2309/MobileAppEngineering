@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../../role/lecturer/models/class_model.dart';
 import '../../../../../role/lecturer/providers/classes_provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
+import 'dart:math' as math;
 
 class CreateClassSheet extends StatefulWidget {
   const CreateClassSheet({super.key});
@@ -50,16 +51,24 @@ class _CreateClassSheetState extends State<CreateClassSheet> {
     });
 
     try {
-      final newClassData = ClassModel(
-        id: FirebaseFirestore.instance.collection('classes').doc().id,
+      // FIXED: Generate a safe reference ID and a randomized uppercase 6-char class join code
+      final String generatedId = FirebaseFirestore.instance.collection('classes').doc().id;
+      final String uniqueJoinCode = math.Random().nextInt(999999).toString().padLeft(6, '0');
+
+      final newClass = ClassModel(
+        id: generatedId,
+        name: nameController.text,
+        code: codeController.text.toUpperCase(),
+        subjectCode: codeController.text.toUpperCase(),
+        classCode: uniqueJoinCode, // Students will use this code to join!
+        semester: semesterController.text.isEmpty ? 'Semester 1' : semesterController.text,
         lecturerId: FirebaseAuth.instance.currentUser?.uid ?? '',
-        name: nameController.text.trim(),
-        code: codeController.text.trim(),
-        semester: semesterController.text.trim(),
-        accentColor: selectedColor,
+        studentCount: 0,
+        avgCompletion: 0.0,
+        atRiskCount: 0,
       );
 
-      await context.read<ClassesProvider>().addClass(newClassData);
+      await context.read<ClassesProvider>().addClass(newClass);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       setState(() => _error = e.toString());
