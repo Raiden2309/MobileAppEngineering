@@ -67,7 +67,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
       text: widget.existing != null ? widget.existing!.estimatedHours.toString() : '',
     );
     _status = widget.existing?.status ?? TaskStatus.toDo;
-    _selectedGroup = widget.groups.firstWhere(
+    _selectedGroup = widget.groups.isEmpty
+        ? null
+        : widget.groups.firstWhere(
           (g) => g.id == (widget.group?.id ?? widget.groups.first.id),
       orElse: () => widget.groups.first,
     );
