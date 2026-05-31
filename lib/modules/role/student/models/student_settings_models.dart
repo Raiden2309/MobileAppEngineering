@@ -127,38 +127,4 @@ class StudentSettingsModel {
     );
   }
 
-  factory StudentSettingsModel.mockData() {
-    return StudentSettingsModel(
-      userId:             1,
-      userName:           'Alex',
-      semester:           '4',
-      year:               2,
-      subjectCount:       4,
-      studyHoursStart:    '8 AM',
-      studyHoursEnd:      '10 PM',
-      blockedSlotsCount:  6,
-      taskReminders:      true,
-      slotEndPrompts:     true,
-      burnoutWarnings:    true,
-      weeklyResetSummary: false,
-      appVersion:         'v1.0',
-      semesters: const [
-        SemesterModel(name: 'Semester 4 · Year 2', studyHoursStart: '8 AM', studyHoursEnd: '10 PM', subjectCount: 4, isCurrent: true),
-        SemesterModel(name: 'Semester 3 · Year 2', studyHoursStart: '9 AM', studyHoursEnd: '9 PM',  subjectCount: 5, isCurrent: false),
-      ],
-      subjects: const [
-        StudentSubjectModel(id: 1, studentId: 1, semesterId: 1, subjectId: 1, name: 'Mathematics',          code: 'MATH101', colorHex: '4F86C6'),
-        StudentSubjectModel(id: 2, studentId: 1, semesterId: 1, subjectId: 2, name: 'Data Structures',      code: 'CS201',   colorHex: 'F87171'),
-        StudentSubjectModel(id: 3, studentId: 1, semesterId: 1, subjectId: 3, name: 'Operating Systems',    code: 'CS301',   colorHex: '34D399'),
-        StudentSubjectModel(id: 4, studentId: 1, semesterId: 1, subjectId: 4, name: 'Software Engineering', code: 'SE305',   colorHex: 'FBBF24'),
-      ],
-      blockedSlots: const {'0_0', '0_1', '2_2', '2_3', '4_5', '4_6'},
-      avatarUrl: null,
-      joinedClasses: const [
-        JoinedClassModel(id: '1', name: 'CS301 — Algorithm Design'),
-        JoinedClassModel(id: '2', name: 'CS410 — Machine Learning'),
-      ],
-      joinedClassCount: 2,
-    );
-  }
 }

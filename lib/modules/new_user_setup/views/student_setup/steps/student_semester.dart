@@ -21,17 +21,37 @@ class StudentSemester extends StatefulWidget {
 
 class StudentSemesterState extends State<StudentSemester> {
   final List<DateTime?> _examDates = [null];
+  String? _semStartError;
+  String? _semEndError;
 
   void handleNext(BuildContext context) {
-    if (widget.controller.validate(
+    final programmeValid = widget.controller.validate(
       widget.controller.programmeController.text,
       'programme',
       emptyMessage: 'Please enter your programme',
-    )) {
-      widget.controller.examDates = _examDates.whereType<DateTime>().toList();
-      widget.onNext();
-    }
+    );
+
+    setState(() {
+      _semStartError = widget.controller.semStart == null
+          ? 'Please pick a start date'
+          : null;
+
+      if (widget.controller.semEnd == null) {
+        _semEndError = 'Please pick an end date';
+      } else if (widget.controller.semStart != null &&
+          !widget.controller.semEnd!.isAfter(widget.controller.semStart!)) {
+        _semEndError = 'End date must be after start date';
+      } else {
+        _semEndError = null;
+      }
+    });
+
+    if (!programmeValid || _semStartError != null || _semEndError != null) return;
+
+    widget.controller.examDates = _examDates.whereType<DateTime>().toList();
+    widget.onNext();
   }
+
   Future<void> pickDate(BuildContext context, bool isStart) async {
     final picked = await showDatePicker(
       context: context,
@@ -49,8 +69,10 @@ class StudentSemesterState extends State<StudentSemester> {
       setState(() {
         if (isStart) {
           widget.controller.semStart = picked;
+          _semStartError = null;
         } else {
           widget.controller.semEnd = picked;
+          _semEndError = null;
         }
       });
     }
@@ -147,6 +169,7 @@ class StudentSemesterState extends State<StudentSemester> {
                     DateTile(
                       label: formatDate(c.semStart),
                       onTap: () => pickDate(context, true),
+                      errorText: _semStartError,
                     ),
                   ],
                 ),
@@ -161,6 +184,7 @@ class StudentSemesterState extends State<StudentSemester> {
                     DateTile(
                       label: formatDate(c.semEnd),
                       onTap: () => pickDate(context, false),
+                      errorText: _semEndError,
                     ),
                   ],
                 ),
@@ -186,7 +210,6 @@ class StudentSemesterState extends State<StudentSemester> {
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  // Move the remove button to the LEFT
                   if (_examDates.length > 1) ...[
                     GestureDetector(
                       onTap: () => setState(() => _examDates.removeAt(i)),
@@ -214,25 +237,51 @@ class StudentSemesterState extends State<StudentSemester> {
 class DateTile extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  const DateTile({super.key, required this.label, required this.onTap});
+  final String? errorText;
+
+  const DateTile({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.errorText,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          border: Border.all(color: AppColors.black),
-          borderRadius: BorderRadius.circular(10),
+    final hasError = errorText != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              border: Border.all(
+                color: hasError ? AppColors.red : AppColors.black,
+                width: hasError ? 1.5 : 1.0,
+              ),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: label == 'Pick date' ? Colors.grey : AppColors.black,
+              ),
+            ),
+          ),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 14, color: AppColors.black),
-        ),
-      ),
+        if (hasError) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText!,
+            style: const TextStyle(color: AppColors.red, fontSize: 12),
+          ),
+        ],
+      ],
     );
   }
 }

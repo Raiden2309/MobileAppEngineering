@@ -9,6 +9,7 @@ class ClassModel {
   final String classCode;
   final String semester;
   final String lecturerId;
+  final String joinCode;
   final Color accentColor;
   int studentCount;
   double avgCompletion;
@@ -23,6 +24,7 @@ class ClassModel {
     this.classCode = '',
     this.semester = 'Semester 1',
     this.lecturerId = '',
+    this.joinCode = '',
     this.accentColor = const Color(0xff4F86C6),
     this.studentCount = 0,
     this.avgCompletion = 0.0,
@@ -40,6 +42,7 @@ class ClassModel {
       classCode: data['classCode']?.toString() ?? '',
       semester: data['semester']?.toString() ?? 'Semester 1',
       lecturerId: data['lecturerId']?.toString() ?? '',
+      joinCode: data['join_code']?.toString() ?? '',
       accentColor: const Color(0xff4F86C6),
       studentCount: (data['studentCount'] as num? ?? 0).toInt(),
       avgCompletion: (data['avgCompletion'] as num? ?? 0.0).toDouble(),
@@ -55,6 +58,8 @@ class ClassModel {
       'classCode': classCode,
       'semester': semester,
       'lecturerId': lecturerId,
+      'join_code': joinCode,
+      'accentColor': '0x${accentColor.value.toRadixString(16).toUpperCase()}',
       'studentCount': studentCount,
       'avgCompletion': avgCompletion,
       'atRiskCount': atRiskCount,
