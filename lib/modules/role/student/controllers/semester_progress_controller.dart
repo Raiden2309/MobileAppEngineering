@@ -25,9 +25,11 @@ class SemesterProgressController extends ChangeNotifier {
   int get weeksRemaining => data?.weeksRemaining ?? 0;
   double get timelineProgress => data?.timelineProgress ?? 0.0;
   String get finalExamDate => data?.finalExamDate ?? '';
+
+  // FIXED: Return clean placeholder formatting until live stream documents emit values
   String get semesterLabel => data != null
       ? '${data!.semesterName} · ${data!.dateRange}'
-      : '';
+      : 'Loading Semester...';
 
   List<SubjectProgress> get subjects => data?.subjects ?? [];
 
@@ -41,21 +43,21 @@ class SemesterProgressController extends ChangeNotifier {
 
   // Data loading
 
+  // FIXED: Initialize live listeners immediately on attach to stream documents without async locks
   Future<void> init() async {
-    if (hasData) return;
-    await fetch();
+    provider.listenToLiveProgress();
   }
 
   Future<void> fetch() async {
-    await provider.fetch();
+    provider.listenToLiveProgress();
   }
 
   void loadMock() {
-    provider.loadMock();
+    provider.listenToLiveProgress();
   }
 
   Future<void> refresh() async {
-    await provider.fetch();
+    provider.listenToLiveProgress();
   }
 
   // Provider sync
@@ -64,7 +66,7 @@ class SemesterProgressController extends ChangeNotifier {
     notifyListeners();
   }
 
-  //Helpers
+  // Helpers
 
   /// Returns a human-readable progress summary string.
   String get progressSummary =>

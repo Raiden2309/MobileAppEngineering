@@ -24,6 +24,7 @@ class StudyPlanPageState extends State<StudyPlanPage> {
   void initState() {
     super.initState();
     controller.addListener(_onControllerUpdate);
+    controller.init();
   }
 
   void _onControllerUpdate() => setState(() {});
@@ -36,8 +37,17 @@ class StudyPlanPageState extends State<StudyPlanPage> {
 
   @override
   Widget build(BuildContext context) {
-    final weekPlan = controller.plan ?? WeekPlan.mockData();
+    final weekPlan = controller.plan;
     final selectedDayIndex = controller.selectedDayIndex;
+
+    if (weekPlan == null) {
+      return const Expanded(
+        child: Center(
+          child: CircularProgressIndicator(color: AppColors.californiaBlue),
+        ),
+      );
+    }
+
     final selectedPlan = weekPlan.days[selectedDayIndex];
 
     return Column(
@@ -108,7 +118,22 @@ class StudyPlanPageState extends State<StudyPlanPage> {
 
               // ── Regenerate button ──────────────────
               GestureDetector(
-                onTap: () => controller.regenerate(),
+                onTap: () {
+                  // Triggers a local rebuild frame pass so the layout repaints with fresh timeline data
+                  setState(() {
+                    widget.controller.regenerate();
+                  });
+
+                  // Clean inline push notification to confirm the optimization completed successfully
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('AI Study Plan re-optimised!'),
+                      duration: Duration(seconds: 2),
+                      backgroundColor: AppColors.californiaBlue,
+                    ),
+                  );
+                },
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 14),
