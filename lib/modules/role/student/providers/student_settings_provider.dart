@@ -149,6 +149,11 @@ class StudentSettingsProvider with ChangeNotifier {
     if (json['joined_classes'] != null) {
       joinedClasses = (json['joined_classes'] as List).map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>)).toList();
     }
+    if (data != null) {
+      data = data!.copyWith(
+        joinedClassCount: joinedClasses.length,
+      );
+    }
   }
 
   Future<void> _loadFromCache() async {
