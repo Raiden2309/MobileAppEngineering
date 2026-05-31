@@ -13,120 +13,136 @@ class SemesterProvider with ChangeNotifier {
   String? error;
   StreamSubscription? _progressSubscription;
 
+  String? _currentSemesterId;
+  String _semesterName = '';
+  String _dateRange    = '';
+  DateTime? _semStart;
+  DateTime? _semEnd;
+
+  void switchSemester({
+    required String semesterId,
+    required String semesterName,
+    required String start,
+    required String end,
+  }) {
+    _currentSemesterId = semesterId;
+    _semesterName      = semesterName;
+    _dateRange         = '$start – $end';
+    _semStart          = _tryParse(start);
+    _semEnd            = _tryParse(end);
+    listenToLiveProgress();
+  }
+
+  DateTime? _tryParse(String s) {
+    try {
+      final parts = s.split(' ');
+      if (parts.length == 3) {
+        const m = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,
+          'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12};
+        return DateTime(int.parse(parts[2]), m[parts[1]] ?? 1, int.parse(parts[0]));
+      }
+      return DateTime.tryParse(s);
+    } catch (_) { return null; }
+  }
+
+  int _currentWeek() {
+    if (_semStart == null) return 1;
+    final weeks = DateTime.now().difference(_semStart!).inDays ~/ 7 + 1;
+    return weeks.clamp(1, _totalWeeks());
+  }
+
+  int _totalWeeks() {
+    if (_semStart == null || _semEnd == null) return 14;
+    return ((_semEnd!.difference(_semStart!).inDays) / 7).round().clamp(1, 52);
+  }
+
+  double _timelineProgress() {
+    if (_semStart == null || _semEnd == null) return 0.0;
+    final total   = _semEnd!.difference(_semStart!).inDays;
+    final elapsed = DateTime.now().difference(_semStart!).inDays;
+    return (elapsed / total).clamp(0.0, 1.0);
+  }
+
+  int _weeksRemaining() => (_totalWeeks() - _currentWeek()).clamp(0, 52);
+
+  String _finalExamDate() {
+    if (_semEnd == null) return '–';
+    const months = ['Jan','Feb','Mar','Apr','May','Jun',
+      'Jul','Aug','Sep','Oct','Nov','Dec'];
+    return '${_semEnd!.day} ${months[_semEnd!.month - 1]}';
+  }
+
   void listenToLiveProgress() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    // Academic Term Configuration
-    final DateTime termStartDate = DateTime(2026, 3, 2); // Term started first week of March
-    final DateTime termEndDate = DateTime(2026, 7, 10);  // Term ends second week of July
-    final DateTime now = DateTime.now();
-
-    // Calculate Semester Week Metrics Dynamically
-    final int totalDaysInTerm = termEndDate.difference(termStartDate).inDays;
-    final int totalWeeksInTerm = (totalDaysInTerm / 7).ceil();
-
-    int currentWeekCalculated = ((now.difference(termStartDate).inDays) / 7).ceil();
-    currentWeekCalculated = currentWeekCalculated.clamp(1, totalWeeksInTerm);
-
-    int weeksRemainingCalculated = totalWeeksInTerm - currentWeekCalculated;
-    weeksRemainingCalculated = weeksRemainingCalculated.clamp(0, totalWeeksInTerm);
-
-    double liveTimelineProgress = now.difference(termStartDate).inDays / totalDaysInTerm;
-    liveTimelineProgress = liveTimelineProgress.clamp(0.0, 1.0);
-
     if (data == null) {
       loading = true;
-      data = SemesterProgressModel(
-        semesterName: 'Degree Level 1',
-        dateRange: 'March – July 2026',
-        overallProgress: 0.0,
-        completedTasks: 0,
-        totalTasks: 0,
-        currentWeek: currentWeekCalculated,
-        totalWeeks: totalWeeksInTerm,
-        timelineProgress: liveTimelineProgress,
-        weeksRemaining: weeksRemainingCalculated,
-        finalExamDate: '14 July',
-        subjects: [],
-      );
       notifyListeners();
     }
 
     _progressSubscription?.cancel();
-    _progressSubscription = _db
-        .collection('enrollments')
-        .where('studentId', isEqualTo: uid)
-        .snapshots()
-        .listen((snapshot) {
 
-      int overallTotalTasks = 0;
-      int overallCompletedTasks = 0;
-      final List<SubjectProgress> liveSubjectsList = [];
+    Query query = _db.collection('enrollments').where('studentId', isEqualTo: uid);
+    if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
+      query = query.where('semester', isEqualTo: _currentSemesterId);
+    }
+
+    _progressSubscription = query.snapshots().listen((snapshot) {
+      int totalTasks     = 0;
+      int completedTasks = 0;
+      final List<SubjectProgress> subjects = [];
 
       for (var doc in snapshot.docs) {
-        final dataMap = doc.data();
-        final String subjectNameStr = dataMap['classId']?.toString() ?? 'General';
+        final d = doc.data() as Map<String, dynamic>;
 
-        // Grab code safely from fields or break down your string patterns
-        final String subjectCodeStr = dataMap['subjectCode']?.toString() ??
+        final String name = d['classId']?.toString() ?? 'General';
+        final String code = d['subjectCode']?.toString() ??
             (doc.id.contains('_') ? doc.id.split('_').last.toUpperCase() : 'COMP000');
 
-        final List<dynamic> rawTasks = dataMap["tasksList"] ?? [];
-        final int subjectCompleted = rawTasks.where((t) => t["status"] == "completed" || t["status"] == "done").length;
-        final int subjectDueSoon   = rawTasks.where((t) => t["status"] == "dueSoon" || t["status"] == "due_soon").length;
-        final int subjectTotal     = rawTasks.length;
-        final int subjectRemaining = subjectTotal - subjectCompleted;
+        final List<dynamic> raw = d['tasksList'] as List? ?? [];
+        final int completed  = raw.where((t) => t['status'] == 'completed' || t['status'] == 'done').length;
+        final int dueSoon    = raw.where((t) => t['status'] == 'dueSoon'   || t['status'] == 'due_soon').length;
+        final int total      = raw.length;
 
-        overallTotalTasks     += subjectTotal;
-        overallCompletedTasks += subjectCompleted;
+        totalTasks     += total;
+        completedTasks += completed;
 
-        final double subjectProgressRatio = subjectTotal > 0 ? (subjectCompleted / subjectTotal) : 0.0;
-
-        liveSubjectsList.add(SubjectProgress(
-          name:      subjectNameStr,
-          code:      subjectCodeStr,
-          progress:  subjectProgressRatio,
-          completed: subjectCompleted,
-          remaining: subjectRemaining,
-          dueSoon:   subjectDueSoon,
+        subjects.add(SubjectProgress(
+          name:      name,
+          code:      code,
+          progress:  total > 0 ? completed / total : 0.0,
+          completed: completed,
+          remaining: total - completed,
+          dueSoon:   dueSoon,
         ));
       }
 
-      double liveOverallProgressRatio = overallTotalTasks > 0
-          ? (overallCompletedTasks / overallTotalTasks)
-          : 0.0;
-
       data = SemesterProgressModel(
-        semesterName: 'Degree Level 1',
-        dateRange: 'March – July 2026',
-        overallProgress: liveOverallProgressRatio,
-        completedTasks: overallCompletedTasks,
-        totalTasks: overallTotalTasks,
-        currentWeek: currentWeekCalculated,
-        totalWeeks: totalWeeksInTerm,
-        timelineProgress: liveTimelineProgress,
-        weeksRemaining: weeksRemainingCalculated,
-        finalExamDate: '14 July',
-        subjects: liveSubjectsList,
+        semesterName:     _semesterName.isNotEmpty ? _semesterName : 'Current Semester',
+        dateRange:        _dateRange,
+        overallProgress:  totalTasks > 0 ? completedTasks / totalTasks : 0.0,
+        completedTasks:   completedTasks,
+        totalTasks:       totalTasks,
+        currentWeek:      _currentWeek(),
+        totalWeeks:       _totalWeeks(),
+        timelineProgress: _timelineProgress(),
+        weeksRemaining:   _weeksRemaining(),
+        finalExamDate:    _finalExamDate(),
+        subjects:         subjects,
       );
 
       loading = false;
       notifyListeners();
     }, onError: (e) {
-      error = e.toString();
+      error   = e.toString();
       loading = false;
       notifyListeners();
     });
   }
 
-  Future<void> fetch() async {
-    listenToLiveProgress();
-  }
-
-  void loadMock() {
-    listenToLiveProgress();
-  }
+  Future<void> fetch() async => listenToLiveProgress();
+  void loadMock() => listenToLiveProgress();
 
   @override
   void dispose() {

@@ -8,12 +8,30 @@ import 'widgets/class_card.dart';
 import 'widgets/create_class_sheet.dart';
 
 
-class LecturerClassesSection extends StatelessWidget {
+class LecturerClassesSection extends StatefulWidget {
   const LecturerClassesSection({super.key});
 
   @override
+  State<LecturerClassesSection> createState() => _LecturerClassesSectionState();
+}
+
+class _LecturerClassesSectionState extends State<LecturerClassesSection> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() =>
+        context.read<ClassesProvider>().fetchAllClasses(),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final classes = context.watch<ClassesProvider>().classes;
+    final provider = context.watch<ClassesProvider>();
+    final classes = provider.classes;
+
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -76,7 +94,9 @@ class LecturerClassesSection extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: SingleChildScrollView(
+          child: classes.isEmpty
+              ? const Center(child: Text('No classes yet. Tap Add Class to create one.'))
+              : SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
             child: Column(
               children: [

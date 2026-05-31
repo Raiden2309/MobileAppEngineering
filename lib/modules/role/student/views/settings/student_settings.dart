@@ -39,7 +39,7 @@ class StudentSettingsPage extends StatelessWidget {
               if (provider.data == null) {
                 return const Center(child: Text('No settings found'));
               }
-              return SettingsBody(data: provider.data!);
+              return const SettingsBody();
             },
           ),
         ),
@@ -49,13 +49,12 @@ class StudentSettingsPage extends StatelessWidget {
 }
 
 class SettingsBody extends StatelessWidget {
-  final StudentSettingsModel data;
-
-  const SettingsBody({super.key, required this.data});
+  const SettingsBody({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<StudentSettingsProvider>();
+    final provider = context.watch<StudentSettingsProvider>();
+    final data = provider.data!;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -636,7 +635,7 @@ class NewSemesterCard extends StatelessWidget {
                     (semester) => Column(
                   children: [
                     GestureDetector(
-                      onTap: () => provider.selectSemester(semester.name),
+                      onTap: () => StudentSettingsController.selectSemester(context, semester.name),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -706,7 +705,25 @@ class NewSemesterCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            const SizedBox(width: 8),
+                            // ── Edit button ──
+                            GestureDetector(
+                              onTap: () => SemesterSheet.show(
+                                context,
+                                existing: {
+                                  'name':  semester.name,
+                                  'start': semester.start,
+                                  'end':   semester.end,
+                                },
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: Icon(
+                                  Icons.edit_outlined,
+                                  size: 16,
+                                  color: AppColors.black.withValues(alpha: 0.45),
+                                ),
+                              ),
+                            ),
                             Container(
                               width: 20,
                               height: 20,

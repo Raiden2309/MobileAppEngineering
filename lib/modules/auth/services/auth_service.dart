@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthService {
   static const storage = FlutterSecureStorage();
@@ -53,8 +54,38 @@ class AuthService {
   }
 
   static Future<bool> isSetupComplete() async {
-    final value = await storage.read(key: setupKey);
-    return value == 'true';
+    // Fast path: local secure storage (exists on same device after first setup)
+    final local = await storage.read(key: setupKey);
+    if (local == 'true') return true;
+
+    // Fallback: check Firestore (covers reinstalls, new devices, emulator resets)
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return false;
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .get();
+
+      final completed = doc.data()?['setupCompleted'] == true;
+      if (completed) {
+        // Re-cache locally so subsequent checks are instant
+        await storage.write(key: setupKey, value: 'true');
+
+        // Also restore the role if it's missing locally
+        final localRole = await storage.read(key: roleKey);
+        if (localRole == null) {
+          final role = doc.data()?['role'];
+          if (role != null) {
+            await storage.write(key: roleKey, value: role.toString());
+          }
+        }
+      }
+      return completed;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<void> clearSetup() async {

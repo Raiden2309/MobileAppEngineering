@@ -96,18 +96,6 @@ class RegisterPageState extends State<RegisterPage> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Name
-                      TextField(
-                        controller: controller.nameController,
-                        cursorColor: AppColors.black,
-                        keyboardType: TextInputType.name,
-                        decoration: InputDecoration(
-                          labelText: 'Full Name',
-                          errorText: controller.nameError,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
                       // Email
                       TextField(
                         controller: controller.emailController,
