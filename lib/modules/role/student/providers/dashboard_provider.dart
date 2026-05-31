@@ -12,13 +12,12 @@ class StudentDashboardProvider with ChangeNotifier {
 
   bool isLoading = false;
   DashboardModel? data;
+  StreamSubscription? _enrollmentSubscription;
 
-  // Real-time schedule checking fields
   Timer? _scheduleTimer;
   String _activeScheduleTask = "Free Time / Break";
   String get activeScheduleTask => _activeScheduleTask;
 
-  // Clean data stream returning structured student subjects from enrollments collection
   Stream<List<StudentSubjectModel>> get myEnrolledClassesStream {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value([]);
@@ -36,22 +35,100 @@ class StudentDashboardProvider with ChangeNotifier {
         return StudentSubjectModel(
           id: rawHashId,
           studentId: rawHashId,
-          semesterId: 1, // Fallback placeholder index integer values
+          semesterId: (mapData['semesterId'] as num? ?? 1).toInt(),
           subjectId: rawHashId,
           name: classIdStr,
-          code: classIdStr.toUpperCase().padRight(6, 'X').substring(0, 6),
-          colorHex: '#60A5FA',
+          code: mapData['subjectCode']?.toString() ?? classIdStr.toUpperCase().padRight(6, 'X').substring(0, 6),
+          colorHex: mapData['colorHex']?.toString() ?? '#60A5FA',
         );
       }).toList();
     });
   }
 
-  // --- COMPUTE REAL-TIME TIMETABLE TASK STATUS UPDATER ---
+  void listenToLiveDashboardStats() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    isLoading = true;
+    notifyListeners();
+
+    _enrollmentSubscription?.cancel();
+    _enrollmentSubscription = _db
+        .collection('enrollments')
+        .where('studentId', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) {
+
+      int tasksCompleted = 0;
+      int tasksTotal = 0;
+      int tasksDueSoon = 0;
+      int tasksOverdue = 0;
+
+      final now = DateTime.now();
+
+      for (var doc in snapshot.docs) {
+        final docMap = doc.data();
+        final List<dynamic> rawTasks = docMap['tasksList'] ?? [];
+
+        tasksTotal += rawTasks.length;
+
+        for (var t in rawTasks) {
+          final String statusStr = t['status']?.toString() ?? 'toDo';
+          final String? deadlineRaw = t['deadline']?.toString();
+
+          if (statusStr == 'completed' || statusStr == 'done') {
+            tasksCompleted++;
+          } else if (statusStr == 'overdue') {
+            tasksOverdue++;
+          } else {
+            if (deadlineRaw != null) {
+              final deadlineDate = DateTime.tryParse(deadlineRaw);
+              if (deadlineDate != null) {
+                if (deadlineDate.isBefore(now)) {
+                  tasksOverdue++;
+                } else if (deadlineDate.difference(now).inDays <= 3) {
+                  tasksDueSoon++;
+                }
+              }
+            } else {
+              if (statusStr == 'dueSoon' || statusStr == 'due_soon') tasksDueSoon++;
+            }
+          }
+        }
+      }
+
+      data = DashboardModel(
+        summary: data?.summary ?? DashboardSummary(
+          userName: _auth.currentUser?.displayName ?? 'Student',
+          taskCountToday: tasksTotal - tasksCompleted - tasksOverdue,
+          date: DateTime.now(),
+        ),
+        stats: DashboardStats(
+          tasksDone: tasksCompleted,
+          totalTasks: tasksTotal,
+          dueSoon: tasksDueSoon,
+          dueSoonDays: 3,
+          overdue: tasksOverdue,
+          currentWeek: data?.stats.currentWeek ?? 8,
+          totalWeeks: data?.stats.totalWeeks ?? 14,
+        ),
+        currentTask: data?.currentTask,
+        workloadPlan: data?.workloadPlan ?? const WorkloadPlan(planLabel: 'Study blocks', tasks: []),
+        todayTasks: data?.todayTasks ?? [],
+      );
+
+      isLoading = false;
+      notifyListeners();
+    }, onError: (e) {
+      isLoading = false;
+      notifyListeners();
+    });
+  }
+
   void startScheduleAutoTracker(List<dynamic> dailyStudyBlocks) {
     _scheduleTimer?.cancel();
     _evaluateCurrentTimeSlot(dailyStudyBlocks);
 
-    // Re-verify the schedule slot matches the clock time every 60 seconds
     _scheduleTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       _evaluateCurrentTimeSlot(dailyStudyBlocks);
     });
@@ -74,7 +151,7 @@ class StudentDashboardProvider with ChangeNotifier {
 
     if (_activeScheduleTask != detectedTask) {
       _activeScheduleTask = detectedTask;
-      notifyListeners(); // Seamlessly update UI views on structural match adjustments
+      notifyListeners();
     }
   }
 
@@ -131,9 +208,9 @@ class StudentDashboardProvider with ChangeNotifier {
 
         for (var t in rawTasks) {
           final String status = t['status']?.toString() ?? '';
-          if (status == 'completed') continue;
+          if (status == 'completed' || status == 'done') continue;
 
-          final String? dueDateStr = t['due_date'];
+          final String? dueDateStr = t['due_date'] ?? t['deadline'];
           bool isToday = false;
 
           if (dueDateStr != null) {
@@ -145,7 +222,7 @@ class StudentDashboardProvider with ChangeNotifier {
             }
           }
 
-          final bool isInProgress = status == 'inProgress';
+          final bool isInProgress = status == 'inProgress' || status == 'in_progress';
 
           if (isToday || isInProgress) {
             result.add(TaskItem(
@@ -184,7 +261,7 @@ class StudentDashboardProvider with ChangeNotifier {
     final current = tasks[index]['status']?.toString() ?? '';
     tasks[index] = {
       ...tasks[index],
-      'status': current == 'completed' ? 'toDo' : 'completed',
+      'status': (current == 'completed' || current == 'done') ? 'toDo' : 'completed',
     };
 
     await doc.reference.update({'tasksList': tasks});
@@ -192,6 +269,7 @@ class StudentDashboardProvider with ChangeNotifier {
 
   @override
   void dispose() {
+    _enrollmentSubscription?.cancel();
     _scheduleTimer?.cancel();
     super.dispose();
   }

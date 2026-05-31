@@ -24,9 +24,10 @@ class TimelineCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Semester 4 Timeline',
-                style: TextStyle(
+              // FIXED: Removed 'const' keyword to allow dynamic model strings
+              Text(
+                '${model.semesterName} Timeline',
+                style: const TextStyle(
                   color: AppColors.black,
                   fontWeight: FontStyles.weightMedium,
                   fontSize: 16,

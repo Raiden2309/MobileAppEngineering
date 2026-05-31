@@ -47,7 +47,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
     _semesterProgressController = SemesterProgressController(context.read<SemesterProvider>());
 
     pages = [
-      const StudentDashboard(),
+      StudentDashboard(),
       MyTasksPage(controller: _taskController),
       StudyPlanPage(controller: _studyPlanController),
       SemesterProgressPage(controller: _semesterProgressController),
