@@ -7,9 +7,9 @@ class ClassModel {
   final String name;
   final String code;
   final String semester;
-  final String joinCode;
   final Color accentColor;
 
+  // Runtime placeholders calculated dynamically via your stream metrics
   final int studentCount;
   final double avgCompletion;
   final int atRiskCount;
@@ -21,7 +21,6 @@ class ClassModel {
     required this.code,
     required this.semester,
     required this.accentColor,
-    this.joinCode = '',   // ← added
     this.studentCount = 0,
     this.avgCompletion = 0.0,
     this.atRiskCount = 0,
@@ -39,7 +38,6 @@ class ClassModel {
       name: data['name'] ?? '',
       code: data['code'] ?? '',
       semester: data['semester'] ?? '',
-      joinCode: data['join_code'] ?? '',
       accentColor: Color(colorValue),
       studentCount: data['studentCount'] ?? 0,
       avgCompletion: (data['avgCompletion'] as num?)?.toDouble() ?? 0.0,
@@ -53,7 +51,6 @@ class ClassModel {
       'name': name,
       'code': code,
       'semester': semester,
-      'join_code': joinCode,  // ← added
       'accentColor': '0x${accentColor.value.toRadixString(16).toUpperCase()}',
       'studentCount': studentCount,
       'avgCompletion': avgCompletion,

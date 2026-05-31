@@ -14,10 +14,9 @@ class TasksProvider with ChangeNotifier {
   bool loading = false;
   String? error;
   StreamSubscription? _tasksSubscription;
-  String? _currentSemester;
 
-  void listenToLiveTasks({String? semester}) {
-    _currentSemester = semester;
+  // Real-time Firestore document synchronizer pipeline
+  void listenToLiveTasks() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
@@ -25,21 +24,19 @@ class TasksProvider with ChangeNotifier {
     notifyListeners();
 
     _tasksSubscription?.cancel();
+    _tasksSubscription = _db
+        .collection('enrollments')
+        .where('studentId', isEqualTo: uid)
+        .snapshots()
+        .listen((snapshot) {
 
-    final query = _db.collection('enrollments').where('studentId', isEqualTo: uid);
-
-    _tasksSubscription = query.snapshots().listen((snapshot) {
-      groups = snapshot.docs.where((doc) {
-        final sem = doc.data()['semester'] as String?;
-        // Show docs that match current semester OR have no semester field (legacy)
-        return sem == null || semester == null || semester.isEmpty || sem == semester;
-      }).map((doc) {
+      // Fixed: Explicit type casting map sequence to create a clean List<SubjectGroup>
+      groups = snapshot.docs.map((doc) {
         final dataMap = doc.data();
         final String subjectNameStr = dataMap['classId']?.toString() ?? 'General';
+
         final List<dynamic> rawTasksList = dataMap['tasksList'] ?? [];
-        final parsedTasks = rawTasksList
-            .map((t) => Task.fromJson(Map<String, dynamic>.from(t)))
-            .toList();
+        final parsedTasks = rawTasksList.map((t) => Task.fromJson(Map<String, dynamic>.from(t))).toList();
 
         return SubjectGroup(
           id: doc.id,
@@ -58,15 +55,15 @@ class TasksProvider with ChangeNotifier {
     });
   }
 
-  void switchSemester(String semester) {
-    listenToLiveTasks(semester: semester);
+  // Fallback signature mapping placeholder methods to fix controller calls
+  Future<void> fetch() async {
+    listenToLiveTasks();
   }
 
-  Future<void> fetch({String? semester}) async {
-    listenToLiveTasks(semester: semester);
+  void loadMock() {
+    groups = SubjectGroup.mockData();
+    notifyListeners();
   }
-
-  void loadMock() => listenToLiveTasks();
 
   List<Task> filteredTasks(List<Task> tasks) {
     if (activeFilter == 'all') return tasks;

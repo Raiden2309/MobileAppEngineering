@@ -10,10 +10,12 @@ import '../../new_user_setup/views/role_setup.dart';
 import '../services/google_sign_in_stub.dart';
 
 class RegisterController {
+  final nameController            = TextEditingController();
   final emailController           = TextEditingController();
   final passwordController        = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
+  String? nameError;
   String? emailError;
   String? passwordError;
   String? confirmPasswordError;
@@ -24,15 +26,21 @@ class RegisterController {
         required int selectedRole,
         required VoidCallback onError,
       }) async {
+    final name            = nameController.text.trim();
     final email           = emailController.text.trim();
     final password        = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
 
+    nameError            = null;
     emailError           = null;
     passwordError        = null;
     confirmPasswordError = null;
 
-
+    if (name.isEmpty) {
+      nameError = 'Name is required';
+      onError();
+      return;
+    }
     if (email.isEmpty) {
       emailError = 'Email is required';
       onError();
@@ -67,6 +75,7 @@ class RegisterController {
       // 2. Save directly to Firestore (Notice: NO 'response' variables used here)
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'uid': uid,
+        'name': name,
         'email': email,
         'role': selectedRole,
         'createdAt': FieldValue.serverTimestamp(),
@@ -157,6 +166,7 @@ class RegisterController {
   }
 
   void dispose() {
+    nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();

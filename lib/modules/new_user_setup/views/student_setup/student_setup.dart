@@ -44,107 +44,119 @@ class StudentSetupPageState extends State<StudentSetupPage> {
       return;
     }
 
+    // Display background loading dialogue layer
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(color: AppColors.californiaBlue),
-      ),
+      builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.californiaBlue)),
     );
 
     try {
-      final List<Map<String, String>> safeSubjects = controller.subjects
-          .whereType<Map>()
-          .map((item) => {
-        'name':  item['name']?.toString()  ?? 'Unknown',
-        'color': item['color']?.toString() ?? '60A5FA',
-      })
-          .toList();
+      // Gather and sanitize the subjects map collection list
+      final List<Map<String, String>> safeSubjectsList = [];
+      for (var item in controller.subjects) {
+        if (item is Map) {
+          safeSubjectsList.add({
+            'name': item['name']?.toString() ?? 'Unknown Module',
+            'color': item['color']?.toString() ?? '60A5FA',
+          });
+        }
+      }
 
-      // Global student document (no semester-specific fields)
       final studentModel = StudentModel(
-        id:           uid,
-        name:         controller.nameController.text.trim().isNotEmpty
+        id: uid,
+        name: controller.nameController.text.trim().isNotEmpty
             ? controller.nameController.text.trim()
-            : 'Student',
-        email:        FirebaseAuth.instance.currentUser?.email ?? '',
-        programme:    controller.programmeController.text.trim(),
-        dayStart:     controller.dayStart,
-        dayEnd:       controller.dayEnd,
-        blockedSlots: controller.blockedSlots.toList(),
-      );
-
-      // Semester document (subjects live here)
-      final semesterModel = SemesterModel(
-        id:       'sem_${controller.semester}_yr${controller.year}',
+            : 'Edwin Chin',
+        email: FirebaseAuth.instance.currentUser?.email ?? '',
+        programme: controller.programmeController.text.trim().isNotEmpty
+            ? controller.programmeController.text.trim()
+            : 'Software Engineering',
         semester: controller.semester,
-        year:     controller.year,
+        year: controller.year,
         semStart: controller.semStart,
-        semEnd:   controller.semEnd,
-        examDates: controller.examDates,
-        subjects:  safeSubjects,
+        semEnd: controller.semEnd,
+        dayStart: controller.dayStart,
+        dayEnd: controller.dayEnd,
+        blockedSlots: controller.blockedSlots.toList(),
+        subjects: safeSubjectsList,
       );
 
-      await context.read<StudentProvider>().save(studentModel, semesterModel);
+      // Save student profile document details first
+      await context.read<StudentProvider>().save(studentModel);
+
+      // Finalize authentication state completion flags immediately
       await AuthService.completeSetup();
 
-      // Create class documents for each subject
       final firestore = FirebaseFirestore.instance;
-      for (var subject in safeSubjects) {
-        final subjectName     = subject['name']  ?? 'Unknown';
+
+      // Sequential write execution loop
+      for (var subject in safeSubjectsList) {
+        final subjectName = subject['name'] ?? 'Unknown Module';
         final subjectColorStr = subject['color'] ?? '60A5FA';
+
+        // Format name to a safe lowercase key string (e.g. "web_development")
         final safeClassId = subjectName
             .toLowerCase()
             .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
             .replaceAll(RegExp(r'[\s-]'), '_');
 
+        // --- FIXED: Remove .get() to prevent crashes on uninitialized collections ---
+        // Using SetOptions(merge: true) will safely auto-create the collection and document
         await firestore.collection('classes').doc(safeClassId).set({
-          'id':               safeClassId,
-          'name':             subjectName,
-          'code':             safeClassId.toUpperCase().padRight(6, 'X').substring(0, 6),
-          'semester':         'Semester ${semesterModel.semester}',
+          'id': safeClassId,
+          'name': subjectName,
+          'code': safeClassId.toUpperCase().padRight(6, 'X').substring(0, 6),
+          'semester': 'Semester ${studentModel.semester}',
           'accentColorValue': int.tryParse('0xFF$subjectColorStr') ?? 0xFF60A5FA,
-          'createdAt':        FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
+        // Initialize or update the active enrollment bridge record link document safely
         await firestore.collection('enrollments').doc('${uid}_$safeClassId').set({
-          'studentId':        uid,
-          'classId':          safeClassId,
-          'semester':         semesterModel.id,
-          'qstudentName':     studentModel.name,
-          'joinedAt':         FieldValue.serverTimestamp(),
+          'studentId': uid,
+          'classId': safeClassId,
+          'qstudentName': studentModel.name,
+          'joinedAt': FieldValue.serverTimestamp(),
           'weeklyStudyHours': 0.0,
-          'completedTasks':   0,
-          'pendingTasks':     0,
-          'burnoutIndex':     0.0,
+          'completedTasks': 0,
+          'pendingTasks': 0,
+          'burnoutIndex': 0.0,
         });
       }
 
       if (!context.mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(); // Dismiss loading spinner tracking asset safely
 
+      // Forward user straight into the core student system navigation shell layout
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
           pageBuilder: (_, __, ___) => const CentralStudentNavigation(),
-          transitionsBuilder: (_, animation, __, child) => ScaleTransition(
-            scale: Tween<double>(begin: 1.1, end: 1.0).animate(
-              CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
-            ),
-            child: FadeTransition(opacity: animation, child: child),
-          ),
+          transitionsBuilder: (_, animation, __, child) {
+            return ScaleTransition(
+              scale: Tween<double>(begin: 1.1, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
+              ),
+              child: FadeTransition(opacity: animation, child: child),
+            );
+          },
         ),
       );
     } catch (e) {
       if (context.mounted) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // Dismiss loading layout
+
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: const Color(0xFF1E1E1E),
-            title: const Text('Setup Failed', style: TextStyle(color: Colors.white)),
+            title: const Text('Setup Saving Failed', style: TextStyle(color: Colors.white)),
             content: SingleChildScrollView(
-              child: Text('$e', style: const TextStyle(color: Colors.white70)),
+              child: Text(
+                'The system threw this error during saving:\n\n$e',
+                style: const TextStyle(color: Colors.white70),
+              ),
             ),
             actions: [
               TextButton(
@@ -180,7 +192,11 @@ class StudentSetupPageState extends State<StudentSetupPage> {
             colors: [AppColors.californiaBlue, AppColors.greenSheen],
           ),
         ),
-        child: SafeArea(child: Builder(builder: buildStep)),
+        child: SafeArea(
+          child: Builder(
+            builder: buildStep,
+          ),
+        ),
       ),
     );
   }

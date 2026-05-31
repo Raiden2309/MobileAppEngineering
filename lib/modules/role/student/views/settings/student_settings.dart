@@ -39,7 +39,7 @@ class StudentSettingsPage extends StatelessWidget {
               if (provider.data == null) {
                 return const Center(child: Text('No settings found'));
               }
-              return const SettingsBody();
+              return SettingsBody(data: provider.data!);
             },
           ),
         ),
@@ -49,12 +49,13 @@ class StudentSettingsPage extends StatelessWidget {
 }
 
 class SettingsBody extends StatelessWidget {
-  const SettingsBody({super.key});
+  final StudentSettingsModel data;
+
+  const SettingsBody({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<StudentSettingsProvider>();
-    final data = provider.data!;
+    final provider = context.read<StudentSettingsProvider>();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -635,7 +636,7 @@ class NewSemesterCard extends StatelessWidget {
                     (semester) => Column(
                   children: [
                     GestureDetector(
-                      onTap: () => StudentSettingsController.selectSemester(context, semester.name),
+                      onTap: () => provider.selectSemester(semester.name),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -705,25 +706,7 @@ class NewSemesterCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            // ── Edit button ──
-                            GestureDetector(
-                              onTap: () => SemesterSheet.show(
-                                context,
-                                existing: {
-                                  'name':  semester.name,
-                                  'start': semester.start,
-                                  'end':   semester.end,
-                                },
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
-                                child: Icon(
-                                  Icons.edit_outlined,
-                                  size: 16,
-                                  color: AppColors.black.withValues(alpha: 0.45),
-                                ),
-                              ),
-                            ),
+                            const SizedBox(width: 8),
                             Container(
                               width: 20,
                               height: 20,

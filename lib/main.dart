@@ -22,12 +22,22 @@ import 'package:mae_assignment_frontend/modules/new_user_setup/provider/student_
 import 'shared/widgets/splash_screen.dart';
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsBinding widgetsBinding =
+  WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterNativeSplash.preserve(
+    widgetsBinding: widgetsBinding,
+  );
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  const storage = FlutterSecureStorage();
+
+  await storage.write(key: 'auth_token',       value: 'test_token_abc123');
+  await storage.write(key: 'user_role',         value: 'student');
+  await storage.write(key: 'is_setup_complete', value: 'true');
 
   final authProvider = AuthProvider();
   await authProvider.loadFromStorage();
@@ -35,34 +45,18 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
         ChangeNotifierProvider(create: (_) => StudentProvider()),
         ChangeNotifierProvider(create: (_) => StudentDashboardProvider()),
-        ChangeNotifierProvider(create: (_) => StudentSettingsProvider()),
-
-        ChangeNotifierProxyProvider<StudentSettingsProvider, TasksProvider>(
-          create: (_) => TasksProvider(),
-          update: (_, settings, tasks) {
-            final semester = settings.activeSemesterName;
-            tasks!.switchSemester(semester);
-            return tasks;
-          },
-        ),
-
-        ChangeNotifierProxyProvider<StudentSettingsProvider, StudyPlanProvider>(
-          create: (_) => StudyPlanProvider(),
-          update: (_, settings, studyPlan) {
-            final semester = settings.activeSemesterName;
-            studyPlan!.switchSemester(semester);
-            return studyPlan;
-          },
-        ),
-
+        ChangeNotifierProvider(create: (_) => StudyPlanProvider()),
+        ChangeNotifierProvider(create: (_) => TasksProvider()),
         ChangeNotifierProvider(create: (_) => SemesterProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => BurnoutAlertProvider()),
+        ChangeNotifierProvider(create: (_) => StudentSettingsProvider()),
 
         // Lecturer
         ChangeNotifierProvider(create: (_) => AlertProvider()),
@@ -75,6 +69,7 @@ void main() async {
     ),
   );
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 

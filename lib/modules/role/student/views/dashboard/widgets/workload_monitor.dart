@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../providers/dashboard_provider.dart';
-import '../../../providers/burnout_alert_provider.dart';
+import '../../../providers/burnout_alert_provider.dart'; // Ensure you import your live alert provider
 
 class WorkloadMonitor extends StatelessWidget {
   final int pendingTasksCount;
@@ -19,18 +19,16 @@ class WorkloadMonitor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final liveScheduledTask =
-        context.watch<StudentDashboardProvider>().activeScheduleTask;
+    // Read current schedule task matching calendar slot parameters automatically
+    final liveScheduledTask = context.watch<StudentDashboardProvider>().activeScheduleTask;
 
+    // LINKED: Listen directly to the live burnout state metrics for unified reporting
     final burnoutProvider = context.watch<BurnoutAlertProvider>();
     final liveAlert = burnoutProvider.alert;
 
-    final double displayProgress =
-    (liveAlert?.workloadProgress ?? 0.0).clamp(0.0, 1.0);
+    // Pull the real mathematical percentage from our engine (e.g., 0.60 becomes 60%)
+    final double displayProgress = liveAlert?.workloadProgress ?? 0.0;
     final String riskLabel = liveAlert?.workloadLevelLabel ?? 'Low';
-
-    // Clamp completionProgress so deleted tasks never produce negative %
-    final double safeProgress = completionProgress.clamp(0.0, 1.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -74,32 +72,28 @@ class WorkloadMonitor extends StatelessWidget {
                     children: [
                       const Text(
                         'Progress Made',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.legendText),
+                        style: TextStyle(fontSize: 12, color: AppColors.legendText),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${(safeProgress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                        '${(completionProgress * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // UPDATED: Dynamic subtitle updates with status label names
                       Text(
                         '$riskLabel Risk',
-                        style: const TextStyle(
-                            fontSize: 12, color: AppColors.legendText),
+                        style: const TextStyle(fontSize: 12, color: AppColors.legendText),
                       ),
                       const SizedBox(height: 2),
+                      // UPDATED: Multiplies progress ratio cleanly into a percentage view representation
                       Text(
                         '${(displayProgress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.red),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.red),
                       ),
                     ],
                   ),
@@ -108,14 +102,12 @@ class WorkloadMonitor extends StatelessWidget {
                     children: [
                       const Text(
                         'Remaining Tasks',
-                        style: TextStyle(
-                            fontSize: 12, color: AppColors.legendText),
+                        style: TextStyle(fontSize: 12, color: AppColors.legendText),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         '$pendingTasksCount tasks left',
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),

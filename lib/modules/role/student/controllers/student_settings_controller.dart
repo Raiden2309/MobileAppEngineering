@@ -5,8 +5,6 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/views/login_page.dart';
 import '../models/student_settings_models.dart';
 import '../providers/student_settings_provider.dart';
-import '../providers/study_plan_provider.dart';
-import '../providers/task_provider.dart';
 
 class StudentSettingsController {
   static Future<void> load(BuildContext context) {
@@ -46,13 +44,7 @@ class StudentSettingsController {
   }
 
   static void selectSemester(BuildContext context, String name) {
-    final tasks     = context.read<TasksProvider>();
-    final studyPlan = context.read<StudyPlanProvider>();
-    context.read<StudentSettingsProvider>().selectSemester(
-      name,
-      tasks: tasks,
-      studyPlan: studyPlan,
-    );
+    context.read<StudentSettingsProvider>().selectSemester(name);
   }
 
   static Future<void> updateUserName(BuildContext context, String name) {
@@ -79,13 +71,5 @@ class StudentSettingsController {
       MaterialPageRoute(builder: (_) => const LoginPage()),
           (route) => false,
     );
-  }
-
-  static Future<void> deleteSemester(BuildContext context, String name) {
-    return context.read<StudentSettingsProvider>().deleteSemester(name);
-  }
-
-  static Future<void> editSemester(BuildContext context, String oldName, Map<String, String> updated) {
-    return context.read<StudentSettingsProvider>().editSemester(oldName, updated);
   }
 }

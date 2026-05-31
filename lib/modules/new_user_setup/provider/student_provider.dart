@@ -4,94 +4,64 @@ import '../models/student_model.dart';
 
 class StudentProvider extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-
   StudentModel? student;
-  SemesterModel? currentSemester;
   bool loading = false;
   String? error;
 
-  Future<void> fetch(String uid) async {
-    loading = true;
-    error = null;
-    notifyListeners();
-    try {
-      final doc = await _db.collection('users').doc(uid).get();
-      if (doc.exists && doc.data() != null) {
-        student = StudentModel.fromJson(doc.data()!);
-        final semId = student!.currentSemesterId;
-        if (semId != null) {
-          final semDoc = await _db
-              .collection('users')
-              .doc(uid)
-              .collection('semesters')
-              .doc(semId)
-              .get();
-          if (semDoc.exists && semDoc.data() != null) {
-            currentSemester = SemesterModel.fromJson(semDoc.data()!);
-          }
-        }
-      }
-    } catch (e) {
-      error = e.toString();
-    }
-    loading = false;
+  void loadMock() {
+    student = const StudentModel(
+      id: 'mock-001',
+      name: 'Alex Johnson',
+      email: 'alex@student.edu',
+      programme: 'Diploma in Computer Science',
+      semester: 2,
+      year: 1,
+      semStart: null,
+      semEnd: null,
+      dayStart: TimeOfDay(hour: 8, minute: 0),
+      dayEnd: TimeOfDay(hour: 22, minute: 0),
+      blockedSlots: ['0_0', '0_1', '1_0', '1_1', '2_2', '3_3'],
+      subjects: [
+        {'name': 'Mathematics', 'color': 'F87171'},
+        {'name': 'Web Development', 'color': '60A5FA'},
+        {'name': 'Database Systems', 'color': '34D399'},
+        {'name': 'Networking', 'color': 'FBBF24'},
+      ],
+    );
     notifyListeners();
   }
 
-  Future<void> save(StudentModel model, SemesterModel semester) async {
+  // ─── ADDED: THE SAVE METHOD EXPECTED BY YOUR SETUP WIZARD ───
+  Future<void> save(StudentModel model) async {
     loading = true;
     error = null;
     notifyListeners();
 
     try {
-      final semId = 'sem_${semester.semester}_yr${semester.year}';
-      final semWithId = SemesterModel(
-        id: semId,
-        semester: semester.semester,
-        year: semester.year,
-        semStart: semester.semStart,
-        semEnd: semester.semEnd,
-        examDates: semester.examDates,
-        subjects: semester.subjects,
-      );
+      // Update our local app state memory reference
+      student = model;
 
-      final studentWithSemId = StudentModel(
-        id: model.id,
-        name: model.name,
-        email: model.email,
-        programme: model.programme,
-        dayStart: model.dayStart,
-        dayEnd: model.dayEnd,
-        blockedSlots: model.blockedSlots,
-        currentSemesterId: semId,
-      );
-
-      // Save top-level student document (global fields)
+      // Save the primary student profile document data into the global users collection
       await _db.collection('users').doc(model.id).set({
-        ...studentWithSemId.toJson(),
         'uid': model.id,
-        'role': 1,
+        'name': model.name,
+        'email': model.email,
+        'programme': model.programme,
+        'semester': model.semester,
+        'year': model.year,
+        'semStart': model.semStart != null ? Timestamp.fromDate(model.semStart!) : null,
+        'semEnd': model.semEnd != null ? Timestamp.fromDate(model.semEnd!) : null,
+        'dayStart': '${model.dayStart.hour}:${model.dayStart.minute}',
+        'dayEnd': '${model.dayEnd.hour}:${model.dayEnd.minute}',
+        'blockedSlots': model.blockedSlots,
         'setupCompleted': true,
-        'study_hours_start': '${model.dayStart.hour}:${model.dayStart.minute}',
-        'study_hours_end': '${model.dayEnd.hour}:${model.dayEnd.minute}',
-        'blocked_slots': model.blockedSlots,
-        'currentSemesterId': semId,
+        'role': 'student',
       });
 
-      // Save semester as subcollection document
-      await _db
-          .collection('users')
-          .doc(model.id)
-          .collection('semesters')
-          .doc(semId)
-          .set(semWithId.toJson());
-
-      student = studentWithSemId;
-      currentSemester = semWithId;
     } catch (e) {
       error = e.toString();
-      debugPrint('Error saving student: $e');
-      rethrow;
+      debugPrint("Error storing student metadata: $e");
+      rethrow; // Pass error up to the UI layout page to display alert snacks
     } finally {
       loading = false;
       notifyListeners();
@@ -100,7 +70,6 @@ class StudentProvider extends ChangeNotifier {
 
   void clear() {
     student = null;
-    currentSemester = null;
     error = null;
     notifyListeners();
   }

@@ -24,65 +24,59 @@ class StudentProfile extends StatelessWidget {
       title: 'Welcome to Unplug',
       subtitle: "Your AI-powered study planner. Let's set up your profile so we can build a plan that works for you.",
       onNext: () => handleNext(context),
-      child: ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SetupLabel('Your Name'),
-            SetupInput(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SetupLabel('Your Name'),
+          ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => SetupInput(
               controller: controller.nameController,
               placeholder: 'e.g. Alex',
               errorText: controller.getError('name'),
             ),
-            const SizedBox(height: 16),
-            const SetupLabel('Study Hours'),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TimeBlock(
-                    label: 'Day Starts',
-                    time: controller.dayStart,
-                    onTap: () async {
-                      final t = await showTimePicker(
-                        context: context,
-                        initialTime: controller.dayStart,
-                        builder: (context, child) => Theme(
-                          data: ThemeData.light().copyWith(
-                            colorScheme: const ColorScheme.light(primary: AppColors.black),
-                          ),
-                          child: child!,
+          ),
+          const SizedBox(height: 16),
+          const SetupLabel('Study Hours'),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TimeBlock(
+                  label: 'Day Starts',
+                  time: controller.dayStart,
+                  onTap: () async {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: controller.dayStart,
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: const ColorScheme.light(primary: AppColors.black),
                         ),
-                      );
-                      if (t != null) controller.setDayStart(t);
-                    },
-                  ),
+                        child: child!,
+                      ),
+                    );
+                    if (t != null) controller.setDayStart(t);
+                  },
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TimeBlock(
-                    label: 'Day Ends',
-                    time: controller.dayEnd,
-                    onTap: () async {
-                      final t = await showTimePicker(
-                        context: context,
-                        initialTime: controller.dayEnd,
-                        builder: (context, child) => Theme(
-                          data: ThemeData.light().copyWith(
-                            colorScheme: const ColorScheme.light(primary: AppColors.black),
-                          ),
-                          child: child!,
-                        ),
-                      );
-                      if (t != null) controller.setDayEnd(t);
-                    },
-                  ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TimeBlock(
+                  label: 'Day Ends',
+                  time: controller.dayEnd,
+                  onTap: () async {
+                    final t = await showTimePicker(
+                      context: context,
+                      initialTime: controller.dayEnd,
+                    );
+                    if (t != null) controller.setDayEnd(t);
+                  },
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

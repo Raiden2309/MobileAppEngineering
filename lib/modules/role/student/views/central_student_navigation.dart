@@ -56,30 +56,8 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<BurnoutAlertProvider>().loadMock();
-      final settings = context.read<StudentSettingsProvider>();
-      settings.loadMock();
-
-      // Wire settings → semester progress
-      void syncSemester() {
-        final current = settings.semesters.firstWhere(
-              (s) => s['isCurrent'] == 'true',
-          orElse: () => settings.semesters.isNotEmpty ? settings.semesters.first : {},
-        );
-        if (current.isNotEmpty) {
-          context.read<SemesterProvider>().switchSemester(
-            semesterId:   current['id'] ?? current['semesterKey'] ?? '',
-            semesterName: current['name'] ?? '',
-            start:        current['start'] ?? '',
-            end:          current['end'] ?? '',
-          );
-        } else {
-          context.read<SemesterProvider>().loadMock();
-        }
-      }
-
-      syncSemester();
-      settings.addListener(syncSemester);
-
+      context.read<StudentSettingsProvider>().loadMock();
+      context.read<SemesterProvider>().loadMock();
       context.read<StudyPlanProvider>().loadMock();
       context.read<TasksProvider>().loadMock();
     });

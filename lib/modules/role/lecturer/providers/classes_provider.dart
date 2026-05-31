@@ -63,7 +63,7 @@ class ClassesProvider with ChangeNotifier {
     }
   }
 
-  Future<void> enrollInClass(ClassModel targetClass, {String semester = ''}) async {
+  Future<void> enrollInClass(ClassModel targetClass) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
@@ -78,7 +78,6 @@ class ClassesProvider with ChangeNotifier {
       'completedTasks': 0,
       'pendingTasks': 0,
       'burnoutIndex': 0.0,
-      'semester': semester,
     });
 
     notifyListeners();

@@ -146,10 +146,8 @@ class StudentDashboardProvider with ChangeNotifier {
           }
 
           final bool isInProgress = status == 'inProgress';
-          // Show if due today, in progress, OR just a pending toDo with no date
-          final bool isPending = status == 'toDo' && dueDateStr == null;
 
-          if (isToday || isInProgress || isPending) {
+          if (isToday || isInProgress) {
             result.add(TaskItem(
               title: t['title']?.toString() ?? 'Task',
               subtitle: '$className · ${t['estimated_hours']}h',

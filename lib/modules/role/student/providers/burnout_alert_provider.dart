@@ -108,7 +108,9 @@ class BurnoutAlertProvider with ChangeNotifier {
     listenToLiveBurnoutMetrics();
   }
 
-  void loadMock() => listenToLiveBurnoutMetrics();
+  void loadMock() {
+    listenToLiveBurnoutMetrics();
+  }
 
   @override
   void dispose() {
