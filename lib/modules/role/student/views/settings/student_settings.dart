@@ -84,7 +84,7 @@ class SettingsBody extends StatelessWidget {
                 icon: Icons.lock_rounded,
                 iconBg: AppColors.californiaBlue.withValues(alpha: 0.2),
                 label: 'Join Class',
-                value: '${data.joinedClassCount} classes',
+                value: '${provider.joinedClassCount} classes',
                 onTap: () => JoinedClassesSheet.show(context),
               ),
             ],

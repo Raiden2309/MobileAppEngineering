@@ -139,14 +139,29 @@ class StudentSettingsProvider with ChangeNotifier {
         .collection('enrollments')
         .where('studentId', isEqualTo: user.uid)
         .snapshots()
-        .listen((snapshot) {
-      joinedClasses = snapshot.docs.map((doc) {
-        final d = doc.data();
-        return JoinedClassModel(
-          id:   doc.id,
-          name: d['classId']?.toString() ?? 'Unknown Class',
-        );
-      }).toList();
+        .asyncMap((snapshot) async {
+      final List<JoinedClassModel> resolved = [];
+      for (final doc in snapshot.docs) {
+        final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
+        if (subjectCode.isEmpty) continue;
+        try {
+          final classSnap = await _db
+              .collection('classes')
+              .where('subjectCode', isEqualTo: subjectCode)
+              .limit(1)
+              .get();
+          if (classSnap.docs.isNotEmpty) {
+            resolved.add(JoinedClassModel(
+              id:   classSnap.docs.first.id,
+              name: classSnap.docs.first.data()['name']?.toString() ?? 'Unknown Class',
+            ));
+          }
+        } catch (_) {}
+      }
+      return resolved;
+    })
+        .listen((resolved) {
+      joinedClasses = resolved;
       _rebuildDataModel();
     });
   }
@@ -471,6 +486,20 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   // ── Join / leave class ────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>?> lookupClassByCode(String code) async {
+    try {
+      final snap = await _db
+          .collection('classes')
+          .where('classCode', isEqualTo: code.trim().toUpperCase())
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return null;
+      return snap.docs.first.data();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<bool> joinClass(String code) async {
     if (_uid == null || code.trim().isEmpty) return false;
     try {
@@ -777,6 +806,52 @@ class StudentSettingsProvider with ChangeNotifier {
     final period = t.period == DayPeriod.am ? 'AM' : 'PM';
     final minute = t.minute == 0 ? '' : ':${t.minute.toString().padLeft(2, '0')}';
     return '$hour$minute $period';
+  }
+
+
+  Stream<List<Map<String, dynamic>>> streamJoinedClasses() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return Stream.value([]);
+
+    return FirebaseFirestore.instance
+        .collection('enrollments')
+        .where('studentId', isEqualTo: user.uid)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final List<Map<String, dynamic>> result = [];
+
+      for (final doc in snapshot.docs) {
+        final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
+        if (subjectCode.isEmpty) continue;
+
+        try {
+          final classSnap = await FirebaseFirestore.instance
+              .collection('classes')
+              .where('subjectCode', isEqualTo: subjectCode)
+              .limit(1)
+              .get();
+
+          if (classSnap.docs.isNotEmpty) {
+            final d = classSnap.docs.first.data();
+            result.add({
+              'name': d['name'] ?? 'Unknown Class',
+              'subjectCode': d['subjectCode'] ?? subjectCode,
+              'classId': classSnap.docs.first.id,
+            });
+          }
+        } catch (e) {
+          debugPrint('Failed to resolve class for enrollment: $e');
+        }
+      }
+
+      joinedClasses = result.map((e) => JoinedClassModel(
+        id: e['classId'] ?? '',
+        name: e['name'] ?? '',
+      )).toList();
+      _rebuildDataModel(); // this calls notifyListeners(), updating the counter
+
+      return result;
+    });
   }
 
   @override

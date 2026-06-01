@@ -24,9 +24,14 @@ class StudentDashboardProvider with ChangeNotifier {
   void updateActiveSemester(String? semesterId) {
     if (_currentSemesterId != semesterId) {
       _currentSemesterId = semesterId;
-      notifyListeners();
-      // Re-trigger live stats to instantly switch context to the newly selected semester
-      listenToLiveDashboardStats();
+      // Defer both the notify and the stream restart to after the current
+      // build frame finishes. Calling notifyListeners() synchronously here
+      // (from inside a build() method) causes the
+      // "setState() called during build" exception.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+        listenToLiveDashboardStats();
+      });
     }
   }
 
@@ -95,8 +100,17 @@ class StudentDashboardProvider with ChangeNotifier {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    isLoading = true;
-    notifyListeners();
+    // Only set isLoading if we are NOT already inside a frame callback
+    // (i.e. called directly, not via updateActiveSemester's postFrameCallback).
+    // We avoid notifyListeners() here if the subscription is already active
+    // so we don't trigger a second rebuild mid-frame.
+    if (!isLoading) {
+      isLoading = true;
+      // Safe to notify here only when called outside of build()
+      // (e.g. initState / didChangeDependencies). When called from
+      // updateActiveSemester the postFrameCallback already handles it.
+      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
+    }
 
     _enrollmentSubscription?.cancel();
     _enrollmentSubscription = _db
