@@ -232,7 +232,7 @@ class ClassDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '${c.code.split(' ·').first}–A2',
+                c.classCode,
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontStyles.weightHeavy,
