@@ -138,6 +138,7 @@ class StudentSettingsProvider with ChangeNotifier {
     _enrollmentSubscription = _db
         .collection('enrollments')
         .where('studentId', isEqualTo: user.uid)
+        .where('source', isEqualTo: 'class')
         .snapshots()
         .asyncMap((snapshot) async {
       final List<JoinedClassModel> resolved = [];
@@ -515,6 +516,7 @@ class StudentSettingsProvider with ChangeNotifier {
       final classData  = classDoc.data();
       final className  = classData['name']?.toString()        ?? 'Unknown Class';
       final subjectCode = classData['subjectCode']?.toString() ?? classDoc.id.toUpperCase();
+      debugPrint('joinClass subjectCode resolved: $subjectCode');
 
       final safeDocId = '${_uid}_${className.toLowerCase()
           .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
@@ -527,6 +529,7 @@ class StudentSettingsProvider with ChangeNotifier {
         'studentId':      _uid,
         'classId':        className,
         'subjectCode':    subjectCode,
+        'source':         'class',
         'colorHex':       '#60A5FA',
         'completedTasks': 0,
         'pendingTasks':   0,
@@ -816,12 +819,15 @@ class StudentSettingsProvider with ChangeNotifier {
     return FirebaseFirestore.instance
         .collection('enrollments')
         .where('studentId', isEqualTo: user.uid)
+        .where('source', isEqualTo: 'class')
         .snapshots()
         .asyncMap((snapshot) async {
       final List<Map<String, dynamic>> result = [];
 
       for (final doc in snapshot.docs) {
         final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
+        debugPrint('enrollment subjectCode: $subjectCode');
+
         if (subjectCode.isEmpty) continue;
 
         try {
@@ -830,6 +836,8 @@ class StudentSettingsProvider with ChangeNotifier {
               .where('subjectCode', isEqualTo: subjectCode)
               .limit(1)
               .get();
+
+          debugPrint('classSnap found: ${classSnap.docs.isNotEmpty}');
 
           if (classSnap.docs.isNotEmpty) {
             final d = classSnap.docs.first.data();

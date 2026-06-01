@@ -18,7 +18,9 @@ class ClassesProvider with ChangeNotifier {
   StreamSubscription? _classesSubscription;
 
   ClassesProvider() {
-    startLiveClassesListener();
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) startLiveClassesListener();
+    });
   }
 
   void startLiveClassesListener() {
@@ -33,7 +35,6 @@ class ClassesProvider with ChangeNotifier {
     _classesSubscription = _db
         .collection('classes')
         .where('lecturerId', isEqualTo: user.uid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .listen((snapshot) {
 
