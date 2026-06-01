@@ -14,6 +14,7 @@ class ClassModel {
   int studentCount;
   double avgCompletion;
   int atRiskCount;
+  final List<dynamic> initialTasks; // ADDED: Field for tracking class blueprint tasks
 
   ClassModel({
     required this.id,
@@ -28,6 +29,7 @@ class ClassModel {
     this.studentCount = 0,
     this.avgCompletion = 0.0,
     this.atRiskCount = 0,
+    this.initialTasks = const [], // ADDED: Fallback default value
   });
 
   factory ClassModel.fromFirestore(DocumentSnapshot doc) {
@@ -45,6 +47,7 @@ class ClassModel {
       studentCount: (data['studentCount'] as num? ?? 0).toInt(),
       avgCompletion: (data['avgCompletion'] as num? ?? 0.0).toDouble(),
       atRiskCount: (data['atRiskCount'] as num? ?? 0).toInt(),
+      initialTasks: data['initialTasks'] as List<dynamic>? ?? [], // FIXED: Read task template array from Firestore
     );
   }
 
@@ -60,7 +63,7 @@ class ClassModel {
       'studentCount': studentCount,
       'avgCompletion': avgCompletion,
       'atRiskCount': atRiskCount,
-      'initialTasks': [],
+      'initialTasks': initialTasks,
       'createdAt': FieldValue.serverTimestamp(),
     };
   }

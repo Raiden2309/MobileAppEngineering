@@ -6,6 +6,9 @@ import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/widgets/bottom_nav.dart';
 import '../../../../shared/widgets/lecturer/lecturer_header.dart';
 import '../providers/lecturer_settings_provider.dart';
+import '../providers/classes_provider.dart'; // Exposed clean provider routing reference
+import '../providers/lecturer_dashboard_provider.dart';
+import '../providers/alert_provider.dart';
 import 'classes/lecturer_classes.dart';
 import 'dashboard/lecturer_dashboard.dart';
 import 'engagement/engagement.dart';
@@ -38,7 +41,14 @@ class CentralLecturerNavigationState
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+
+      // Foundation Profile caching parameters hydration
       context.read<LecturerSettingsProvider>().loadMock();
+
+      // FIXED: Forces real-time Firestore synchronization pipelines on navigation initialization
+      context.read<ClassesProvider>().startLiveClassesListener();
+      context.read<LecturerDashboardProvider>().initLiveDashboard();
+      context.read<AlertProvider>().initLiveAlertStream();
     });
   }
 
@@ -90,7 +100,7 @@ class CentralLecturerNavigationState
       bottomNavigationBar: BottomNavBar(
         currentIndex: currentNavIndex,
         onTap: goToTab,
-        role: 2,
+        role:2,
       ),
     );
   }

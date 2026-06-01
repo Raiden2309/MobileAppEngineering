@@ -6,6 +6,7 @@ import '../../../controllers/classes_controller.dart';
 import '../../../controllers/lecture_dashboard_controller.dart';
 import '../../../models/class_model.dart';
 import '../../../providers/lecturer_dashboard_provider.dart';
+import '../../classes/class_detail_page.dart'; // REQUIRED IMPORT
 
 class LecturerClassesCards extends StatelessWidget {
   final VoidCallback? onSeeAll;
@@ -46,7 +47,18 @@ class LecturerClassesCards extends StatelessWidget {
         ...classes.map(
               (c) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: _ClassRow(model: c),
+            // FIXED: Wrapped row mapping layer into an active local structural routing context bridge
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ClassDetailPage(classModel: c),
+                  ),
+                );
+              },
+              child: _ClassRow(model: c),
+            ),
           ),
         ),
         const SizedBox(height: 24),

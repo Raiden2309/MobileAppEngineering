@@ -6,6 +6,7 @@ import '../../controllers/classes_controller.dart';
 import '../../models/class_model.dart';
 import '../../models/class_student_model.dart';
 import '../../providers/classes_provider.dart';
+import 'widgets/assign_task_sheet.dart';
 
 class ClassDetailPage extends StatelessWidget {
   final ClassModel classModel;
@@ -20,11 +21,23 @@ class ClassDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = classModel;
-    final classCode = c.code.split(' ·').first.trim();
+    final classCode = classModel.code.split(' ·').first.trim();
+    final classesProvider = context.read<ClassesProvider>();
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.black,
+        icon: const Icon(Icons.add_task_rounded, color: Colors.white),
+        label: const Text('Assign Task', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () {
+          AssignTaskSheet.show(
+            context,
+            classModel.id,
+            classModel.subjectCode,
+          );
+        },
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -37,34 +50,78 @@ class ClassDetailPage extends StatelessWidget {
           bottom: false,
           child: Column(
             children: [
-              _buildBackNav(context, c),
+              _buildBackNav(context, classModel),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHero(c),
-                      _buildCompletionBar(c),
-                      const SizedBox(height: 16),
-                      _buildWorkloadMonitor(c),
-                      const SizedBox(height: 16),
+                // STREAM 1: Listens to the master class document for real-time task additions
+                child: StreamBuilder<ClassModel>(
+                  stream: classesProvider.streamClassDetails(classModel.id),
+                  initialData: classModel,
+                  builder: (context, classSnapshot) {
+                    final dynamicClassModel = classSnapshot.data ?? classModel;
 
-                      StreamBuilder<List<ClassStudentModel>>(
-                        stream: context.read<ClassesProvider>().getStudents(classCode),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
+                    // STREAM 2: Listens to student enrollments for progress computations
+                    return StreamBuilder<List<ClassStudentModel>>(
+                      stream: classesProvider.getStudents(classCode),
+                      builder: (context, studentSnapshot) {
+                        if (studentSnapshot.connectionState == ConnectionState.waiting && !classSnapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator(color: Colors.white));
+                        }
+
+                        final students = studentSnapshot.data ?? [];
+                        final int totalStudents = students.length;
+
+                        int lowCount = 0;
+                        int medCount = 0;
+                        int highCount = 0;
+                        double totalBurnoutSum = 0.0;
+
+                        for (var student in students) {
+                          totalBurnoutSum += student.burnoutIndex;
+
+                          if (student.burnoutIndex >= 0.70) {
+                            highCount++;
+                          } else if (student.burnoutIndex >= 0.40) {
+                            medCount++;
+                          } else {
+                            lowCount++;
                           }
-                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            return const Text("No students enrolled.");
-                          }
-                          // This replaces your _buildStudentList(students) call
-                          return _buildStudentList(snapshot.data!);
-                        },
-                      ),
-                    ],
-                  ),
+                        }
+
+                        final double calculatedAvgProgress = totalStudents > 0
+                            ? (1.0 - (totalBurnoutSum / totalStudents))
+                            : 0.0;
+
+                        return SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildHero(dynamicClassModel, totalStudents, calculatedAvgProgress, highCount),
+                              const SizedBox(height: 16),
+                              _buildCompletionBar(calculatedAvgProgress),
+                              const SizedBox(height: 16),
+                              _buildWorkloadMonitor(totalStudents, lowCount, medCount, highCount),
+                              const SizedBox(height: 16),
+
+                              // LIVE UPDATING: Uses dynamic stream payload data safely
+                              _buildAssignedTasksTracker(dynamicClassModel, students),
+                              const SizedBox(height: 16),
+
+                              if (students.isEmpty)
+                                const Center(
+                                  child: Text(
+                                    "No students enrolled in this class.",
+                                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                                  ),
+                                )
+                              else
+                                _buildStudentList(students),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
@@ -116,7 +173,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHero(ClassModel c) {
+  Widget _buildHero(ClassModel c, int totalStudents, double avgProgress, int atRisk) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -194,11 +251,11 @@ class ClassDetailPage extends StatelessWidget {
         const SizedBox(height: 14),
         Row(
           children: [
-            _miniStat('Students', ClassesController.studentsLabel(c), AppColors.californiaBlue),
+            _miniStat('Students', '$totalStudents', AppColors.californiaBlue),
             const SizedBox(width: 8),
-            _miniStat('Avg Done', ClassesController.avgDoneLabel(c),  AppColors.mikadoYellow),
+            _miniStat('Avg Done', '${(avgProgress * 100).toStringAsFixed(0)}%',  AppColors.mikadoYellow),
             const SizedBox(width: 8),
-            _miniStat('At Risk',  ClassesController.atRiskLabel(c),   ClassesController.atRiskColor(c)),
+            _miniStat('At Risk',  '$atRisk',   atRisk > 0 ? AppColors.red : AppColors.greenSheen),
           ],
         ),
         const SizedBox(height: 16),
@@ -222,7 +279,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildCompletionBar(ClassModel c) {
+  Widget _buildCompletionBar(double avgProgress) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: _whiteCard(),
@@ -233,14 +290,14 @@ class ClassDetailPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Class Completion', style: TextStyle(fontSize: FontStyles.titleTiny, color: AppColors.black.withValues(alpha: 0.6))),
-              Text(ClassesController.avgDoneLabel(c), style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightHeavy, color: AppColors.californiaBlue)),
+              Text('${(avgProgress * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightHeavy, color: AppColors.californiaBlue)),
             ],
           ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: c.avgCompletion / 100,
+              value: avgProgress,
               minHeight: 8,
               backgroundColor: AppColors.black.withValues(alpha: 0.08),
               valueColor: const AlwaysStoppedAnimation<Color>(AppColors.californiaBlue),
@@ -248,7 +305,7 @@ class ClassDetailPage extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            '173 of 308 tasks completed across all students',
+            'Live curriculum engagement average tracked across registered profiles',
             style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5)),
           ),
         ],
@@ -256,7 +313,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildWorkloadMonitor(ClassModel c) {
+  Widget _buildWorkloadMonitor(int total, int low, int med, int high) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -270,11 +327,11 @@ class ClassDetailPage extends StatelessWidget {
             children: [
               Text('Class workload distribution', style: TextStyle(fontSize: FontStyles.titleTiny, color: AppColors.black.withValues(alpha: 0.6))),
               const SizedBox(height: 12),
-              _workloadBar('Low',            11, c.studentCount, AppColors.greenSheen),
+              _workloadBar('Low',            low, total, AppColors.greenSheen),
               const SizedBox(height: 8),
-              _workloadBar('Moderate',       16, c.studentCount, AppColors.mikadoYellow),
+              _workloadBar('Moderate',       med, total, AppColors.mikadoYellow),
               const SizedBox(height: 8),
-              _workloadBar('High / At Risk', c.atRiskCount, c.studentCount, AppColors.red),
+              _workloadBar('High / At Risk', high, total, AppColors.red),
             ],
           ),
         ),
@@ -301,6 +358,101 @@ class ClassDetailPage extends StatelessWidget {
         SizedBox(
           width: 20,
           child: Text('$count', style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: color), textAlign: TextAlign.right),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAssignedTasksTracker(ClassModel c, List<ClassStudentModel> students) {
+    final List<dynamic> taskBlueprints = c.initialTasks;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Assigned Tasks Tracking',
+          style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightHeavy, color: AppColors.black),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: _whiteCard(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (taskBlueprints.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8.0),
+                  child: Text(
+                    'No tasks assigned to this class yet.\nTap "Assign Task" below to start.',
+                    style: TextStyle(color: Colors.black54, fontSize: 13),
+                  ),
+                )
+              else
+                ...taskBlueprints.map((task) {
+                  final String taskTitle = task['title']?.toString() ?? 'Untitled Task';
+                  final String description = task['description']?.toString() ?? '';
+
+                  int activeCount = 0;
+                  for (var s in students) {
+                    if (s.burnoutIndex < 0.70) {
+                      activeCount++;
+                    }
+                  }
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.black.withValues(alpha: 0.04),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.assignment_outlined, color: AppColors.californiaBlue, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  taskTitle,
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.black),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (description.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    description,
+                                    style: const TextStyle(fontSize: 11, color: Colors.black54),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ]
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.californiaBlue.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$activeCount Doing it',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.californiaBlue),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
         ),
       ],
     );

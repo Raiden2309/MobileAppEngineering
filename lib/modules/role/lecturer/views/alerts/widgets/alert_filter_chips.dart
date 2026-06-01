@@ -32,13 +32,13 @@ class AlertFilterChips extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Colors.white.withValues(alpha: 0.25)
-                      : Colors.white.withValues(alpha: 0.10),
+                      ? Colors.white.withOpacity(0.25)
+                      : Colors.white.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isActive
-                        ? Colors.white.withValues(alpha: 0.5)
-                        : Colors.white.withValues(alpha: 0.2),
+                        ? Colors.white.withOpacity(0.5)
+                        : Colors.white.withOpacity(0.2),
                   ),
                 ),
                 child: Text(
@@ -48,7 +48,7 @@ class AlertFilterChips extends StatelessWidget {
                     fontWeight: isActive
                         ? FontStyles.weightHeavy
                         : FontStyles.weightMedium,
-                    color: AppColors.black.withValues(alpha: isActive ? 1.0 : 0.6),
+                    color: isActive ? AppColors.white : AppColors.black.withOpacity(0.6),
                   ),
                 ),
               ),

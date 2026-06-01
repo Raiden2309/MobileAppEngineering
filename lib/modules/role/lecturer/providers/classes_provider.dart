@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -8,79 +9,191 @@ class ClassesProvider with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  List<ClassModel> availableClasses = [];
+  List<ClassModel> _classes = [];
+  List<ClassModel> get classes => _classes;
+
   bool isLoading = false;
+  String? error;
 
-  List<ClassModel> get classes => availableClasses;
+  StreamSubscription? _classesSubscription;
 
-  Future<void> addClass(ClassModel newClass) async {
-    await _db.collection('classes').doc(newClass.id).set(newClass.toFirestore());
-    await fetchAllClasses();
+  ClassesProvider() {
+    startLiveClassesListener();
   }
 
-  Future<void> deleteClass(ClassModel targetClass) async {
-    await _db.collection('classes').doc(targetClass.id).delete();
-    await fetchAllClasses();
-  }
+  void startLiveClassesListener() {
+    final user = _auth.currentUser;
+    if (user == null) return;
 
-  Future<void> fetchAllClasses() async {
     isLoading = true;
     notifyListeners();
 
-    try {
-      final snapshot = await _db.collection('classes').get();
-      availableClasses = snapshot.docs
-          .map((doc) => ClassModel.fromFirestore(doc))
-          .toList();
-    } catch (e) {
-      debugPrint("Error gathering classes: $e");
-    } finally {
+    _classesSubscription?.cancel();
+
+    _classesSubscription = _db
+        .collection('classes')
+        .where('lecturerId', isEqualTo: user.uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .listen((snapshot) {
+
+      _classes = snapshot.docs.map((doc) {
+        return ClassModel.fromFirestore(doc);
+      }).toList();
+
+      isLoading = false;
+      error = null;
+      notifyListeners();
+    }, onError: (e) {
+      error = e.toString();
       isLoading = false;
       notifyListeners();
-    }
+    });
   }
 
-  Stream<List<ClassStudentModel>> getStudents(String classId) {
+  /// STREAM: Fetches all enrollment records for a subject and dynamically joins user data to retrieve actual student names
+  Stream<List<ClassStudentModel>> getStudents(String classCode) {
     return _db
         .collection('enrollments')
-        .where('classId', isEqualTo: classId)
+        .where('subjectCode', isEqualTo: classCode)
         .snapshots()
-        .map((snap) => snap.docs
-        .map((doc) => ClassStudentModel.fromFirestore(doc))
-        .toList());
+        .asyncMap((enrollmentSnapshot) async {
+
+      final List<ClassStudentModel> populatedStudentsList = [];
+
+      for (var doc in enrollmentSnapshot.docs) {
+        final enrollmentData = doc.data();
+        final String studentUid = enrollmentData['studentId']?.toString() ?? '';
+
+        String actualStudentName = 'Enrolled Student';
+
+        if (studentUid.isNotEmpty) {
+          try {
+            // LOOKUP: Query the master user profile document matching this ID
+            final DocumentSnapshot userProfileSnapshot =
+            await _db.collection('users').doc(studentUid).get();
+
+            if (userProfileSnapshot.exists) {
+              final userData = userProfileSnapshot.data() as Map<String, dynamic>? ?? {};
+              // Target the exact "name" field visible in your Firestore console image
+              actualStudentName = userData['name']?.toString() ?? 'Enrolled Student';
+            }
+          } catch (e) {
+            debugPrint("Failed to load real-time student profile name payload: $e");
+          }
+        }
+
+        populatedStudentsList.add(
+          ClassStudentModel(
+            studentId: studentUid,
+            name: actualStudentName,
+            weeklyStudyHours: (enrollmentData['weeklyStudyHours'] as num? ?? 0.0).toDouble(),
+            burnoutIndex: (enrollmentData['burnoutIndex'] as num? ?? 0.0).toDouble(),
+          ),
+        );
+      }
+
+      return populatedStudentsList;
+    });
   }
 
-  // --- Student Integration Interface Queries ---
-  Future<List<ClassModel>> getAllAvailableClasses() async {
+  /// NEW REAL-TIME STREAM: Listens to updates for a specific class document
+  Stream<ClassModel> streamClassDetails(String classId) {
+    return _db
+        .collection('classes')
+        .doc(classId)
+        .snapshots()
+        .map((snapshot) => ClassModel.fromFirestore(snapshot));
+  }
+
+  /// METHOD: Distributes a task blueprint to a class and pushes it to all enrolled students
+  Future<void> assignTaskToClass({
+    required String classId,
+    required String subjectCode,
+    required String taskTitle,
+    required String description,
+    required DateTime dueDate,
+  }) async {
     try {
-      final snapshot = await _db.collection('classes').get();
-      return snapshot.docs
-          .map((doc) => ClassModel.fromFirestore(doc))
-          .toList();
+      final String generatedTaskId = _db.collection('classes').doc().id;
+
+      final Map<String, dynamic> taskMap = {
+        'id': generatedTaskId,
+        'title': taskTitle,
+        'description': description,
+        'estimated_hours': 1.0,
+        'status': 'toDo',
+        'due_date': dueDate.toIso8601String(),
+      };
+
+      // 1. Add task directly into the core class curriculum matrix template
+      await _db.collection('classes').doc(classId).update({
+        'initialTasks': FieldValue.arrayUnion([taskMap]),
+      });
+
+      // 2. Query all student records tracking this specific course subject code
+      final QuerySnapshot targetEnrollments = await _db
+          .collection('enrollments')
+          .where('subjectCode', isEqualTo: subjectCode.toUpperCase())
+          .get();
+
+      if (targetEnrollments.docs.isEmpty) return;
+
+      final WriteBatch taskWriteBatch = _db.batch();
+
+      // 3. Increment pending tasks and append task records to every matching student profile
+      for (var doc in targetEnrollments.docs) {
+        final DocumentReference enrollmentDocRef = _db.collection('enrollments').doc(doc.id);
+
+        taskWriteBatch.update(enrollmentDocRef, {
+          'tasksList': FieldValue.arrayUnion([taskMap]),
+          'pendingTasks': FieldValue.increment(1),
+        });
+      }
+
+      await taskWriteBatch.commit();
+      notifyListeners();
     } catch (e) {
-      debugPrint("Error fetching all classes for student browse: $e");
-      return [];
+      debugPrint("Failed to distribute assigned tasks across enrollments collection: $e");
+      rethrow;
     }
   }
 
-  Future<void> enrollInClass(ClassModel targetClass, {String semester = ''}) async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
+  Future<void> addClass(ClassModel newClass) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
 
-    final enrollmentId = "${uid}_${targetClass.id}";
+    try {
+      await _db.collection('classes').doc(newClass.id).set({
+        'name': newClass.name,
+        'subjectCode': newClass.subjectCode.toUpperCase(),
+        'classCode': newClass.classCode,
+        'semester': newClass.semester,
+        'lecturerId': user.uid,
+        'studentCount': 0,
+        'avgCompletion': 0.0,
+        'atRiskCount': 0,
+        'initialTasks': [],
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint("Failed to execute class creation transaction pipeline: $e");
+      rethrow;
+    }
+  }
 
-    await _db.collection('enrollments').doc(enrollmentId).set({
-      'studentId': uid,
-      'classId': targetClass.id,
-      'studentName': _auth.currentUser?.displayName ?? 'Edwin Chin',
-      'joinedAt': FieldValue.serverTimestamp(),
-      'weeklyStudyHours': 0.0,
-      'completedTasks': 0,
-      'pendingTasks': 0,
-      'burnoutIndex': 0.0,
-      'semester': semester,
-    });
+  Future<void> deleteClass(String classId) async {
+    try {
+      await _db.collection('classes').doc(classId).delete();
+    } catch (e) {
+      debugPrint("Aborted class structural destruction mapping sequence: $e");
+      rethrow;
+    }
+  }
 
-    notifyListeners();
+  @override
+  void dispose() {
+    _classesSubscription?.cancel();
+    super.dispose();
   }
 }

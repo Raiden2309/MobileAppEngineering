@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -29,29 +30,68 @@ class LecturerSettingsProvider extends ChangeNotifier {
   bool    loading = false;
   String? error;
 
+  StreamSubscription? _userSubscription;
+
   String? get _uid => _auth.currentUser?.uid;
 
-  Future<void> load() async {
+  LecturerSettingsProvider() {
+    initLiveListeners();
+  }
+
+  /// INITIALIZES LIVE LISTENERS: Links directly to the master users collection document for real-time name parsing
+  void initLiveListeners() async {
+    final uid = _uid;
+    if (uid == null) return;
+
     loading = true;
-    error   = null;
     notifyListeners();
 
     await _loadFromCache();
-    loading = false;
-    notifyListeners();
 
-    try {
-      if (_uid == null) return;
-      final doc = await _db.collection('lecturer_settings').doc(_uid).get();
-      if (doc.exists && doc.data() != null) {
-        _applyFromJson(doc.data()!);
-        await _saveToCache();
+    // Attach real-time stream pipeline directly into your core users collection profiles
+    _userSubscription?.cancel();
+    _userSubscription = _db
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((userSnapshot) {
+
+      if (userSnapshot.exists && userSnapshot.data() != null) {
+        final userData = userSnapshot.data()!;
+        final String liveProfileName = userData['name']?.toString() ?? 'Lecturer Account';
+        final String dept = userData['programme']?.toString() ?? userData['department']?.toString() ?? 'Faculty Portal';
+
+        // Rebuild settings model leveraging database values explicitly over layout mocks
+        data = LecturerSettingsModel(
+          userId: uid.hashCode.abs(),
+          userName: liveProfileName, // Captures authentic name cleanly from Firebase mapping pipelines
+          department: dept,
+          activeClassesCount: 3,
+          burnoutAlerts: burnoutAlerts,
+          fallingBehindAlerts: fallingBehindAlerts,
+          weeklyEngagementReport: weeklyEngagementReport,
+          appVersion: 'v1.0',
+          avatarUrl: avatarUrl,
+        );
+
+        loading = false;
+        error = null;
         notifyListeners();
       }
-    } catch (_) {}
+    }, onError: (e) {
+      error = e.toString();
+      loading = false;
+      notifyListeners();
+    });
   }
 
-  void loadMock() => setData(LecturerSettingsModel.mockData());
+  Future<void> load() async {
+    initLiveListeners();
+  }
+
+  void loadMock() {
+    initLiveListeners(); // Bypasses mockData assignment models entirely to block static records
+  }
 
   void _applyFromJson(Map<String, dynamic> json) {
     data                   = LecturerSettingsModel.fromJson(json);
@@ -107,12 +147,13 @@ class LecturerSettingsProvider extends ChangeNotifier {
   }
 
   Future<void> updateUserName(String name) async {
+    if (_uid == null) return;
     data = data?.copyWith(userName: name);
-    _tryFirestorePatch({'name': name});
+    // Write changes back to master user identity record folder safely
+    await _db.collection('users').doc(_uid).update({'name': name});
     notifyListeners();
   }
 
-  // Uses Firebase Storage instead of ApiService.uploadImage
   Future<void> updateAvatar(XFile file) async {
     if (_uid == null) return;
     try {
@@ -131,7 +172,7 @@ class LecturerSettingsProvider extends ChangeNotifier {
   }
 
   Future<void> signOut(BuildContext context) async {
-    await context.read<AuthProvider>().logout();
+    await Provider.of<AuthProvider>(context, listen: false).logout();
     if (!context.mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
@@ -174,7 +215,13 @@ class LecturerSettingsProvider extends ChangeNotifier {
   void _tryFirestorePatch(Map<String, dynamic> fields) async {
     if (_uid == null) return;
     try {
-      await _db.collection('lecturer_settings').doc(_uid).update(fields);
+      await _db.collection('users').doc(_uid).update(fields);
     } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 }

@@ -11,7 +11,6 @@ class AlertProvider extends ChangeNotifier {
   String selectedFilter = 'all';
   bool isLoading = false;
 
-  // Live dynamic lists instead of hardcoded mock records
   List<AlertModel> _alerts = [];
 
   StreamSubscription? _classesSubscription;
@@ -21,7 +20,6 @@ class AlertProvider extends ChangeNotifier {
     initLiveAlertStream();
   }
 
-  /// Establishes reactive real-time database listeners for the lecturer's specific student data
   void initLiveAlertStream() {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -29,7 +27,6 @@ class AlertProvider extends ChangeNotifier {
     isLoading = true;
     notifyListeners();
 
-    // 1. Fetch class rooms managed exclusively by this lecturer to filter incoming enrollments safely
     _classesSubscription?.cancel();
     _classesSubscription = _db
         .collection('classes')
@@ -49,13 +46,12 @@ class AlertProvider extends ChangeNotifier {
         return;
       }
 
-      // 2. Listen to active student enrollment data matrices inside those specific class streams
       _enrollmentsSubscription?.cancel();
       _enrollmentsSubscription = _db
           .collection('enrollments')
           .where('classId', whereIn: managedClassNames)
           .snapshots()
-          .listen((enrollmentSnapshot) {
+          .listen((enrollmentSnapshot) async { // FIXED: Swapped listener closure context map to async to allow lookups
 
         if (enrollmentSnapshot.docs.isEmpty) {
           _alerts = [];
@@ -68,27 +64,39 @@ class AlertProvider extends ChangeNotifier {
 
         for (var doc in enrollmentSnapshot.docs) {
           final data = doc.data();
-          final String studentName = data['studentName']?.toString() ?? 'Unknown Student';
           final String className = data['classId']?.toString() ?? 'Class Module';
-          final String sId = data['studentId']?.toString() ?? doc.id;
+          final String sId = data['studentId']?.toString() ?? '';
+
+          // FIXED: Resolves real user names by reading from the users collection instead of a static placeholder
+          String resolvedStudentName = 'Unknown Student';
+          if (sId.isNotEmpty) {
+            try {
+              final userDoc = await _db.collection('users').doc(sId).get();
+              if (userDoc.exists) {
+                resolvedStudentName = (userDoc.data()?['name'] ?? 'Unknown Student').toString();
+              }
+            } catch (e) {
+              debugPrint("Failed to resolve user metadata profile join parameters: $e");
+            }
+          }
 
           final double burnout = (data['burnoutIndex'] as num? ?? 0.0).toDouble();
           final int completed = (data['completedTasks'] as num? ?? 0).toInt();
           final int pending = (data['pendingTasks'] as num? ?? 0).toInt();
           final bool isReadStatus = data['alertMarkedRead'] as bool? ?? false;
 
-          // Case A: High Burnout Index (Exhaustion Threshold crossed)
+          // Case A: High Burnout Index
           if (burnout >= 0.70) {
             realTimeAlerts.add(AlertModel(
               id: '${doc.id}_burnout',
-              title: 'Burnout Risk — $studentName',
-              message: '$studentName is showing severe clinical fatigue patterns at ${(burnout * 100).toStringAsFixed(0)}% strain index.',
+              title: 'Burnout Risk — $resolvedStudentName', // FIXED: Bound resolved profile name parameter
+              message: '$resolvedStudentName is showing severe clinical fatigue patterns at ${(burnout * 100).toStringAsFixed(0)}% strain index.',
               type: 'burnout',
               time: 'Live',
               emoji: '🔥',
               meta: '$className · Burnout Index: ${(burnout * 100).toStringAsFixed(0)}%',
               studentId: sId,
-              studentName: studentName,
+              studentName: resolvedStudentName, // FIXED: Passes genuine name payload string securely
               className: className,
               burnoutIndex: burnout,
               riskLevel: 'High Risk',
@@ -97,18 +105,18 @@ class AlertProvider extends ChangeNotifier {
             ));
           }
 
-          // Case B: Overdue Workload patterns (Falling Behind Threshold crossed)
+          // Case B: Overdue Workload patterns
           if (pending > 3 || (completed == 0 && pending > 0)) {
             realTimeAlerts.add(AlertModel(
               id: '${doc.id}_behind',
-              title: 'Falling Behind — $studentName',
-              message: '$studentName has accumulated $pending pending academic tasks.',
+              title: 'Falling Behind — $resolvedStudentName', // FIXED: Bound resolved profile name parameter
+              message: '$resolvedStudentName has accumulated $pending pending academic tasks.',
               type: 'behind',
               time: 'Live',
               emoji: '⚠️',
               meta: '$className · $pending tasks remaining unchecked',
               studentId: sId,
-              studentName: studentName,
+              studentName: resolvedStudentName, // FIXED: Passes genuine name payload string securely
               className: className,
               burnoutIndex: burnout,
               riskLevel: 'Moderate Risk',
@@ -126,10 +134,30 @@ class AlertProvider extends ChangeNotifier {
   }
 
   /// Computes filtering array states based on user interaction selections
+  /// Computes filtering array states based on user interaction selections
   List<AlertModel> get filtered {
-    if (selectedFilter == 'all') return _alerts.where((a) => !a.read).toList();
-    if (selectedFilter == 'read') return _alerts.where((a) => a.read).toList();
-    return _alerts.where((a) => a.type == selectedFilter && !a.read).toList();
+    // 1. "All" tab shows absolutely everything (both read and unread alerts combined)
+    if (selectedFilter == 'all') {
+      return _alerts;
+    }
+
+    // 2. "Read" tab shows only notifications marked read
+    if (selectedFilter == 'read') {
+      return _alerts.where((a) => a.read).toList();
+    }
+
+    // 3. "Falling Behind" tab shows behind notifications (both read and unread)
+    if (selectedFilter == 'behind' || selectedFilter == 'falling_behind') {
+      return _alerts.where((a) => a.type == 'behind').toList();
+    }
+
+    // 4. "Burnout" tab shows burnout notifications (both read and unread)
+    if (selectedFilter == 'burnout') {
+      return _alerts.where((a) => a.type == 'burnout').toList();
+    }
+
+    // Fallback default match rule (retains items regardless of read state status)
+    return _alerts.where((a) => a.type == selectedFilter).toList();
   }
 
   void setFilter(String filter) {
@@ -137,9 +165,7 @@ class AlertProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Persists reading state choices straight back down to the target document reference in Firebase
   void markAsRead(AlertModel alert) async {
-    // Strip our custom composite postfix tag to identify the pure parent enrollment Document ID
     final String rawEnrollmentId = alert.id.replaceAll('_burnout', '').replaceAll('_behind', '');
 
     try {

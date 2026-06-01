@@ -3,6 +3,7 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
 import 'modules/auth/providers/auth_provider.dart';
@@ -21,13 +22,36 @@ import 'modules/role/student/providers/task_provider.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/provider/student_provider.dart';
 import 'shared/widgets/splash_screen.dart';
 
+/// Top-level function to handle incoming background/terminated push notifications.
+/// Must be annotated with @pragma('vm:entry-point') so it doesn't get stripped during compilation.
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  debugPrint("Handling a background message: ${message.messageId}");
+}
+
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  WidgetsBinding widgetsBinding =
+  WidgetsFlutterBinding.ensureInitialized();
+
+  FlutterNativeSplash.preserve(
+    widgetsBinding: widgetsBinding,
+  );
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize the background messaging handler as early as possible
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  const storage = FlutterSecureStorage();
+
+  await storage.write(key: 'auth_token',       value: 'test_token_abc123');
+  await storage.write(key: 'user_role',         value: 'student');
+  await storage.write(key: 'is_setup_complete', value: 'true');
 
   final authProvider = AuthProvider();
   await authProvider.loadFromStorage();
@@ -35,38 +59,21 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
         ChangeNotifierProvider(create: (_) => StudentProvider()),
         ChangeNotifierProvider(create: (_) => StudentDashboardProvider()),
-        ChangeNotifierProvider(create: (_) => StudentSettingsProvider()),
-
-        ChangeNotifierProxyProvider<StudentSettingsProvider, TasksProvider>(
-          create: (_) => TasksProvider(),
-          update: (_, settings, tasks) {
-            final semester = settings.activeSemesterName;
-            tasks!.switchSemester(semester);
-            return tasks;
-          },
-        ),
-
-        ChangeNotifierProxyProvider<StudentSettingsProvider, StudyPlanProvider>(
-          create: (_) => StudyPlanProvider(),
-          update: (_, settings, studyPlan) {
-            final semester = settings.activeSemesterName;
-            studyPlan!.switchSemester(semester);
-            return studyPlan;
-          },
-        ),
-
+        ChangeNotifierProvider(create: (_) => StudyPlanProvider()),
+        ChangeNotifierProvider(create: (_) => TasksProvider()),
         ChangeNotifierProvider(create: (_) => SemesterProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => BurnoutAlertProvider()),
+        ChangeNotifierProvider(create: (_) => StudentSettingsProvider()),
 
         // Lecturer
         ChangeNotifierProvider(create: (_) => AlertProvider()),
-        ChangeNotifierProvider(create: (_) => ClassesProvider()),
         ChangeNotifierProvider(create: (_) => LecturerDashboardProvider()),
         ChangeNotifierProvider(create: (_) => EngagementProvider()),
         ChangeNotifierProvider(create: (_) => LecturerSettingsProvider()),
@@ -75,6 +82,7 @@ void main() async {
     ),
   );
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -83,6 +91,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: const SplashScreen(),
+      initialRoute: '/',
     );
   }
 }

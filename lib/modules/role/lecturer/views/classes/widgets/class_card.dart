@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // REQUIRED for clipboard access
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/classes_controller.dart';
@@ -75,6 +76,7 @@ class ClassCard extends StatelessWidget {
                     color: c.accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Icon(Icons.menu_book_rounded, size: 18, color: c.accentColor),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -120,6 +122,59 @@ class ClassCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
+
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Join Code: ${c.classCode.isEmpty ? "N/A" : c.classCode}',
+                    style: const TextStyle(
+                      fontSize: FontStyles.titleTiny,
+                      fontWeight: FontStyles.weightHeavy,
+                      color: AppColors.black,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  if (c.classCode.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: c.classCode)).then((_) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Join Code for ${c.name} copied!'),
+                              duration: const Duration(seconds: 2),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        });
+                      },
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.copy_rounded, size: 14, color: c.accentColor),
+                          const SizedBox(width: 2),
+                          Text(
+                            'Copy',
+                            style: TextStyle(
+                              fontSize: FontStyles.titleTiny,
+                              color: c.accentColor,
+                              fontWeight: FontStyles.weightHeavy,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
             IntrinsicHeight(
               child: Row(
                 children: [
