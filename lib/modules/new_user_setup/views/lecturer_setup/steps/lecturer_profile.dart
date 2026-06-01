@@ -110,7 +110,7 @@ class GenerateButton extends StatelessWidget {
         .split(' ')
         .first
         .toUpperCase();
-    controller.setJoinCode('$code–A1');
+    controller.generateRandomClassCode();
   }
 
   @override

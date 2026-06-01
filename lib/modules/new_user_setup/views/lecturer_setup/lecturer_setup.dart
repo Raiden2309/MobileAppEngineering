@@ -5,9 +5,6 @@ import 'package:mae_assignment_frontend/modules/new_user_setup/views/lecturer_se
 import 'package:provider/provider.dart';
 
 import '../../../../shared/styles/app_colors.dart';
-import '../../../auth/services/auth_service.dart';
-import '../../../role/lecturer/views/central_lecturer_navigation.dart';
-import '../../models/lecturer_model.dart';
 import '../../provider/lecturer_provider.dart';
 
 // Wrap the real page in a provider shell so the context inside
@@ -19,7 +16,6 @@ class LecturerSetupPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => LecturerProvider(),
-      // Use builder so the child's context is below the provider.
       builder: (context, _) => const _LecturerSetupPageInner(),
     );
   }
@@ -47,40 +43,17 @@ class _LecturerSetupPageInnerState extends State<_LecturerSetupPageInner> {
     setState(() => _generating = true);
   }
 
+  // FIXED: Delegate database creation and navigation parameters safely directly to the controller
   Future<void> _onGenerateDone() async {
-    final lecturerModel = LecturerModel(
-      id: '',
-      name: controller.nameController.text,
-      email: '',
-      programme: '',
-      classes: [
-        LecturerClass(
-          name: controller.subjectNameController.text,
-          code: controller.subjectNameController.text
-              .trim()
-              .split(' ')
-              .first
-              .toUpperCase(),
-          joinCode: controller.generatedJoinCode ?? '',
-        ),
-      ],
-    );
-
     if (!mounted) return;
-    // context here is safely below the ChangeNotifierProvider
-    await context.read<LecturerProvider>().save(lecturerModel);
 
-    await AuthService.completeSetup();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()),
-    );
+    // This method automatically handles saving to Firestore, updating native storage flags,
+    // and pushing to CentralLecturerNavigation safely.
+    await controller.completeSetup(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    // LecturerGenerateProfile draws its own full-screen gradient,
-    // so only apply the outer gradient for the profile form step.
     if (_generating) {
       return Scaffold(body: LecturerGenerateProfile(onDone: _onGenerateDone));
     }
