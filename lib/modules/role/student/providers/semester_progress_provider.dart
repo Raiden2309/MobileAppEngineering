@@ -18,6 +18,7 @@ class SemesterProvider with ChangeNotifier {
   String _dateRange    = '';
   DateTime? _semStart;
   DateTime? _semEnd;
+  String? get currentSemesterId => _currentSemesterId;
 
   void switchSemester({
     required String semesterId,

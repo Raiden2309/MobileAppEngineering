@@ -105,14 +105,14 @@ class StudentSettingsProvider with ChangeNotifier {
         .collection('users')
         .doc(user.uid)
         .snapshots()
-        .listen((snapshot) {
+        .listen((snapshot) async {
       if (!snapshot.exists || snapshot.data() == null) return;
 
       final d = snapshot.data()!;
       currentLiveName     = d['name']?.toString()     ?? currentLiveName;
       currentLiveSemester = d['semester']?.toString() ?? currentLiveSemester;
       currentLiveYear     = (d['year'] as num?)?.toInt() ?? currentLiveYear;
-      currentSemesterId   = d['currentSemesterId']?.toString() ?? currentSemesterId;
+      final newSemId      = d['currentSemesterId']?.toString();
 
       if (d['study_hours_start'] != null) studyStart   = _parseTimeString(d['study_hours_start'].toString());
       if (d['study_hours_end']   != null) studyEnd     = _parseTimeString(d['study_hours_end'].toString());
@@ -129,12 +129,8 @@ class StudentSettingsProvider with ChangeNotifier {
       weeklyResetSummary = d['weekly_reset_summary'] as bool? ?? weeklyResetSummary;
       avatarUrl          = d['avatar_url']?.toString() ?? avatarUrl;
 
-      if (d['semesterHistory'] != null) {
-        final List<dynamic> historyRaw = d['semesterHistory'];
-        semesters = historyRaw.map((e) => Map<String, String>.from(e as Map)).toList();
-      }
-
-      _rebuildDataModel();
+      // Always load all semesters from subcollection (source of truth)
+      await _loadAllSemesters(user.uid, newCurrentSemId: newSemId);
     });
 
     // Pipeline 2: Listen to enrollments collection
@@ -158,6 +154,78 @@ class StudentSettingsProvider with ChangeNotifier {
   /// Fallback / compatibility alias
   Future<void> load() async => initLiveListeners();
   void loadMock()           => initLiveListeners();
+
+  // ── Load all semesters from subcollection (source of truth) ─────────────────
+  Future<void> _loadAllSemesters(String uid, {String? newCurrentSemId}) async {
+    try {
+      final semSnap = await _db
+          .collection('users')
+          .doc(uid)
+          .collection('semesters')
+          .get();
+
+      if (semSnap.docs.isEmpty) {
+        _rebuildDataModel();
+        return;
+      }
+
+      // Determine which semId is current
+      final activeSemId = newCurrentSemId ?? currentSemesterId;
+
+      semesters = semSnap.docs.map((doc) {
+        final d   = doc.data();
+        final id  = doc.id;
+        final sem = (d['semester'] as num?)?.toInt() ?? 1;
+        final yr  = (d['year']     as num?)?.toInt() ?? 1;
+        final subj = (d['subjects'] as List?)?.length ?? 0;
+        return {
+          'id':           id,
+          'name':         'Semester $sem · Year $yr',
+          'semesterKey':  id,
+          'semesterNum':  sem.toString(),
+          'yearNum':      yr.toString(),
+          'start':        d['semStart']?.toString() ?? '',
+          'end':          d['semEnd']?.toString()   ?? '',
+          'isCurrent':    (id == activeSemId).toString(),
+          'subjectCount': subj.toString(),
+        };
+      }).toList();
+
+      // Sort: most recent first (highest year, then highest sem)
+      semesters.sort((a, b) {
+        final yA = int.tryParse(a['yearNum'] ?? '0') ?? 0;
+        final yB = int.tryParse(b['yearNum'] ?? '0') ?? 0;
+        if (yB != yA) return yB.compareTo(yA);
+        final sA = int.tryParse(a['semesterNum'] ?? '0') ?? 0;
+        final sB = int.tryParse(b['semesterNum'] ?? '0') ?? 0;
+        return sB.compareTo(sA);
+      });
+
+      // If we have a new current sem id, update state and load its subjects
+      if (newCurrentSemId != null && newCurrentSemId != currentSemesterId) {
+        currentSemesterId = newCurrentSemId;
+        subjects = [];
+      }
+
+      if (currentSemesterId != null) {
+        await _loadSubjectsForSemester(currentSemesterId!);
+      } else if (semesters.isNotEmpty) {
+        // Auto-select the first (most recent) semester
+        currentSemesterId = semesters.first['id'];
+        semesters = semesters.map((s) => {
+          ...s,
+          'isCurrent': (s['id'] == currentSemesterId).toString(),
+        }).toList();
+        await _loadSubjectsForSemester(currentSemesterId!);
+      }
+
+      _rebuildDataModel();
+      await _saveToCache();
+    } catch (e) {
+      debugPrint('_loadAllSemesters error: $e');
+      _rebuildDataModel();
+    }
+  }
 
   // ── Load subjects for a specific semester ─────────────────────────────────────
   Future<void> _loadSubjectsForSemester(String semId) async {
@@ -208,7 +276,8 @@ class StudentSettingsProvider with ChangeNotifier {
 
           await _db.collection('enrollments').doc(enrollmentId).set({
             'studentId':        _uid,
-            'classId':          safeClassId,
+            'classId':          subjectName, // Changed from safeClassId to preserve presentation name
+            'subjectCode':      subject['code'] ?? subjectName.toUpperCase(), // Added missing field expected by progress tracker
             'semester':         currentSemesterId,
             'weeklyStudyHours': 0.0,
             'completedTasks':   0,
@@ -234,9 +303,8 @@ class StudentSettingsProvider with ChangeNotifier {
   // ── Semesters CRUD ────────────────────────────────────────────────────────────
   Future<void> saveSemesters(List<Map<String, String>> updated) async {
     final newEntry = updated.last;
-    final nameParts = (newEntry['name'] ?? '').split(' ');
-    final semNum  = int.tryParse(nameParts.length > 1 ? nameParts[1] : '1') ?? 1;
-    final semYear = int.tryParse(nameParts.length > 3 ? nameParts[3] : '1') ?? 1;
+    final semNum  = int.tryParse(newEntry['semesterNum'] ?? '') ?? 1;
+    final semYear = int.tryParse(newEntry['yearNum']     ?? '') ?? 1;
     final semId   = 'sem_${semNum}_yr$semYear';
 
     if (_uid != null) {
@@ -246,31 +314,18 @@ class StudentSettingsProvider with ChangeNotifier {
           .collection('semesters')
           .doc(semId)
           .set({
-        'id':       semId,
-        'semester': semNum,
-        'year':     semYear,
-        'semStart': newEntry['start'] ?? '',
-        'semEnd':   newEntry['end']   ?? '',
+        'id':        semId,
+        'semester':  semNum,
+        'year':      semYear,
+        'semStart':  newEntry['start'] ?? '',
+        'semEnd':    newEntry['end']   ?? '',
         'examDates': [],
         'subjects':  [],
       });
+
+      // Reload from Firestore so the list is always in sync
+      await _loadAllSemesters(_uid!);
     }
-
-    semesters = [
-      ...semesters,
-      {
-        'id':           semId,
-        'name':         newEntry['name'] ?? 'Semester $semNum Year $semYear',
-        'semesterKey':  semId,
-        'start':        newEntry['start'] ?? '',
-        'end':          newEntry['end']   ?? '',
-        'isCurrent':    'false',
-        'subjectCount': '0',
-      },
-    ];
-
-    _rebuildDataModel();
-    await _saveToCache();
     notifyListeners();
   }
 

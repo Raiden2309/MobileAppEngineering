@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
+import '../../../providers/student_settings_provider.dart';
 
 class SubjectsSheet extends StatefulWidget {
   const SubjectsSheet({super.key});
 
-  static void show(BuildContext context) {
-    showModalBottomSheet(
+  static Future<void> show(BuildContext context) {
+    return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const SubjectsSheet(),
+      builder: (_) => const SubjectsSheet(),
     );
   }
 
@@ -21,106 +20,255 @@ class SubjectsSheet extends StatefulWidget {
 }
 
 class _SubjectsSheetState extends State<SubjectsSheet> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _codeController = TextEditingController();
-  bool _isSaving = false;
+  late List<Map<String, String>> _subjects;
+  final _newSubjectController = TextEditingController();
+  String? _error;
 
-  Future<void> _handleSaveSubject() async {
-    final String subjectName = _nameController.text.trim();
-    final String subjectCode = _codeController.text.trim().toUpperCase();
-    final String uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+  final _colors = [
+    '4F86C6',
+    'F87171',
+    '34D399',
+    'FBBF24',
+    'A78BFA',
+    'F472B6',
+    '60A5FA',
+    'FB923C',
+  ];
+  int _colorIndex = 0;
 
-    if (subjectName.isEmpty || subjectCode.isEmpty || uid.isEmpty) return;
-
-    setState(() => _isSaving = true);
-
-    try {
-      // Create clean document tracking hash strings matching layout serialization engines
-      final String safeDocId = '${uid}_${subjectName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s-]'), '').replaceAll(RegExp(r'[\s-]'), '_')}';
-
-      await FirebaseFirestore.instance.collection('enrollments').doc(safeDocId).set({
-        'studentId': uid,
-        'classId': subjectName,
-        'subjectCode': subjectCode,
-        'colorHex': '#3DA5D9', // Assign a standard default template styling color
-        'completedTasks': 0,
-        'pendingTasks': 0,
-        'burnoutIndex': 0.0,
-        'tasksList': [], // Seed with an empty array ready to accept new task records
-      });
-
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      debugPrint("Failed to save subject collection row entry: $e");
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
+  @override
+  void initState() {
+    super.initState();
+    _subjects = List<Map<String, String>>.from(
+      context
+          .read<StudentSettingsProvider>()
+          .subjects
+          .map(
+            (e) => Map<String, String>.from(e),
+      ),
+    );
   }
+
+  @override
+  void dispose() {
+    _newSubjectController.dispose();
+    super.dispose();
+  }
+
+  void _add() {
+    final name = _newSubjectController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Please enter a subject name');
+      return;
+    }
+    setState(() {
+      _subjects.add({
+        'name': name,
+        'color_hex': _colors[_colorIndex % _colors.length],
+      });
+      _colorIndex++;
+      _newSubjectController.clear();
+      _error = null;
+    });
+  }
+
+  void _remove(int i) => setState(() => _subjects.removeAt(i));
+
+  Color _parseColor(String hex) => Color(int.parse('FF$hex', radix: 16));
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery
+            .of(context)
+            .viewInsets
+            .bottom,
+      ),
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF1E293B), // Premium dark theme matching modal assets
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          color: Color(0xFF1E2330),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Add New Subject Track',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                  'Subjects',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.white,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white70),
+                  icon: const Icon(Icons.close, color: AppColors.white),
                   onPressed: () => Navigator.pop(context),
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _nameController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Subject Name (e.g. Mathematics)',
-                labelStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: Colors.black.withValues(alpha: 0.25),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            const SizedBox(height: 16),
+            if (_subjects.isNotEmpty) ...[
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: _subjects.length,
+                  itemBuilder: (context, i) {
+                    final s = _subjects[i];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.black,
+                        border: Border.all(
+                          color: AppColors.white.withOpacity(0.07),
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: _parseColor(s['color_hex'] ?? '4F86C6'),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              s['name'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFE5E7EB),
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => _remove(i),
+                            child: const Text(
+                              '✕',
+                              style: TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _codeController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Course Code (e.g. AMOD102)',
-                labelStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: Colors.black.withValues(alpha: 0.25),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              const SizedBox(height: 8),
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _newSubjectController,
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 13,
+                    ),
+                    cursorColor: AppColors.white,
+                    decoration: InputDecoration(
+                      hintText: 'Subject name…',
+                      hintStyle: const TextStyle(
+                        color: Colors.white38,
+                        fontSize: 13,
+                      ),
+                      errorText: _error,
+                      errorStyle: const TextStyle(
+                        color: AppColors.red,
+                        fontSize: 11,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.black,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 11,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: _add,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.black,
+                      border: Border.all(
+                        color: AppColors.white.withOpacity(0.07),
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      '+ Add',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
-              height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  foregroundColor: AppColors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
-                onPressed: _isSaving ? null : _handleSaveSubject,
-                child: _isSaving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Subject', style: TextStyle(color: Colors.white, fontSize: 16)),
+                onPressed: () async {
+                  await context.read<StudentSettingsProvider>().saveSubjects(
+                    _subjects,
+                  );
+                  if (context.mounted) Navigator.pop(context);
+                },
+                child: const Text(
+                  'Save',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
           ],

@@ -126,5 +126,4 @@ class StudentSettingsModel {
       joinedClasses:      joinedClasses       ?? this.joinedClasses,
     );
   }
-
 }

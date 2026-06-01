@@ -18,6 +18,18 @@ class StudentDashboardProvider with ChangeNotifier {
   String _activeScheduleTask = "Free Time / Break";
   String get activeScheduleTask => _activeScheduleTask;
 
+  String? _currentSemesterId;
+  String? get currentSemesterId => _currentSemesterId;
+
+  void updateActiveSemester(String? semesterId) {
+    if (_currentSemesterId != semesterId) {
+      _currentSemesterId = semesterId;
+      notifyListeners();
+      // Re-trigger live stats to instantly switch context to the newly selected semester
+      listenToLiveDashboardStats();
+    }
+  }
+
   Stream<List<StudentSubjectModel>> get myEnrolledClassesStream {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value([]);
@@ -27,19 +39,53 @@ class StudentDashboardProvider with ChangeNotifier {
         .where('studentId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      // Filter out enrollments that don't match the active semester
+      final docs = snapshot.docs.where((doc) {
+        final sem = doc.data()['semester']?.toString() ?? doc.data()['semester_id']?.toString();
+        if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
+          return sem == _currentSemesterId;
+        }
+        return true;
+      });
+
+      return docs.map((doc) {
         final mapData = doc.data();
-        final String classIdStr = mapData['classId']?.toString() ?? 'UNKNOWN';
-        final int rawHashId = classIdStr.hashCode.abs();
+
+        // Defensive parsing to safely enforce the integer and string types required by your model
+        final int id = mapData['id'] is int
+            ? mapData['id'] as int
+            : int.tryParse(mapData['id']?.toString() ?? '') ?? doc.id.hashCode.abs();
+
+        final int studentId = mapData['student_id'] is int
+            ? mapData['student_id'] as int
+            : int.tryParse(mapData['studentId']?.toString() ?? '') ?? 0;
+
+        final int semesterId = mapData['semester_id'] is int
+            ? mapData['semester_id'] as int
+            : int.tryParse(mapData['semester']?.toString() ?? mapData['semesterId']?.toString() ?? '') ?? 0;
+
+        final int subjectId = mapData['subject_id'] is int
+            ? mapData['subject_id'] as int
+            : int.tryParse(mapData['subjectId']?.toString() ?? mapData['classId']?.toString() ?? '') ?? 0;
+
+        final String name = mapData['name']?.toString() ??
+            mapData['subjectName']?.toString() ??
+            mapData['className']?.toString() ?? 'Unknown Subject';
+
+        final String code = mapData['code']?.toString() ??
+            mapData['subjectCode']?.toString() ?? 'N/A';
+
+        final String colorHex = mapData['color_hex']?.toString() ??
+            mapData['colorHex']?.toString() ?? '#FFFFFF';
 
         return StudentSubjectModel(
-          id: rawHashId,
-          studentId: rawHashId,
-          semesterId: (mapData['semesterId'] as num? ?? 1).toInt(),
-          subjectId: rawHashId,
-          name: classIdStr,
-          code: mapData['subjectCode']?.toString() ?? classIdStr.toUpperCase().padRight(6, 'X').substring(0, 6),
-          colorHex: mapData['colorHex']?.toString() ?? '#60A5FA',
+          id: id,
+          studentId: studentId,
+          semesterId: semesterId,
+          subjectId: subjectId,
+          name: name,
+          code: code,
+          colorHex: colorHex,
         );
       }).toList();
     });
@@ -66,7 +112,16 @@ class StudentDashboardProvider with ChangeNotifier {
 
       final now = DateTime.now();
 
-      for (var doc in snapshot.docs) {
+      // Filter enrollment data matching our active semester id
+      final validDocs = snapshot.docs.where((doc) {
+        final sem = doc.data()['semester']?.toString() ?? doc.data()['semester_id']?.toString();
+        if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
+          return sem == _currentSemesterId;
+        }
+        return true;
+      }).toList();
+
+      for (var doc in validDocs) {
         final docMap = doc.data();
         final List<dynamic> rawTasks = docMap['tasksList'] ?? [];
 
@@ -98,7 +153,7 @@ class StudentDashboardProvider with ChangeNotifier {
       }
 
       data = DashboardModel(
-        summary: data?.summary ?? DashboardSummary(
+        summary: DashboardSummary(
           userName: _auth.currentUser?.displayName ?? 'Student',
           taskCountToday: tasksTotal - tasksCompleted - tasksOverdue,
           date: DateTime.now(),
@@ -192,52 +247,49 @@ class StudentDashboardProvider with ChangeNotifier {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return Stream.value([]);
 
-    final today = DateTime.now();
-
     return _db
         .collection('enrollments')
         .where('studentId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
       final List<TaskItem> result = [];
+      final now = DateTime.now();
+      final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
       for (var doc in snapshot.docs) {
-        final mapData = doc.data();
-        final String className = mapData['classId']?.toString() ?? '';
-        final List<dynamic> rawTasks = mapData['tasksList'] ?? [];
+        final d = doc.data();
 
-        for (var t in rawTasks) {
-          final String status = t['status']?.toString() ?? '';
-          if (status == 'completed' || status == 'done') continue;
+        // Exclude tasks belonging to other semesters
+        final String? docSemester = d['semester']?.toString() ?? d['semester_id']?.toString();
+        if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty && docSemester != _currentSemesterId) {
+          continue;
+        }
 
-          final String? dueDateStr = t['due_date'] ?? t['deadline'];
-          bool isToday = false;
+        final String className = d['name']?.toString() ?? d['subjectName']?.toString() ?? d['classId']?.toString() ?? 'General';
+        final List<dynamic> tasks = d['tasksList'] as List? ?? [];
 
-          if (dueDateStr != null) {
-            final due = DateTime.tryParse(dueDateStr);
-            if (due != null) {
-              isToday = due.day == today.day &&
-                  due.month == today.month &&
-                  due.year == today.year;
-            }
-          }
+        for (var t in tasks) {
+          final String? statusStr = t['status']?.toString();
+          if (statusStr == 'completed' || statusStr == 'done') continue;
 
-          final bool isInProgress = status == 'inProgress' || status == 'in_progress';
-          // Show if due today, in progress, OR just a pending toDo with no date
-          final bool isPending = status == 'toDo' && dueDateStr == null;
+          final String? dueDateStr = t['dueDate']?.toString() ?? t['due_date']?.toString();
+          final String? estHours = (t['estimated_hours'] ?? t['estimatedHours'] ?? '0').toString();
+
+          final bool isToday = dueDateStr != null && dueDateStr.startsWith(todayStr);
+          final bool isInProgress = statusStr == 'inProgress' || statusStr == 'in_progress';
+          final bool isPending = statusStr == 'toDo' || statusStr == 'todo' || statusStr == 'pending';
 
           if (isToday || isInProgress || isPending) {
             result.add(TaskItem(
               title: t['title']?.toString() ?? 'Task',
-              subtitle: '$className · ${t['estimated_hours']}h',
+              subtitle: '$className · ${estHours}h',
               status: isInProgress ? TaskStatus.inProgress : TaskStatus.dueToday,
-              classId: className,
+              classId: doc.id,
               taskId: t['id']?.toString() ?? '',
             ));
           }
         }
       }
-
       return result;
     });
   }
@@ -246,27 +298,35 @@ class StudentDashboardProvider with ChangeNotifier {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    final snapshot = await _db
-        .collection('enrollments')
-        .where('studentId', isEqualTo: uid)
-        .where('classId', isEqualTo: classId)
-        .get();
+    try {
+      final docRef = _db.collection('enrollments').doc(classId);
+      final docSnap = await docRef.get();
+      if (!docSnap.exists) return;
 
-    if (snapshot.docs.isEmpty) return;
+      final List<dynamic> tasks = List.from(docSnap.data()?['tasksList'] ?? []);
 
-    final doc = snapshot.docs.first;
-    final List<dynamic> tasks = List.from(doc.data()['tasksList'] ?? []);
+      final index = tasks.indexWhere((t) => t['id'].toString() == taskId);
+      if (index == -1) return;
 
-    final index = tasks.indexWhere((t) => t['id'].toString() == taskId);
-    if (index == -1) return;
+      final currentStatus = tasks[index]['status']?.toString() ?? '';
+      final isCompleting = currentStatus != 'completed' && currentStatus != 'done';
 
-    final current = tasks[index]['status']?.toString() ?? '';
-    tasks[index] = {
-      ...tasks[index],
-      'status': (current == 'completed' || current == 'done') ? 'toDo' : 'completed',
-    };
+      final String newStatus = isCompleting ? 'completed' : 'toDo';
+      final int delta = isCompleting ? 1 : -1;
 
-    await doc.reference.update({'tasksList': tasks});
+      tasks[index] = {
+        ...tasks[index],
+        'status': newStatus,
+      };
+
+      await docRef.update({
+        'tasksList': tasks,
+        'completedTasks': FieldValue.increment(delta),
+        'pendingTasks': FieldValue.increment(-delta),
+      });
+    } catch (e) {
+      debugPrint('toggleTaskCompletion error: $e');
+    }
   }
 
   @override

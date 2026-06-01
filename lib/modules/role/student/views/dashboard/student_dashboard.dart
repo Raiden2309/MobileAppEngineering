@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../models/student_subject_model.dart';
 import '../../providers/dashboard_provider.dart';
+import '../../providers/semester_progress_provider.dart';
 import 'widgets/workload_monitor.dart';
 
 class StudentDashboard extends StatefulWidget {
@@ -25,6 +26,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        final semId = context.read<SemesterProvider>().currentSemesterId;
+        context.read<StudentDashboardProvider>().updateActiveSemester(semId);
         context.read<StudentDashboardProvider>().listenToLiveDashboardStats();
       }
     });
@@ -33,6 +36,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     final dashboardProvider = context.watch<StudentDashboardProvider>();
+    final semId = context.watch<SemesterProvider>().currentSemesterId;
+
+    dashboardProvider.updateActiveSemester(semId);
+
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
@@ -48,11 +55,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
           final enrolledCourses = classSnapshot.data ?? [];
 
+          var enrollmentQuery = FirebaseFirestore.instance
+              .collection('enrollments')
+              .where('studentId', isEqualTo: uid);
+
+          if (semId != null && semId.isNotEmpty) {
+            enrollmentQuery = enrollmentQuery.where('semester', isEqualTo: semId);
+          }
+
           return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('enrollments')
-                .where('studentId', isEqualTo: uid)
-                .snapshots(),
+            stream: enrollmentQuery.snapshots(),
             builder: (context, enrollmentSnapshot) {
               int totalCompletedTasks = 0;
               int totalPendingTasks = 0;

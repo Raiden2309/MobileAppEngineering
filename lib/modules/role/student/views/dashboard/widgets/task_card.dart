@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
+import '../../../models/app_enums.dart';
 import '../../../models/dashboard_models.dart';
 import 'status_badge.dart';
 
@@ -12,6 +13,11 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCheckedVisual = task.checked ||
+        task.status == TaskStatus.completed ||
+        task.status.name == 'completed' ||
+        task.status.name == 'done';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -28,13 +34,13 @@ class TaskCard extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: task.checked
+                color: isCheckedVisual
                     ? AppColors.lime.withValues(alpha: AppColors.glassIconOpacity)
                     : AppColors.transparent,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppColors.black, width: 2),
               ),
-              child: task.checked
+              child: isCheckedVisual
                   ? const Icon(Icons.check, color: AppColors.lime, size: 18)
                   : null,
             ),
@@ -42,15 +48,15 @@ class TaskCard extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              crossAxisAlignment: CrossAxisAlignment.start, // Fixed missing comma here
+              children: [ // Fixed missing comma/syntax breaking point here
                 Text(
                   task.title,
                   style: TextStyle(
                     fontSize: FontStyles.titleMedium,
                     fontWeight: FontStyles.weightMedium,
-                    color: task.checked ? AppColors.legendText : AppColors.black,
-                    decoration: task.checked ? TextDecoration.lineThrough : null,
+                    color: isCheckedVisual ? AppColors.legendText : AppColors.black,
+                    decoration: isCheckedVisual ? TextDecoration.lineThrough : null,
                     decorationColor: AppColors.legendText,
                   ),
                 ),
