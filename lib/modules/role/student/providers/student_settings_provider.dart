@@ -6,9 +6,13 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mae_assignment_frontend/modules/role/student/providers/study_plan_provider.dart';
 import 'package:mae_assignment_frontend/modules/role/student/providers/task_provider.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/dashboard_provider.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/semester_progress_provider.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/burnout_alert_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import '../../../../shared/services/local_cache_service.dart';
 import '../models/student_settings_models.dart';
 import '../models/semester_details_model.dart';
 
@@ -17,6 +21,7 @@ class StudentSettingsProvider with ChangeNotifier {
   final FirebaseFirestore _db        = FirebaseFirestore.instance;
   final FirebaseAuth      _auth      = FirebaseAuth.instance;
   final FirebaseStorage   _fbStorage = FirebaseStorage.instance;
+  VoidCallback? onSubjectsUpdated;
 
   // ── Cache keys ──────────────────────────────────────────────────────────────
   static const _keyStudyStart      = 'settings_study_start';
@@ -171,6 +176,12 @@ class StudentSettingsProvider with ChangeNotifier {
   Future<void> load() async => initLiveListeners();
   void loadMock()           => initLiveListeners();
 
+  LocalCacheService? _cacheEngine;
+
+  void updateCacheEngine(LocalCacheService engine) {
+    _cacheEngine = engine;
+  }
+
   // ── Load all semesters from subcollection (source of truth) ─────────────────
   Future<void> _loadAllSemesters(String uid, {String? newCurrentSemId}) async {
     try {
@@ -185,14 +196,13 @@ class StudentSettingsProvider with ChangeNotifier {
         return;
       }
 
-      // Determine which semId is current
       final activeSemId = newCurrentSemId ?? currentSemesterId;
 
       semesters = semSnap.docs.map((doc) {
-        final d   = doc.data();
-        final id  = doc.id;
-        final sem = (d['semester'] as num?)?.toInt() ?? 1;
-        final yr  = (d['year']     as num?)?.toInt() ?? 1;
+        final d    = doc.data();
+        final id   = doc.id;
+        final sem  = (d['semester'] as num?)?.toInt() ?? 1;
+        final yr   = (d['year']     as num?)?.toInt() ?? 1;
         final subj = (d['subjects'] as List?)?.length ?? 0;
         return {
           'id':           id,
@@ -207,7 +217,6 @@ class StudentSettingsProvider with ChangeNotifier {
         };
       }).toList();
 
-      // Sort: most recent first (highest year, then highest sem)
       semesters.sort((a, b) {
         final yA = int.tryParse(a['yearNum'] ?? '0') ?? 0;
         final yB = int.tryParse(b['yearNum'] ?? '0') ?? 0;
@@ -217,7 +226,6 @@ class StudentSettingsProvider with ChangeNotifier {
         return sB.compareTo(sA);
       });
 
-      // If we have a new current sem id, update state and load its subjects
       if (newCurrentSemId != null && newCurrentSemId != currentSemesterId) {
         currentSemesterId = newCurrentSemId;
         subjects = [];
@@ -226,7 +234,6 @@ class StudentSettingsProvider with ChangeNotifier {
       if (currentSemesterId != null) {
         await _loadSubjectsForSemester(currentSemesterId!);
       } else if (semesters.isNotEmpty) {
-        // Auto-select the first (most recent) semester
         currentSemesterId = semesters.first['id'];
         semesters = semesters.map((s) => {
           ...s,
@@ -237,6 +244,13 @@ class StudentSettingsProvider with ChangeNotifier {
 
       _rebuildDataModel();
       await _saveToCache();
+
+      if (currentSemesterId != null) {
+        await _cacheEngine?.write('settings_current_sem_id', currentSemesterId);
+      }
+      await _cacheEngine?.write('settings_semesters', semesters);
+      await _cacheEngine?.write('settings_subjects',  subjects);
+
     } catch (e) {
       debugPrint('_loadAllSemesters error: $e');
       _rebuildDataModel();
@@ -267,10 +281,32 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   // ── Save subjects ─────────────────────────────────────────────────────────────
-  Future<void> saveSubjects(List<Map<String, String>> updated) async {
+  Future<void> saveSubjects(
+      List<Map<String, String>> updated, {
+        TasksProvider? tasks,
+        StudyPlanProvider? studyPlan,
+        SemesterProvider? semesterProgress,
+        StudentDashboardProvider? dashboard,
+        BurnoutAlertProvider? burnout,
+      }) async {
     subjects = updated;
     _rebuildDataModel();
     await _saveToCache();
+
+    // 1. Write the subjects directly to the shared local storage keys so other providers see it instantly
+    if (_cacheEngine != null) {
+      await _cacheEngine!.write('settings_subjects', updated);
+    }
+
+    // 2. Force your local semester state to merge changes immediately offline
+    if (semesterProgress != null) {
+      semesterProgress.updateSubjectsAuthoritativeList(updated);
+    }
+
+    // 3. FORCE TASKS TO RE-CACHE AND GENERATE OFFLINE GROUPS IMMEDIATELY
+    if (tasks != null && currentSemesterId != null) {
+      tasks.listenToLiveTasks(semester: currentSemesterId!);
+    }
 
     if (_uid != null && currentSemesterId != null) {
       try {
@@ -292,8 +328,8 @@ class StudentSettingsProvider with ChangeNotifier {
 
           await _db.collection('enrollments').doc(enrollmentId).set({
             'studentId':        _uid,
-            'classId':          subjectName, // Changed from safeClassId to preserve presentation name
-            'subjectCode':      subject['code'] ?? subjectName.toUpperCase(), // Added missing field expected by progress tracker
+            'classId':          subjectName,
+            'subjectCode':      subject['code'] ?? subjectName.toUpperCase(),
             'semester':         currentSemesterId,
             'weeklyStudyHours': 0.0,
             'completedTasks':   0,
@@ -309,6 +345,13 @@ class StudentSettingsProvider with ChangeNotifier {
           }
           return s;
         }).toList();
+
+        // 4. Refresh live connection handlers online
+        semesterProgress?.listenToLiveProgress();
+        tasks?.listenToLiveTasks(semester: currentSemesterId!);
+        studyPlan?.listenToLiveStudyPlan(semester: currentSemesterId!);
+        dashboard?.listenToLiveDashboardStats();
+        burnout?.listenToLiveBurnoutMetrics();
       } catch (e) {
         debugPrint('saveSubjects error: $e');
       }
@@ -389,6 +432,16 @@ class StudentSettingsProvider with ChangeNotifier {
     _rebuildDataModel();
     await _saveToCache();
 
+    // Evict all provider caches tied to this semester
+    final uid = _auth.currentUser?.uid;
+    if (uid != null) {
+      await _cacheEngine?.clearTargetCaches(uid);
+      // Also clear the settings keys from shared cache
+      await _cacheEngine?.write('settings_subjects',       []);
+      await _cacheEngine?.write('settings_semesters',      semesters);
+      await _cacheEngine?.write('settings_current_sem_id', '');
+    }
+
     if (_uid != null && semId != null) {
       try {
         await _db
@@ -404,7 +457,14 @@ class StudentSettingsProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void selectSemester(String name, {TasksProvider? tasks, StudyPlanProvider? studyPlan}) {
+  void selectSemester(
+      String name, {
+        TasksProvider? tasks,
+        StudyPlanProvider? studyPlan,
+        SemesterProvider? semesterProgress,
+        StudentDashboardProvider? dashboard,
+        BurnoutAlertProvider? burnout,
+      }) {
     semesters = semesters.map((s) {
       return {...s, 'isCurrent': (s['name'] == name).toString()};
     }).toList();
@@ -422,12 +482,19 @@ class StudentSettingsProvider with ChangeNotifier {
       _loadSubjectsForSemester(newSemId);
     }
 
-    // Sync semester number/year fields
     currentLiveSemester = selected['semesterNum'] ?? currentLiveSemester;
     currentLiveYear     = int.tryParse(selected['yearNum'] ?? '') ?? currentLiveYear;
 
     tasks?.switchSemester(newSemId ?? name);
     studyPlan?.switchSemester(newSemId ?? name);
+    dashboard?.updateActiveSemester(newSemId);
+    semesterProgress?.switchSemester(
+      semesterId:   newSemId ?? name,
+      semesterName: selected['name'] ?? name,
+      start:        selected['start'] ?? '',
+      end:          selected['end']   ?? '',
+    );
+    burnout?.listenToLiveBurnoutMetrics();
 
     _rebuildDataModel();
     _saveToCache();
@@ -701,6 +768,18 @@ class StudentSettingsProvider with ChangeNotifier {
           studyHoursEnd:   _formatTime(studyEnd),
         )).toList(),
       );
+    }
+
+    // Seed shared cache from secure storage so other providers
+    // can read subjects/semesters even when Firestore is offline
+    if (subjects.isNotEmpty) {
+      await _cacheEngine?.write('settings_subjects',  subjects);
+    }
+    if (semesters.isNotEmpty) {
+      await _cacheEngine?.write('settings_semesters', semesters);
+    }
+    if (currentSemesterId != null) {
+      await _cacheEngine?.write('settings_current_sem_id', currentSemesterId);
     }
   }
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart'; // Ensure you run 'flutter pub add intl' if missing
+import 'package:intl/intl.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
@@ -49,13 +49,11 @@ class TaskBottomSheet extends StatefulWidget {
 class _TaskBottomSheetState extends State<TaskBottomSheet> {
   late final TextEditingController _titleController;
   late final TextEditingController _hoursController;
-  final TextEditingController _newSubjectController = TextEditingController();
 
   late TaskStatus _status;
   late SubjectGroup? _selectedGroup;
-  DateTime? _selectedDueDate; // --- NEW: Track user deadline selections ---
+  DateTime? _selectedDueDate;
   bool _saving = false;
-  bool _isAddingCustomSubject = false;
 
   bool get isEditing => widget.existing != null;
 
@@ -73,14 +71,13 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           (g) => g.id == (widget.group?.id ?? widget.groups.first.id),
       orElse: () => widget.groups.first,
     );
-    _selectedDueDate = widget.existing?.dueDate; // --- Read incoming deadlines if editing ---
+    _selectedDueDate = widget.existing?.dueDate;
   }
 
   @override
   void dispose() {
     _titleController.dispose();
     _hoursController.dispose();
-    _newSubjectController.dispose();
     super.dispose();
   }
 
@@ -113,66 +110,14 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     }
   }
 
-  Future<void> _createNewSubject() async {
-    final newSubjectName = _newSubjectController.text.trim();
-    if (newSubjectName.isEmpty) return;
-
-    setState(() => _saving = true);
-
-    try {
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      if (uid == null) return;
-
-      final safeClassKey = newSubjectName
-          .toLowerCase()
-          .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
-          .replaceAll(RegExp(r'[\s-]'), '_');
-
-      final targetDocId = '${uid}_$safeClassKey';
-
-      await FirebaseFirestore.instance
-          .collection('enrollments')
-          .doc(targetDocId)
-          .set({
-        'studentId': uid,
-        'classId': newSubjectName,
-        'completedTasks': 0,
-        'pendingTasks': 0,
-        'burnoutIndex': 0.0,
-        'tasksList': [],
-      });
-
-      _newSubjectController.clear();
-
-      setState(() {
-        _isAddingCustomSubject = false;
-        _saving = false;
-        _selectedGroup = widget.groups.firstWhere(
-              (g) => g.id == targetDocId,
-          orElse: () => SubjectGroup(
-            id: targetDocId,
-            name: newSubjectName,
-            colorKey: 'blue',
-            tasks: [],
-          ),
-        );
-      });
-    } catch (e) {
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add custom subject: $e')),
-      );
-    }
-  }
-
   Future<void> _save() async {
     final title = _titleController.text.trim();
     final hours = double.tryParse(_hoursController.text.trim()) ?? 0;
     if (title.isEmpty || _selectedGroup == null) return;
-    setState(() => _saving = true);
+
+    if (mounted) Navigator.pop(context); // ← MOVED HERE
 
     if (isEditing) {
-      // Pass copyWith values with due date payload mapping directly
       await widget.controller.updateTask(
         widget.existing!.copyWith(
           title: title,
@@ -182,7 +127,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
         ),
       );
     } else {
-      // Intercept execution path maps inside custom provider arrays to support due_date strings
       try {
         final docRef = FirebaseFirestore.instance.collection('enrollments').doc(_selectedGroup!.id);
         final newTaskMap = {
@@ -190,7 +134,7 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           'title': title,
           'estimated_hours': hours,
           'status': _status.name,
-          'due_date': _selectedDueDate?.toIso8601String(), // --- Save selected due date string safely ---
+          'due_date': _selectedDueDate?.toIso8601String(),
         };
 
         await docRef.update({
@@ -198,13 +142,12 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           'pendingTasks': FieldValue.increment(_status != TaskStatus.completed ? 1 : 0),
           'completedTasks': FieldValue.increment(_status == TaskStatus.completed ? 1 : 0),
         });
+        widget.controller.refreshCache();
+
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save task document: $e')),
-        );
+        debugPrint('Failed to save task: $e');
       }
     }
-    if (mounted) Navigator.pop(context);
   }
 
   Future<void> _delete() async {
@@ -250,9 +193,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
 
     if (_selectedGroup != null && widget.groups.isNotEmpty) {
       final matches = widget.groups.any((g) => g.id == _selectedGroup!.id);
-      if (!matches && !_isAddingCustomSubject) {
+      if (!matches) {
         _selectedGroup = widget.groups.first;
-      } else if (matches) {
+      } else {
         _selectedGroup = widget.groups.firstWhere((g) => g.id == _selectedGroup!.id);
       }
     }
@@ -322,67 +265,20 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           _Label('Subject'),
           const SizedBox(height: 6),
 
-          if (!_isAddingCustomSubject) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: _Dropdown<SubjectGroup>(
-                    value: _selectedGroup,
-                    items: widget.groups,
-                    labelOf: (g) => g.name,
-                    onChanged: isEditing ? null : (g) => setState(() => _selectedGroup = g),
-                  ),
+          // Streamlined clean dropdown block with no custom creation button
+          Row(
+            children: [
+              Expanded(
+                child: _Dropdown<SubjectGroup>(
+                  value: _selectedGroup,
+                  items: widget.groups,
+                  labelOf: (g) => g.name,
+                  onChanged: isEditing ? null : (g) => setState(() => _selectedGroup = g),
+                  hintText: 'No subjects loaded',
                 ),
-                if (!isEditing) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(
-                    onTap: () => setState(() => _isAddingCustomSubject = true),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.black,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.add, color: AppColors.californiaBlue, size: 20),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _newSubjectController,
-                    autofocus: true,
-                    style: const TextStyle(color: AppColors.white, fontSize: 13),
-                    cursorColor: AppColors.white,
-                    decoration: InputDecoration(
-                      hintText: 'New subject name...',
-                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                      filled: true,
-                      fillColor: AppColors.black,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: _saving ? null : _createNewSubject,
-                  child: const Text('Create', style: TextStyle(color: AppColors.californiaBlue, fontWeight: FontWeight.bold)),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white38, size: 20),
-                  onPressed: () => setState(() => _isAddingCustomSubject = false),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
 
           const SizedBox(height: 12),
           _Label('Task Title'),
@@ -398,7 +294,6 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
 
-          // --- NEW: INLINE DATE PICKER INTERFACE TARGET FIELD ---
           const SizedBox(height: 12),
           _Label('Due Date deadline'),
           const SizedBox(height: 6),
@@ -518,12 +413,14 @@ class _Dropdown<T> extends StatelessWidget {
   final List<T> items;
   final String Function(T) labelOf;
   final ValueChanged<T?>? onChanged;
+  final String hintText;
 
   const _Dropdown({
     required this.value,
     required this.items,
     required this.labelOf,
     required this.onChanged,
+    this.hintText = '',
   });
 
   @override
@@ -538,6 +435,9 @@ class _Dropdown<T> extends StatelessWidget {
         child: DropdownButton<T>(
           value: value,
           isExpanded: true,
+          hint: hintText.isNotEmpty
+              ? Text(hintText, style: const TextStyle(fontSize: 13, color: Colors.white38))
+              : null,
           dropdownColor: const Color(0xFF1E2330),
           iconEnabledColor: Colors.white54,
           iconDisabledColor: Colors.white24,

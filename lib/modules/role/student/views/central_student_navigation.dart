@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/settings/student_settings.dart';
-import '../controllers/semester_progress_controller.dart';
 import '../controllers/study_plan_controller.dart';
 import '../controllers/tasks_controller.dart';
 import '../providers/burnout_alert_provider.dart';
@@ -34,9 +33,10 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
 
   late final TaskController _taskController;
   late final StudyPlanController _studyPlanController;
-  late final SemesterProgressController _semesterProgressController;
 
   late final List<Widget> pages;
+
+  String? _lastSyncedSemId;
 
   @override
   void initState() {
@@ -44,13 +44,12 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
 
     _taskController = TaskController(context.read<TasksProvider>());
     _studyPlanController = StudyPlanController(context.read<StudyPlanProvider>());
-    _semesterProgressController = SemesterProgressController(context.read<SemesterProvider>());
 
     pages = [
       StudentDashboard(),
       MyTasksPage(controller: _taskController),
       StudyPlanPage(controller: _studyPlanController),
-      SemesterProgressPage(controller: _semesterProgressController),
+      const SemesterProgressPage(),
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -59,37 +58,48 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
       final settings = context.read<StudentSettingsProvider>();
       settings.loadMock();
 
-      // Wire settings → semester progress
-      void syncSemester() {
-        final current = settings.semesters.firstWhere(
-              (s) => s['isCurrent'] == 'true',
-          orElse: () => settings.semesters.isNotEmpty ? settings.semesters.first : {},
-        );
-        if (current.isNotEmpty) {
-          context.read<SemesterProvider>().switchSemester(
-            semesterId:   current['id'] ?? current['semesterKey'] ?? '',
-            semesterName: current['name'] ?? '',
-            start:        current['start'] ?? '',
-            end:          current['end'] ?? '',
-          );
-        } else {
-          context.read<SemesterProvider>().loadMock();
-        }
-      }
-
-      syncSemester();
-      settings.addListener(syncSemester);
+      _syncSemester();
+      settings.addListener(_syncSemester);
 
       context.read<StudyPlanProvider>().loadMock();
-      context.read<TasksProvider>().loadMock();
     });
+  }
+
+  void _syncSemester() {
+    if (!mounted) return;
+    final settings = context.read<StudentSettingsProvider>();
+
+    final current = settings.semesters.firstWhere(
+          (s) => s['isCurrent'] == 'true',
+      orElse: () => settings.semesters.isNotEmpty ? settings.semesters.first : {},
+    );
+
+    if (current.isEmpty) {
+      return;
+    }
+
+    final semId = current['id'] ?? current['semesterKey'] ?? '';
+
+    // Only re-sync if the active semester actually changed — prevents
+    // re-opening the Firestore stream on every unrelated settings change.
+    if (semId == _lastSyncedSemId) return;
+    _lastSyncedSemId = semId;
+
+    context.read<SemesterProvider>().switchSemester(
+      semesterId:   semId,
+      semesterName: current['name'] ?? '',
+      start:        current['start'] ?? '',
+      end:          current['end'] ?? '',
+    );
   }
 
   @override
   void dispose() {
+    if (mounted) {
+      context.read<StudentSettingsProvider>().removeListener(_syncSemester);
+    }
     _taskController.dispose();
     _studyPlanController.dispose();
-    _semesterProgressController.dispose();
     super.dispose();
   }
 

@@ -1,16 +1,25 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/app_enums.dart';
 import '../models/student_subject_model.dart';
 import '../models/dashboard_models.dart';
+import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
 
 class StudentDashboardProvider with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  LocalCacheService? _cacheEngine;
+
+  void updateCacheEngine(LocalCacheService engine) {
+    _cacheEngine = engine;
+  }
+
   bool isLoading = false;
+  bool isOffline = false;
   DashboardModel? data;
   StreamSubscription? _enrollmentSubscription;
 
@@ -21,13 +30,65 @@ class StudentDashboardProvider with ChangeNotifier {
   String? _currentSemesterId;
   String? get currentSemesterId => _currentSemesterId;
 
+  String _cacheKey(String uid) => 'dashboard_cache_$uid';
+
+  Future<void> _saveToCache() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null || data == null) return;
+    try {
+      final payload = {
+        'tasksDone':      data!.stats.tasksDone,
+        'totalTasks':     data!.stats.totalTasks,
+        'dueSoon':        data!.stats.dueSoon,
+        'overdue':        data!.stats.overdue,
+        'currentWeek':    data!.stats.currentWeek,
+        'totalWeeks':     data!.stats.totalWeeks,
+        'userName':       data!.summary.userName,
+        'taskCountToday': data!.summary.taskCountToday,
+      };
+      await _cacheEngine?.write(_cacheKey(uid), payload);
+    } catch (e) {
+      debugPrint('dashboard cache write error: $e');
+    }
+  }
+
+  Future<bool> _loadFromCache() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return false;
+    try {
+      final decoded = await _cacheEngine?.read(_cacheKey(uid));
+      if (decoded == null) return false;
+      final Map<String, dynamic> map =
+      decoded is String ? jsonDecode(decoded) : Map<String, dynamic>.from(decoded);
+      data = DashboardModel(
+        summary: DashboardSummary(
+          userName: map['userName'] ?? 'Student',
+          taskCountToday: map['taskCountToday'] ?? 0,
+          date: DateTime.now(),
+        ),
+        stats: DashboardStats(
+          tasksDone:   map['tasksDone']   ?? 0,
+          totalTasks:  map['totalTasks']  ?? 0,
+          dueSoon:     map['dueSoon']     ?? 0,
+          dueSoonDays: 3,
+          overdue:     map['overdue']     ?? 0,
+          currentWeek: map['currentWeek'] ?? 8,
+          totalWeeks:  map['totalWeeks']  ?? 14,
+        ),
+        currentTask:  null,
+        workloadPlan: const WorkloadPlan(planLabel: 'Study blocks', tasks: []),
+        todayTasks:   [],
+      );
+      return true;
+    } catch (e) {
+      debugPrint('dashboard cache read error: $e');
+      return false;
+    }
+  }
+
   void updateActiveSemester(String? semesterId) {
     if (_currentSemesterId != semesterId) {
       _currentSemesterId = semesterId;
-      // Defer both the notify and the stream restart to after the current
-      // build frame finishes. Calling notifyListeners() synchronously here
-      // (from inside a build() method) causes the
-      // "setState() called during build" exception.
       WidgetsBinding.instance.addPostFrameCallback((_) {
         notifyListeners();
         listenToLiveDashboardStats();
@@ -44,7 +105,6 @@ class StudentDashboardProvider with ChangeNotifier {
         .where('studentId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
-      // Filter out enrollments that don't match the active semester
       final docs = snapshot.docs.where((doc) {
         final sem = doc.data()['semester']?.toString() ?? doc.data()['semester_id']?.toString();
         if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
@@ -56,7 +116,6 @@ class StudentDashboardProvider with ChangeNotifier {
       return docs.map((doc) {
         final mapData = doc.data();
 
-        // Defensive parsing to safely enforce the integer and string types required by your model
         final int id = mapData['id'] is int
             ? mapData['id'] as int
             : int.tryParse(mapData['id']?.toString() ?? '') ?? doc.id.hashCode.abs();
@@ -84,13 +143,13 @@ class StudentDashboardProvider with ChangeNotifier {
             mapData['colorHex']?.toString() ?? '#FFFFFF';
 
         return StudentSubjectModel(
-          id: id,
-          studentId: studentId,
+          id:         id,
+          studentId:  studentId,
           semesterId: semesterId,
-          subjectId: subjectId,
-          name: name,
-          code: code,
-          colorHex: colorHex,
+          subjectId:  subjectId,
+          name:       name,
+          code:       code,
+          colorHex:   colorHex,
         );
       }).toList();
     });
@@ -100,17 +159,15 @@ class StudentDashboardProvider with ChangeNotifier {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    // Only set isLoading if we are NOT already inside a frame callback
-    // (i.e. called directly, not via updateActiveSemester's postFrameCallback).
-    // We avoid notifyListeners() here if the subscription is already active
-    // so we don't trigger a second rebuild mid-frame.
-    if (!isLoading) {
-      isLoading = true;
-      // Safe to notify here only when called outside of build()
-      // (e.g. initState / didChangeDependencies). When called from
-      // updateActiveSemester the postFrameCallback already handles it.
-      WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
-    }
+    _loadFromCache().then((hasCached) {
+      if (hasCached) {
+        isLoading = false;
+        notifyListeners();
+      } else if (!isLoading) {
+        isLoading = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
+      }
+    });
 
     _enrollmentSubscription?.cancel();
     _enrollmentSubscription = _db
@@ -118,15 +175,13 @@ class StudentDashboardProvider with ChangeNotifier {
         .where('studentId', isEqualTo: uid)
         .snapshots()
         .listen((snapshot) {
-
       int tasksCompleted = 0;
-      int tasksTotal = 0;
-      int tasksDueSoon = 0;
-      int tasksOverdue = 0;
+      int tasksTotal     = 0;
+      int tasksDueSoon   = 0;
+      int tasksOverdue   = 0;
 
       final now = DateTime.now();
 
-      // Filter enrollment data matching our active semester id
       final validDocs = snapshot.docs.where((doc) {
         final sem = doc.data()['semester']?.toString() ?? doc.data()['semester_id']?.toString();
         if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
@@ -138,11 +193,10 @@ class StudentDashboardProvider with ChangeNotifier {
       for (var doc in validDocs) {
         final docMap = doc.data();
         final List<dynamic> rawTasks = docMap['tasksList'] ?? [];
-
         tasksTotal += rawTasks.length;
 
         for (var t in rawTasks) {
-          final String statusStr = t['status']?.toString() ?? 'toDo';
+          final String statusStr   = t['status']?.toString() ?? 'toDo';
           final String? deadlineRaw = t['deadline']?.toString();
 
           if (statusStr == 'completed' || statusStr == 'done') {
@@ -168,50 +222,53 @@ class StudentDashboardProvider with ChangeNotifier {
 
       data = DashboardModel(
         summary: DashboardSummary(
-          userName: _auth.currentUser?.displayName ?? 'Student',
+          userName:       _auth.currentUser?.displayName ?? 'Student',
           taskCountToday: tasksTotal - tasksCompleted - tasksOverdue,
-          date: DateTime.now(),
+          date:           DateTime.now(),
         ),
         stats: DashboardStats(
-          tasksDone: tasksCompleted,
-          totalTasks: tasksTotal,
-          dueSoon: tasksDueSoon,
+          tasksDone:   tasksCompleted,
+          totalTasks:  tasksTotal,
+          dueSoon:     tasksDueSoon,
           dueSoonDays: 3,
-          overdue: tasksOverdue,
+          overdue:     tasksOverdue,
           currentWeek: data?.stats.currentWeek ?? 8,
-          totalWeeks: data?.stats.totalWeeks ?? 14,
+          totalWeeks:  data?.stats.totalWeeks  ?? 14,
         ),
-        currentTask: data?.currentTask,
+        currentTask:  data?.currentTask,
         workloadPlan: data?.workloadPlan ?? const WorkloadPlan(planLabel: 'Study blocks', tasks: []),
-        todayTasks: data?.todayTasks ?? [],
+        todayTasks:   data?.todayTasks   ?? [],
       );
 
       isLoading = false;
+      isOffline = false;
+      _saveToCache();
       notifyListeners();
     }, onError: (e) {
       isLoading = false;
-      notifyListeners();
+      _loadFromCache().then((hasCached) {
+        isOffline = hasCached;
+        notifyListeners();
+      });
     });
   }
 
   void startScheduleAutoTracker(List<dynamic> dailyStudyBlocks) {
     _scheduleTimer?.cancel();
     _evaluateCurrentTimeSlot(dailyStudyBlocks);
-
-    _scheduleTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+    _scheduleTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       _evaluateCurrentTimeSlot(dailyStudyBlocks);
     });
   }
 
   void _evaluateCurrentTimeSlot(List<dynamic> blocks) {
-    final now = DateTime.now();
+    final now            = DateTime.now();
     final currentMinutes = (now.hour * 60) + now.minute;
-    String detectedTask = "Free Time / Break";
+    String detectedTask  = "Free Time / Break";
 
     for (var block in blocks) {
       final start = _parseTimeToMinutes(block.startTime);
-      final end = _parseTimeToMinutes(block.endTime);
-
+      final end   = _parseTimeToMinutes(block.endTime);
       if (currentMinutes >= start && currentMinutes < end) {
         detectedTask = block.title;
         break;
@@ -240,20 +297,17 @@ class StudentDashboardProvider with ChangeNotifier {
 
   void toggleTask(int index) {
     if (data == null) return;
-
     final updatedTasks = List<TaskItem>.from(data!.todayTasks);
     updatedTasks[index] = updatedTasks[index].copyWith(
       checked: !updatedTasks[index].checked,
     );
-
     data = DashboardModel(
-      summary: data!.summary,
-      stats: data!.stats,
-      currentTask: data!.currentTask,
+      summary:      data!.summary,
+      stats:        data!.stats,
+      currentTask:  data!.currentTask,
       workloadPlan: data!.workloadPlan,
-      todayTasks: updatedTasks,
+      todayTasks:   updatedTasks,
     );
-
     notifyListeners();
   }
 
@@ -267,39 +321,39 @@ class StudentDashboardProvider with ChangeNotifier {
         .snapshots()
         .map((snapshot) {
       final List<TaskItem> result = [];
-      final now = DateTime.now();
+      final now      = DateTime.now();
       final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
       for (var doc in snapshot.docs) {
         final d = doc.data();
-
-        // Exclude tasks belonging to other semesters
         final String? docSemester = d['semester']?.toString() ?? d['semester_id']?.toString();
         if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty && docSemester != _currentSemesterId) {
           continue;
         }
 
-        final String className = d['name']?.toString() ?? d['subjectName']?.toString() ?? d['classId']?.toString() ?? 'General';
+        final String className = d['name']?.toString() ??
+            d['subjectName']?.toString() ??
+            d['classId']?.toString() ?? 'General';
         final List<dynamic> tasks = d['tasksList'] as List? ?? [];
 
         for (var t in tasks) {
-          final String? statusStr = t['status']?.toString();
+          final String? statusStr  = t['status']?.toString();
           if (statusStr == 'completed' || statusStr == 'done') continue;
 
           final String? dueDateStr = t['dueDate']?.toString() ?? t['due_date']?.toString();
-          final String? estHours = (t['estimated_hours'] ?? t['estimatedHours'] ?? '0').toString();
+          final String? estHours   = (t['estimated_hours'] ?? t['estimatedHours'] ?? '0').toString();
 
-          final bool isToday = dueDateStr != null && dueDateStr.startsWith(todayStr);
+          final bool isToday      = dueDateStr != null && dueDateStr.startsWith(todayStr);
           final bool isInProgress = statusStr == 'inProgress' || statusStr == 'in_progress';
-          final bool isPending = statusStr == 'toDo' || statusStr == 'todo' || statusStr == 'pending';
+          final bool isPending    = statusStr == 'toDo' || statusStr == 'todo' || statusStr == 'pending';
 
           if (isToday || isInProgress || isPending) {
             result.add(TaskItem(
-              title: t['title']?.toString() ?? 'Task',
+              title:    t['title']?.toString() ?? 'Task',
               subtitle: '$className · ${estHours}h',
-              status: isInProgress ? TaskStatus.inProgress : TaskStatus.dueToday,
-              classId: doc.id,
-              taskId: t['id']?.toString() ?? '',
+              status:   isInProgress ? TaskStatus.inProgress : TaskStatus.dueToday,
+              classId:  doc.id,
+              taskId:   t['id']?.toString() ?? '',
             ));
           }
         }
@@ -313,30 +367,25 @@ class StudentDashboardProvider with ChangeNotifier {
     if (uid == null) return;
 
     try {
-      final docRef = _db.collection('enrollments').doc(classId);
+      final docRef  = _db.collection('enrollments').doc(classId);
       final docSnap = await docRef.get();
       if (!docSnap.exists) return;
 
       final List<dynamic> tasks = List.from(docSnap.data()?['tasksList'] ?? []);
-
       final index = tasks.indexWhere((t) => t['id'].toString() == taskId);
       if (index == -1) return;
 
       final currentStatus = tasks[index]['status']?.toString() ?? '';
-      final isCompleting = currentStatus != 'completed' && currentStatus != 'done';
-
+      final isCompleting  = currentStatus != 'completed' && currentStatus != 'done';
       final String newStatus = isCompleting ? 'completed' : 'toDo';
-      final int delta = isCompleting ? 1 : -1;
+      final int delta        = isCompleting ? 1 : -1;
 
-      tasks[index] = {
-        ...tasks[index],
-        'status': newStatus,
-      };
+      tasks[index] = {...tasks[index], 'status': newStatus};
 
       await docRef.update({
-        'tasksList': tasks,
+        'tasksList':      tasks,
         'completedTasks': FieldValue.increment(delta),
-        'pendingTasks': FieldValue.increment(-delta),
+        'pendingTasks':   FieldValue.increment(-delta),
       });
     } catch (e) {
       debugPrint('toggleTaskCompletion error: $e');

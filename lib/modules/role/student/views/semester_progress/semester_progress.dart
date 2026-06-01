@@ -1,18 +1,15 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/overall_progress_card.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/subject_progress.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/semester_progress/widget/timeline_progress_card.dart';
 import '../../../../../shared/styles/app_colors.dart';
 import '../../../../../shared/styles/font_styles.dart';
-import '../../controllers/semester_progress_controller.dart';
-import '../../models/semester_progress_model.dart';
+import '../../providers/semester_progress_provider.dart';
 import '../settings/bottom_sheet_widgets/subjects_sheet.dart';
 
 class SemesterProgressPage extends StatefulWidget {
-  final SemesterProgressController controller;
-
-  const SemesterProgressPage({super.key, required this.controller});
+  const SemesterProgressPage({super.key});
 
   @override
   State<SemesterProgressPage> createState() => _SemesterProgressPageState();
@@ -22,26 +19,13 @@ class _SemesterProgressPageState extends State<SemesterProgressPage> {
   @override
   void initState() {
     super.initState();
-    // Safely attach the controller listener pipeline on page boot
-    widget.controller.addListener(_onControllerUpdate);
-    widget.controller.init();
-  }
-
-  @override
-  void dispose() {
-    widget.controller.removeListener(_onControllerUpdate);
-    super.dispose();
-  }
-
-  void _onControllerUpdate() {
-    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final data = widget.controller.data;
+    final provider = context.watch<SemesterProvider>();
+    final data     = provider.data;
 
-    // Fixed: If data is still streaming down, show a clean, isolated centered spinner
     if (data == null) {
       return const Scaffold(
         backgroundColor: Colors.transparent,
@@ -77,7 +61,7 @@ class _SemesterProgressPageState extends State<SemesterProgressPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              widget.controller.semesterLabel,
+              provider.data?.dateRange ?? '',
               style: const TextStyle(color: AppColors.black, fontSize: 13),
             ),
 

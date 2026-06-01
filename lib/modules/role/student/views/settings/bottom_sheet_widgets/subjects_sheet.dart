@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
+import '../../../providers/burnout_alert_provider.dart';
+import '../../../providers/dashboard_provider.dart';
+import '../../../providers/semester_progress_provider.dart';
 import '../../../providers/student_settings_provider.dart';
+import '../../../providers/study_plan_provider.dart';
+import '../../../providers/task_provider.dart';
 
 class SubjectsSheet extends StatefulWidget {
   const SubjectsSheet({super.key});
@@ -260,9 +265,22 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                   ),
                 ),
                 onPressed: () async {
-                  await context.read<StudentSettingsProvider>().saveSubjects(
+                  final settings  = context.read<StudentSettingsProvider>();
+                  final tasks     = context.read<TasksProvider>();
+                  final studyPlan = context.read<StudyPlanProvider>();
+                  final semester  = context.read<SemesterProvider>();
+                  final dashboard = context.read<StudentDashboardProvider>();
+                  final burnout   = context.read<BurnoutAlertProvider>();
+
+                  await settings.saveSubjects(
                     _subjects,
+                    tasks:            tasks,
+                    studyPlan:        studyPlan,
+                    semesterProgress: semester,
+                    dashboard:        dashboard,
+                    burnout:          burnout,
                   );
+
                   if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text(

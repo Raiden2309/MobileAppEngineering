@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -63,14 +64,63 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ClassesProvider()),
 
         // Student
+        ChangeNotifierProvider(create: (_) => LocalCacheService()),
+
+        ChangeNotifierProxyProvider<LocalCacheService, StudentSettingsProvider>(
+          create: (_) => StudentSettingsProvider(),
+          update: (_, cache, settings) => settings!..updateCacheEngine(cache),
+        ),
+
+        ChangeNotifierProxyProvider2<LocalCacheService, StudentSettingsProvider, TasksProvider>(
+          create: (_) => TasksProvider(),
+          update: (_, cache, settingsProvider, tasksProvider) {
+            // 1. Inject the cache engine
+            tasksProvider!.updateCacheEngine(cache);
+
+            // 2. Refresh the tasks mapping instantly whenever settings are modified offline
+            settingsProvider.onSubjectsUpdated = () {
+              if (settingsProvider.currentSemesterId != null) {
+                tasksProvider.listenToLiveTasks(semester: settingsProvider.currentSemesterId!);
+              }
+            };
+
+            return tasksProvider;
+          },
+        ),
+
+        // COMBINED FIX: This handles both LocalCacheService AND links to StudentSettingsProvider cleanly
+        ChangeNotifierProxyProvider2<LocalCacheService, StudentSettingsProvider, SemesterProvider>(
+          create: (context) => SemesterProvider(),
+          update: (context, cache, settingsProvider, semesterProvider) {
+            // 1. Inject the cache engine
+            semesterProvider!.updateCacheEngine(cache);
+
+            // 2. Wire up the immediate offline refresh handler
+            settingsProvider.onSubjectsUpdated = () {
+              semesterProvider.reloadSubjectsFromCache();
+            };
+
+            return semesterProvider;
+          },
+        ),
+
+        ChangeNotifierProxyProvider<LocalCacheService, StudentDashboardProvider>(
+          create: (_) => StudentDashboardProvider(),
+          update: (_, cache, dash) => dash!..updateCacheEngine(cache),
+        ),
+
+        ChangeNotifierProxyProvider<LocalCacheService, BurnoutAlertProvider>(
+          create: (_) => BurnoutAlertProvider(),
+          update: (_, cache, burnout) => burnout!..updateCacheEngine(cache),
+        ),
+
+        ChangeNotifierProxyProvider<LocalCacheService, StudyPlanProvider>(
+          create: (_) => StudyPlanProvider(),
+          update: (_, cache, study) => study!..updateCacheEngine(cache),
+        ),
+
         ChangeNotifierProvider(create: (_) => StudentProvider()),
-        ChangeNotifierProvider(create: (_) => StudentDashboardProvider()),
-        ChangeNotifierProvider(create: (_) => StudyPlanProvider()),
-        ChangeNotifierProvider(create: (_) => TasksProvider()),
-        ChangeNotifierProvider(create: (_) => SemesterProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
-        ChangeNotifierProvider(create: (_) => BurnoutAlertProvider()),
-        ChangeNotifierProvider(create: (_) => StudentSettingsProvider()),
 
         // Lecturer
         ChangeNotifierProvider(create: (_) => AlertProvider()),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/app_enums.dart';
 import '../models/tasks_model.dart';
-import '../models/app_enums.dart';
-import '../../../../../../modules/role/student/models/tasks_model.dart';
 import '../providers/task_provider.dart';
 import '../views/tasks/widget/task_bottom_sheet.dart';
 
@@ -50,9 +48,9 @@ class TaskController extends ChangeNotifier {
 
   String get completionSummary => '$completedTasks of $totalTasks completed';
 
-  Future<void> init() async {
+  Future<void> init(String semester) async {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _provider.listenToLiveTasks();
+      _provider.listenToLiveTasks(semester: semester);
     });
   }
 
@@ -79,17 +77,21 @@ class TaskController extends ChangeNotifier {
     required String title,
     required double estimatedHours,
     required TaskStatus status,
+    DateTime? dueDate,
   }) => _provider.addTask(
     groupId: groupId,
     title: title,
     estimatedHours: estimatedHours,
     status: status,
+    dueDate: dueDate,
   );
 
   Future<void> updateTask(Task task) => _provider.updateTask(task);
   Future<void> deleteTask(Task task) => _provider.deleteTask(task);
+  void refreshCache() => _provider.saveCache();
 
   void _onProviderUpdate() => notifyListeners();
+
 
   @override
   void dispose() {

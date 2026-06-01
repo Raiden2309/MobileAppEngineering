@@ -77,6 +77,26 @@ class SubjectGroup {
     required this.tasks,
   });
 
+  factory SubjectGroup.fromJson(Map<String, dynamic> json) {
+    return SubjectGroup(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'Unknown Subject',
+      colorKey: json['colorKey']?.toString() ?? 'blue',
+      tasks: json['tasks'] != null
+          ? (json['tasks'] as List)
+          .map((t) => Task.fromJson(Map<String, dynamic>.from(t as Map)))
+          .toList()
+          : [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'colorKey': colorKey,
+    'tasks': tasks.map((t) => t.toJson()).toList(),
+  };
+
   int get totalTasks => tasks.length;
   int get completedTasks => tasks.where((t) => t.status == TaskStatus.completed).length;
 
