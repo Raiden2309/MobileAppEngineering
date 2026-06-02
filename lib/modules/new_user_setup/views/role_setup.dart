@@ -15,30 +15,6 @@ class RoleSetupPage extends StatefulWidget {
   State<RoleSetupPage> createState() => RoleSetupPageState();
 }
 
-PageRouteBuilder slideRoute(Widget page) {
-  return PageRouteBuilder(
-    transitionDuration: const Duration(milliseconds: 400),
-    reverseTransitionDuration: const Duration(milliseconds: 300),
-    pageBuilder: (context, animation, secondaryAnimation) => page,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final slide = Tween<Offset>(
-        begin: const Offset(1.0, 0.0),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
-
-      final fade = Tween<double>(
-        begin: 0.0,
-        end: 1.0,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeIn));
-
-      return FadeTransition(
-        opacity: fade,
-        child: SlideTransition(position: slide, child: child),
-      );
-    },
-  );
-}
-
 class RoleSetupPageState extends State<RoleSetupPage> {
   int? selectedIndex;
 
@@ -57,6 +33,8 @@ class RoleSetupPageState extends State<RoleSetupPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isRoleSelected = selectedIndex != null;
+
     return Scaffold(
       body: Container(
         constraints: const BoxConstraints.expand(),
@@ -131,14 +109,14 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                                       fit: BoxFit.contain,
                                       errorBuilder:
                                           (context, error, stackTrace) =>
-                                              Container(
-                                                color: AppColors.white,
-                                                child: const Icon(
-                                                  Icons.person,
-                                                  size: 48,
-                                                  color: AppColors.black,
-                                                ),
-                                              ),
+                                          Container(
+                                            color: AppColors.white,
+                                            child: const Icon(
+                                              Icons.person,
+                                              size: 48,
+                                              color: AppColors.black,
+                                            ),
+                                          ),
                                     ),
                                   ),
                                 ),
@@ -150,18 +128,16 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                                     ),
                                     child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      CrossAxisAlignment.start,
                                       mainAxisAlignment:
-                                          MainAxisAlignment.center,
+                                      MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           roles[index]['label']!,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: isSelected
-                                                ? AppColors.black
-                                                : AppColors.black,
+                                            color: AppColors.black,
                                           ),
                                         ),
                                         const SizedBox(height: 6),
@@ -191,37 +167,8 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                         TextButton.icon(
                           onPressed: () => Navigator.pushReplacement(
                             context,
-                            PageRouteBuilder(
-                              transitionDuration: const Duration(
-                                milliseconds: 300,
-                              ),
-                              pageBuilder:
-                                  (context, animation, secondaryAnimation) =>
-                                      const LoginPage(),
-                              transitionsBuilder:
-                                  (
-                                    context,
-                                    animation,
-                                    secondaryAnimation,
-                                    child,
-                                  ) {
-                                    return ScaleTransition(
-                                      scale:
-                                          Tween<double>(
-                                            begin: 0.92,
-                                            end: 1.0,
-                                          ).animate(
-                                            CurvedAnimation(
-                                              parent: animation,
-                                              curve: Curves.easeOutCubic,
-                                            ),
-                                          ),
-                                      child: FadeTransition(
-                                        opacity: animation,
-                                        child: child,
-                                      ),
-                                    );
-                                  },
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
                             ),
                           ),
                           icon: const Icon(
@@ -249,43 +196,51 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.black,
                               foregroundColor: AppColors.white,
-                              disabledBackgroundColor: AppColors.black,
-                              enabledMouseCursor: SystemMouseCursors.click,
+                              // Standard Material behavior: turns gray when disabled
+                              disabledBackgroundColor: Colors.grey.shade400,
+                              disabledForegroundColor: Colors.white70,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            onPressed: selectedIndex == null
+                            // Strictly passing null explicitly disables input and visual ripples
+                            onPressed: !isRoleSelected
                                 ? null
                                 : () async {
-                                    if (selectedIndex == 0) {
-                                      await AuthService.saveRole(1);
-                                      await FirebaseFirestore.instance
-                                          .collection('users')
-                                          .doc(AuthService.getCurrentUserId())
-                                          .update({'role': 1});
-                                      Navigator.pushReplacement(
-                                        context,
-                                        slideRoute(const StudentSetupPage()),
-                                      );
-                                    } else if (selectedIndex == 1) {
-                                      await AuthService.saveRole(2);
-                                      await FirebaseFirestore.instance
-                                          .collection('users')
-                                          .doc(AuthService.getCurrentUserId())
-                                          .update({'role': 2});
-                                      Navigator.pushReplacement(
-                                        context,
-                                        slideRoute(const LecturerSetupPage()),
-                                      );
-                                    }
-                                  },
+                              if (selectedIndex == 0) {
+                                await AuthService.saveRole(1);
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(AuthService.getCurrentUserId())
+                                    .update({'role': 1});
+                                if (!context.mounted) return;
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const StudentSetupPage(),
+                                  ),
+                                );
+                              } else if (selectedIndex == 1) {
+                                await AuthService.saveRole(2);
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(AuthService.getCurrentUserId())
+                                    .update({'role': 2});
+                                if (!context.mounted) return;
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const LecturerSetupPage(),
+                                  ),
+                                );
+                              }
+                            },
                             child: const Text(
                               'Continue',
                               style: TextStyle(
-                                color: AppColors.white,
                                 fontSize: FontStyles.titleMedium,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),

@@ -31,42 +31,49 @@ class StatusCard extends StatelessWidget {
           border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
         ),
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(15, 12, 15, 12),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10), // ← reduced padding
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleSmall,
-                      color: AppColors.black,
+              Expanded( // ← KEY FIX: constrains the column so text can't overflow
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleSmall,
+                        color: AppColors.black,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Text(
-                    count,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleGreeting,
-                      fontWeight: FontStyles.titleWeight,
-                      color: AppColors.black,
+                    Text(
+                      count,
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleGreeting,
+                        fontWeight: FontStyles.titleWeight,
+                        color: AppColors.black,
+                      ),
                     ),
-                  ),
-                  Text(
-                    sub,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleSmall,
-                      color: AppColors.legendText,
+                    Text(
+                      sub,
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleSmall,
+                        color: AppColors.legendText,
+                      ),
+                      maxLines: 2,                        // ← wraps instead of expanding
+                      overflow: TextOverflow.ellipsis,   // ← clips with "..."
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8), // ← gap between text and icon
               Container(
-                width: 40,
-                height: 40,
+                width: 36,   // ← slightly smaller icon box
+                height: 36,
                 decoration: BoxDecoration(
                   color: c.withValues(alpha: AppColors.glassIconOpacity),
                   borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
@@ -75,7 +82,7 @@ class StatusCard extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                child: Icon(icon, color: c, size: 20),
+                child: Icon(icon, color: c, size: 18),
               ),
             ],
           ),

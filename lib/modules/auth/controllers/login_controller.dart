@@ -24,13 +24,9 @@ class LoginController {
     emailError    = null;
     passwordError = null;
 
-    if (email.isEmpty) {
-      emailError = 'Email is required';
-      onError();
-      return;
-    }
-    if (password.isEmpty) {
-      passwordError = 'Password is required';
+    if (email.isEmpty) emailError = 'Email is required';
+    if (password.isEmpty) passwordError = 'Password is required';
+    if (emailError != null || passwordError != null) {
       onError();
       return;
     }

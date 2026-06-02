@@ -21,7 +21,7 @@ class ClassDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final classCode = classModel.code.split(' ·').first.trim();
+    final classCode = classModel.subjectCode;
     final classesProvider = context.read<ClassesProvider>();
 
     return Scaffold(
@@ -203,7 +203,7 @@ class ClassDetailPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${c.code.split('·').first.trim()} · Diploma in Computer Science · Sem 4',
+                    '${c.subjectCode} · Diploma in Computer Science · Sem 4',
                     style: TextStyle(
                       fontSize: FontStyles.titleTiny,
                       color: AppColors.black.withValues(alpha: 0.6),
@@ -222,7 +222,7 @@ class ClassDetailPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Class Code',
+                'Join Code',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontStyles.weightMedium,
@@ -232,7 +232,7 @@ class ClassDetailPage extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                '${c.code.split(' ·').first}–A2',
+                c.classCode.isEmpty ? 'N/A' : c.classCode,
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontStyles.weightHeavy,

@@ -33,23 +33,13 @@ class RegisterController {
     confirmPasswordError = null;
 
 
-    if (email.isEmpty) {
-      emailError = 'Email is required';
-      onError();
-      return;
-    }
-    if (password.isEmpty) {
-      passwordError = 'Password is required';
-      onError();
-      return;
-    }
-    if (confirmPassword.isEmpty) {
-      confirmPasswordError = 'Please confirm your password';
-      onError();
-      return;
-    }
-    if (password != confirmPassword) {
+    if (email.isEmpty) emailError = 'Email is required';
+    if (password.isEmpty) passwordError = 'Password is required';
+    if (confirmPassword.isEmpty) confirmPasswordError = 'Please confirm your password';
+    if (password.isNotEmpty && confirmPassword.isNotEmpty && password != confirmPassword) {
       confirmPasswordError = 'Passwords do not match';
+    }
+    if (emailError != null || passwordError != null || confirmPasswordError != null) {
       onError();
       return;
     }
@@ -91,7 +81,7 @@ class RegisterController {
       if (firebaseError.code == 'email-already-in-use') {
         emailError = 'This email is already registered.';
       } else if (firebaseError.code == 'weak-password') {
-        passwordError = 'The password provided is too weak.';
+        passwordError = 'The password provided is too weak. At least 6 characters.';
       } else {
         emailError = firebaseError.message ?? 'Registration failed.';
       }
