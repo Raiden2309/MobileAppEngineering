@@ -197,24 +197,27 @@ class StudentDashboardProvider with ChangeNotifier {
 
         for (var t in rawTasks) {
           final String statusStr   = t['status']?.toString() ?? 'toDo';
-          final String? deadlineRaw = t['deadline']?.toString();
 
           if (statusStr == 'completed' || statusStr == 'done') {
             tasksCompleted++;
           } else if (statusStr == 'overdue') {
             tasksOverdue++;
           } else {
-            if (deadlineRaw != null) {
-              final deadlineDate = DateTime.tryParse(deadlineRaw);
-              if (deadlineDate != null) {
-                if (deadlineDate.isBefore(now)) {
+            final String? dueDateRaw = t['dueDate']?.toString() ?? t['due_date']?.toString();
+            if (dueDateRaw != null) {
+              final dueDate = DateTime.tryParse(dueDateRaw);
+              if (dueDate != null) {
+                final taskDay = DateTime(dueDate.year, dueDate.month, dueDate.day);
+                final today   = DateTime(now.year, now.month, now.day);
+                if (taskDay.isBefore(today)) {
                   tasksOverdue++;
-                } else if (deadlineDate.difference(now).inDays <= 3) {
+                } else if (taskDay.difference(today).inDays <= 3) {
                   tasksDueSoon++;
                 }
               }
             } else {
               if (statusStr == 'dueSoon' || statusStr == 'due_soon') tasksDueSoon++;
+              if (statusStr == 'overdue') tasksOverdue++;
             }
           }
         }
