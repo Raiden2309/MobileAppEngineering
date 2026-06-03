@@ -23,7 +23,32 @@ class TaskController extends ChangeNotifier {
     ('toDo',       'To Do'),
     ('completed',  'Completed'),
     ('dueSoon',    'Due Soon'),
+    ('overDue',    'Overdue'),
   ];
+
+  TaskStatus getLiveStatus(Task task) {
+    return _getLiveStatus(task);
+  }
+
+  TaskStatus _getLiveStatus(Task task) {
+    if (task.status == TaskStatus.completed ||
+        task.status == TaskStatus.inProgress) {
+      return task.status;
+    }
+    if (task.dueDate == null) return task.status;
+
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+
+    if (taskDate.isBefore(todayDate)) return TaskStatus.overdue;
+    if (taskDate.isAtSameMomentAs(todayDate)) return TaskStatus.dueToday;
+
+    final diff = taskDate.difference(todayDate).inDays;
+    if (diff <= 3) return TaskStatus.dueSoon;
+
+    return task.status;
+  }
 
   void setFilter(String filter) => _provider.setFilter(filter);
 
@@ -38,12 +63,15 @@ class TaskController extends ChangeNotifier {
 
   int get dueSoonCount => groups
       .expand((g) => g.tasks)
-      .where((t) => t.status == TaskStatus.dueSoon)
+      .where((t) {
+    final liveStatus = _getLiveStatus(t); // Calls the function here 👈
+    return liveStatus == TaskStatus.dueSoon || liveStatus == TaskStatus.dueToday;
+  })
       .length;
 
   int get inProgressCount => groups
       .expand((g) => g.tasks)
-      .where((t) => t.status == TaskStatus.inProgress)
+      .where((t) => _getLiveStatus(t) == TaskStatus.inProgress) // Calls the function here 👈
       .length;
 
   String get completionSummary => '$completedTasks of $totalTasks completed';
@@ -55,7 +83,7 @@ class TaskController extends ChangeNotifier {
   }
 
   Future<void> fetch()   async => _provider.fetch();
-  void         loadMock()      => _provider.loadMock();
+  void         load()      => _provider.load();
   Future<void> refresh() async => _provider.fetch();
 
   void onAddTask(BuildContext context) {
@@ -89,6 +117,20 @@ class TaskController extends ChangeNotifier {
   Future<void> updateTask(Task task) => _provider.updateTask(task);
   Future<void> deleteTask(Task task) => _provider.deleteTask(task);
   void refreshCache() => _provider.saveCache();
+
+  Future<void> syncTaskStatuses() async {
+    bool hasChanges = false;
+    for (final group in groups) {
+      for (final task in group.tasks) {
+        final liveStatus = _getLiveStatus(task);
+        if (liveStatus != task.status) {
+          hasChanges = true;
+          await _provider.updateTask(task.copyWith(status: liveStatus));
+        }
+      }
+    }
+    if (hasChanges) notifyListeners();
+  }
 
   void _onProviderUpdate() => notifyListeners();
 

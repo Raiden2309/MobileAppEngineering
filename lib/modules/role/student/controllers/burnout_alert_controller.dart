@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/app_enums.dart';
 import '../models/burnout_alert_model.dart';
 import '../providers/burnout_alert_provider.dart';
 
@@ -16,10 +17,22 @@ class BurnoutAlertController extends ChangeNotifier {
     context?.read<BurnoutAlertProvider>().listenToLiveBurnoutMetrics();
   }
 
-  // --- Static Interfaces Mapping to Widgets Callbacks ---
   static void onPrimaryAction(BuildContext context) {
+    final alert = context.read<BurnoutAlertProvider>().alert;
     context.read<BurnoutAlertProvider>().dismiss();
     Navigator.of(context).pop(true);
+
+    if (alert == null) return;
+    switch (alert.type) {
+      case BurnoutAlertType.overload:
+      case BurnoutAlertType.burnout:
+      case BurnoutAlertType.warning:
+        Navigator.of(context).pushNamed('/schedule');
+        break;
+      case BurnoutAlertType.allGood:
+        Navigator.of(context).pushNamed('/dashboard');
+        break;
+    }
   }
 
   static void onDismiss(BuildContext context) {

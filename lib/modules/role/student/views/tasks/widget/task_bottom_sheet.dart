@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
@@ -54,8 +55,24 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
   late SubjectGroup? _selectedGroup;
   DateTime? _selectedDueDate;
   bool _saving = false;
+  String? _hoursError;
 
   bool get isEditing => widget.existing != null;
+
+  TaskStatus _computeLiveStatus(Task task) {
+    if (task.status == TaskStatus.completed || task.status == TaskStatus.inProgress) {
+      return task.status;
+    }
+    if (task.dueDate == null) return task.status;
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+    if (taskDate.isBefore(todayDate)) return TaskStatus.overdue;
+    if (taskDate.isAtSameMomentAs(todayDate)) return TaskStatus.dueToday;
+    final diff = taskDate.difference(todayDate).inDays;
+    if (diff <= 3) return TaskStatus.dueSoon;
+    return task.status;
+  }
 
   @override
   void initState() {
@@ -64,7 +81,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     _hoursController = TextEditingController(
       text: widget.existing != null ? widget.existing!.estimatedHours.toString() : '',
     );
-    _status = widget.existing?.status ?? TaskStatus.toDo;
+    _status = widget.existing != null
+        ? _computeLiveStatus(widget.existing!)
+        : TaskStatus.toDo;
     _selectedGroup = widget.groups.isEmpty
         ? null
         : widget.groups.firstWhere(
@@ -106,14 +125,38 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     if (picked != null && picked != _selectedDueDate) {
       setState(() {
         _selectedDueDate = picked;
+        if (_status != TaskStatus.completed && _status != TaskStatus.inProgress) {
+          final now = DateTime.now();
+          final todayDate = DateTime(now.year, now.month, now.day);
+          final taskDate = DateTime(picked.year, picked.month, picked.day);
+          if (taskDate.isBefore(todayDate)) {
+            _status = TaskStatus.overdue;
+          } else if (taskDate.isAtSameMomentAs(todayDate)) {
+            _status = TaskStatus.dueToday;
+          } else if (taskDate.difference(todayDate).inDays <= 3) {
+            _status = TaskStatus.dueSoon;
+          } else {
+            _status = TaskStatus.upcoming;
+          }
+        }
       });
     }
   }
 
   Future<void> _save() async {
     final title = _titleController.text.trim();
-    final hours = double.tryParse(_hoursController.text.trim()) ?? 0;
+    final hoursText = _hoursController.text.trim();
+    final hours = double.tryParse(hoursText);
     if (title.isEmpty || _selectedGroup == null) return;
+    if (hours == null || hours <= 0) {
+      setState(() => _hoursError = 'Hours must be greater than 0 (e.g. 1.5)');
+      return;
+    }
+    if (hours > 24) {
+      setState(() => _hoursError = 'Hours cannot exceed 24 in a single day');
+      return;
+    }
+    setState(() => _hoursError = null);
 
     if (mounted) Navigator.pop(context); // ← MOVED HERE
 
@@ -292,6 +335,16 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
             controller: _hoursController,
             hint: 'e.g. 1.5',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
+              TextInputFormatter.withFunction((oldValue, newValue) {
+                final text = newValue.text;
+                if (text == '0' || text == '00') return oldValue;
+                return newValue;
+              }),
+            ],
+            errorText: _hoursError,
+            onChanged: (_) { if (_hoursError != null) setState(() => _hoursError = null); },
           ),
 
           const SizedBox(height: 12),
@@ -379,11 +432,17 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? errorText;
+  final ValueChanged<String>? onChanged;
 
   const _Field({
     required this.controller,
     required this.hint,
     this.keyboardType = TextInputType.text,
+    this.inputFormatters,
+    this.errorText,
+    this.onChanged,
   });
 
   @override
@@ -391,6 +450,8 @@ class _Field extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
+      onChanged: onChanged,
       style: const TextStyle(color: AppColors.white, fontSize: 13),
       cursorColor: AppColors.white,
       decoration: InputDecoration(
@@ -402,6 +463,24 @@ class _Field extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        errorText: errorText,
+        errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11),
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       ),
     );

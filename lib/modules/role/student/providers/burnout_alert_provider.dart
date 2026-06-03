@@ -71,12 +71,18 @@ class BurnoutAlertProvider with ChangeNotifier {
     }
   }
 
+  int _totalTasksCount = 10;
+
+  void updateTotalTasks(int total) {
+    _totalTasksCount = total.clamp(1, 999);
+  }
+
   void listenToLiveBurnoutMetrics() {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
     loading = true;
-    notifyListeners();
+    WidgetsBinding.instance.addPostFrameCallback((_) => notifyListeners());
 
     _loadFromCache().then((hasCached) {
       if (hasCached) {
@@ -112,13 +118,24 @@ class BurnoutAlertProvider with ChangeNotifier {
       String primaryBtnLabel;
       String staticAdviceMessage;
 
-      if (extremeBurnoutPeakIndex > 0.75) {
+      final double pendingTasksRatio = (totalPendingTasksCount / _totalTasksCount.toDouble()).clamp(0.0, 1.0);
+      final double compositeScore = (extremeBurnoutPeakIndex * 0.55) +
+          (pendingTasksRatio * 0.25) +
+          ((accumulatedStudyHours / 40).clamp(0.0, 1.0) * 0.20);
+
+      if (compositeScore > 0.75 || extremeBurnoutPeakIndex > 0.75) {
         calculatedType = BurnoutAlertType.overload;
         calculatedLevel = WorkloadLevel.critical;
         titleText = "Critical Burnout Risk!";
         primaryBtnLabel = "Reschedule Workload";
         staticAdviceMessage = "Your concurrent workload across enrolled tracks has crossed into the red zone. We strongly advise pausing secondary targets, spacing pending micro-tasks, and prioritizing sleep tonight.";
-      } else if (extremeBurnoutPeakIndex > 0.45 || accumulatedStudyHours > 35) {
+      } else if (compositeScore > 0.5 || extremeBurnoutPeakIndex > 0.45 || accumulatedStudyHours > 35) {
+        calculatedType = BurnoutAlertType.burnout;
+        calculatedLevel = WorkloadLevel.high;
+        titleText = "Burnout Alert";
+        primaryBtnLabel = "Take a Break";
+        staticAdviceMessage = "You have a heavy number of pending tasks building up. Consider breaking them into smaller sessions and clearing your backlog gradually to avoid hitting a wall.";
+      } else if (compositeScore > 0.25 || totalPendingTasksCount > 3) {
         calculatedType = BurnoutAlertType.warning;
         calculatedLevel = WorkloadLevel.moderate;
         titleText = "Approaching Burnout";
@@ -137,7 +154,7 @@ class BurnoutAlertProvider with ChangeNotifier {
         title: titleText,
         description: staticAdviceMessage,
         hoursStudied: accumulatedStudyHours,
-        workloadProgress: (totalPendingTasksCount / 10).clamp(0.0, 1.0),
+        workloadProgress: compositeScore.clamp(0.0, 1.0),
         workloadLevel: calculatedLevel,
         primaryActionLabel: primaryBtnLabel,
         dismissLabel: 'Dismiss warning',
@@ -158,8 +175,18 @@ class BurnoutAlertProvider with ChangeNotifier {
   }
 
   void evaluateSession({required double hoursStudied}) {}
-  void dismiss() {}
-  void clear() {}
+
+  void dismiss() {
+    alert = null;
+    notifyListeners();
+  }
+
+  void clear() {
+    alert = null;
+    error = null;
+    loading = false;
+    notifyListeners();
+  }
 
   Future<void> fetch() async {
     listenToLiveBurnoutMetrics();

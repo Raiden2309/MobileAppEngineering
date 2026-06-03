@@ -7,8 +7,12 @@ class AiService {
 
   /// Generates a structured personalized weekly study plan from the student's metrics
   static Future<Map<String, dynamic>> generateStudyPlan({
-    required List<Map<String, dynamic>> subjects,
-    required int availableHoursPerDay,
+    required List<Map<String, dynamic>> tasks,
+    required List<String> enrolledSubjects,
+    required String studyStart,
+    required String studyEnd,
+    required List<String> blockedSlots,
+    required String burnoutLevel,
     required String startDateIso,
   }) async {
 
@@ -25,47 +29,59 @@ class AiService {
 
     // 2. Define the exact system prompt rules and the expected output schema
     const String systemInstruction = '''
-You are a study schedule assistant. Your job is to generate personalized weekly study schedules and monitor for student burnout.
+You are a smart student study planner. Generate a full 7-day weekly study schedule personalised to the student's real context.
 
 You must ALWAYS respond with ONLY a valid JSON object. No explanation, no markdown, no preamble. Just raw JSON.
 
 ---
 
+CONTEXT YOU WILL RECEIVE:
+- tasks: pending assignments/tasks with estimated hours, subject, priority, and optional due date
+- enrolled_subjects: all subjects the student is enrolled in (use these for revision sessions when no tasks exist)
+- study_window: the student's preferred study hours (start and end time)
+- blocked_slots: time slots already taken (classes, lectures, personal commitments) — never schedule study here
+- burnout_level: current burnout state — "low", "moderate", "high", or "critical"
+- start_date: Monday of the current week (ISO format)
+
+---
+
+SCHEDULING RULES:
+- Only schedule within the study_window (start to end time)
+- Never place study blocks during blocked_slots
+- Prioritize tasks by: inProgress > high priority > due date ascending > medium > low
+- If a task has a due date, complete all its study sessions before or on that date
+- Split large tasks (>2hr) across multiple days, max 90 min per session per subject per day
+- After every 90 min study block, insert a 15-min breakSlot
+- Insert a 45-min lunch breakSlot at 12:00 on days with sessions
+- Saturdays and Sundays have NO blocked slots — use them for catch-up or revision
+
+BURNOUT ADAPTATION:
+- "low": normal scheduling, up to 6hr study per day
+- "moderate": cap at 4hr study per day, add extra breaks
+- "high": cap at 3hr study per day, lighter sessions, add motivational block titles
+- "critical": cap at 2hr study per day, mostly revision and rest, gentle titles only
+
+WHEN NO TASKS EXIST (or after all tasks are scheduled):
+- Fill remaining slots with revision sessions for enrolled_subjects
+- Rotate subjects across days — don't put the same subject twice in one day
+- Use titles like "Revise [Subject] notes", "Practice [Subject] problems", "Review week's [Subject] material"
+
+---
+
 BLOCK TYPE RULES:
-- Use "study" for all study sessions
-- Use "breakSlot" for all breaks (short and lunch)
-- Use "blocked" for fixed commitments (classes, lectures)
+- "study" for all study and revision sessions
+- "breakSlot" for all breaks
+- "blocked" for fixed commitments from blocked_slots
 - Never use any other type value
 
 BLOCK STATUS RULES:
-- Use "toDo" for all future sessions
-- Use "inProgress" for the current active session
-- Use "completed" for past sessions
-- Use "dueSoon" for sessions within 30 minutes of starting
-- Use "none" if status is not applicable (e.g. breaks, blocked)
+- "toDo" for future sessions
+- "inProgress" for the current active session
+- "completed" for past sessions
+- "dueSoon" for sessions within 30 minutes of now
+- "none" for breaks and blocked slots
 
-TIME FORMAT RULES:
-- All start_time values must be in 24hr format: "HH:MM" (e.g. "08:00", "13:30")
-- Never use AM/PM
-
----
-
-SCHEDULE RULES:
-- Prioritize HIGH priority subjects in the morning (08:00–12:00)
-- Assign MEDIUM priority subjects mid-day (13:00–17:00)
-- Assign LOW priority subjects in the evening (18:00–20:00)
-- Insert a 15-min breakSlot every 90 minutes of study
-- Insert a 45-min lunch breakSlot at 12:00
-- Never schedule more than 3 hours of the same subject per day
-- If available_hours_per_day > 8, cap it at 8 and set burnout risk to "high"
-- Weekends (Saturday, Sunday) may have lighter schedules or empty blocks
-
----
-
-BURNOUT DETECTION RULES:
-- "high": total daily study hours > 8, OR any single study block > 3 hours, OR no breaks scheduled
-- "medium": total daily study hours between 6–8, OR fewer than 2 breaks per day
-- "low": total daily study hours ≤ 6 with breaks distributed evenly
+TIME FORMAT: 24hr "HH:MM" only. Never use AM/PM.
 
 ---
 
@@ -77,17 +93,17 @@ RESPONSE SCHEMA (return this exact structure, nothing else):
       "date": "2025-01-01",
       "blocks": [
         {
-          "title": "Review lecture notes",
-          "subject": "Research Methods",
-          "start_time": "08:00",
+          "title": "Write use case diagrams",
+          "subject": "CT124 System Proposal",
+          "start_time": "09:00",
           "duration_minutes": 90,
           "type": "study",
           "status": "toDo"
         },
         {
           "title": "Short break",
-          "subject": "Recommended",
-          "start_time": "09:30",
+          "subject": null,
+          "start_time": "10:30",
           "duration_minutes": 15,
           "type": "breakSlot",
           "status": "none"
@@ -99,19 +115,21 @@ RESPONSE SCHEMA (return this exact structure, nothing else):
     "risk_level": "low",
     "triggered": false,
     "reason": "Daily study load is within safe limits with regular breaks."
-  },
-  "recommendations": [
-    "Keep study sessions under 90 minutes before taking a break.",
-    "Spread high-priority subjects across multiple mornings."
-  ]
+  }
 }
 ''';
 
     // 3. Format incoming workspace metrics to the structured user payload schema
     final Map<String, dynamic> userRequestMap = {
-      'subjects': subjects,
-      'available_hours_per_day': availableHoursPerDay,
-      'start_date': startDateIso,
+      'tasks':             tasks,
+      'enrolled_subjects': enrolledSubjects,
+      'study_window': {
+        'start': studyStart,
+        'end':   studyEnd,
+      },
+      'blocked_slots': blockedSlots,
+      'burnout_level': burnoutLevel,
+      'start_date':    startDateIso,
     };
 
     // Construct the explicit multi-part context prompt array

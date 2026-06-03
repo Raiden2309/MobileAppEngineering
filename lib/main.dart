@@ -27,31 +27,24 @@ import 'shared/widgets/splash_screen.dart';
 /// Must be annotated with @pragma('vm:entry-point') so it doesn't get stripped during compilation.
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   debugPrint("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
-  WidgetsBinding widgetsBinding =
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
 
-  FlutterNativeSplash.preserve(
-    widgetsBinding: widgetsBinding,
-  );
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize the background messaging handler as early as possible
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   const storage = FlutterSecureStorage();
 
-  await storage.write(key: 'auth_token',       value: 'test_token_abc123');
-  await storage.write(key: 'user_role',         value: 'student');
+  await storage.write(key: 'auth_token', value: 'test_token_abc123');
+  await storage.write(key: 'user_role', value: 'student');
   await storage.write(key: 'is_setup_complete', value: 'true');
 
   final authProvider = AuthProvider();
@@ -71,25 +64,11 @@ void main() async {
           update: (_, cache, settings) => settings!..updateCacheEngine(cache),
         ),
 
-        ChangeNotifierProxyProvider2<LocalCacheService, StudentSettingsProvider, TasksProvider>(
-          create: (_) => TasksProvider(),
-          update: (_, cache, settingsProvider, tasksProvider) {
-            // 1. Inject the cache engine
-            tasksProvider!.updateCacheEngine(cache);
-
-            // 2. Refresh the tasks mapping instantly whenever settings are modified offline
-            settingsProvider.onSubjectsUpdated = () {
-              if (settingsProvider.currentSemesterId != null) {
-                tasksProvider.listenToLiveTasks(semester: settingsProvider.currentSemesterId!);
-              }
-            };
-
-            return tasksProvider;
-          },
-        ),
-
-        // COMBINED FIX: This handles both LocalCacheService AND links to StudentSettingsProvider cleanly
-        ChangeNotifierProxyProvider2<LocalCacheService, StudentSettingsProvider, SemesterProvider>(
+        ChangeNotifierProxyProvider2<
+          LocalCacheService,
+          StudentSettingsProvider,
+          SemesterProvider
+        >(
           create: (context) => SemesterProvider(),
           update: (context, cache, settingsProvider, semesterProvider) {
             // 1. Inject the cache engine
@@ -104,19 +83,71 @@ void main() async {
           },
         ),
 
-        ChangeNotifierProxyProvider<LocalCacheService, StudentDashboardProvider>(
+        ChangeNotifierProxyProvider<
+          LocalCacheService,
+          StudentDashboardProvider
+        >(
           create: (_) => StudentDashboardProvider(),
           update: (_, cache, dash) => dash!..updateCacheEngine(cache),
         ),
 
-        ChangeNotifierProxyProvider<LocalCacheService, BurnoutAlertProvider>(
-          create: (_) => BurnoutAlertProvider(),
-          update: (_, cache, burnout) => burnout!..updateCacheEngine(cache),
+        ChangeNotifierProxyProvider3<
+          LocalCacheService,
+          StudentSettingsProvider,
+          StudentDashboardProvider,
+          TasksProvider
+        >(
+          create: (_) => TasksProvider(),
+          update: (_, cache, settingsProvider, dashboardProvider, tasksProvider) {
+            // Inject the local cache engine
+            tasksProvider!.updateCacheEngine(cache);
+
+            // Inject the dashboard provider so edits/deletions notify the homepage stream
+            tasksProvider.updateDashboardProvider(dashboardProvider);
+
+            // Refresh tasks mapping instantly whenever settings change
+            settingsProvider.onSubjectsUpdated = () {
+              if (settingsProvider.currentSemesterId != null) {
+                tasksProvider.listenToLiveTasks(
+                  semester: settingsProvider.currentSemesterId!,
+                );
+              }
+            };
+
+            return tasksProvider;
+          },
         ),
 
-        ChangeNotifierProxyProvider<LocalCacheService, StudyPlanProvider>(
+        ChangeNotifierProxyProvider2<
+          LocalCacheService,
+          TasksProvider,
+          BurnoutAlertProvider
+        >(
+          create: (_) => BurnoutAlertProvider(),
+          update: (_, cache, tasks, burnout) {
+            burnout!.updateCacheEngine(cache);
+            burnout.updateTotalTasks(tasks.totalTasksCount);
+            return burnout;
+          },
+        ),
+
+        ChangeNotifierProxyProvider3<
+            LocalCacheService,
+            StudentSettingsProvider,
+            BurnoutAlertProvider,
+            StudyPlanProvider
+        >(
           create: (_) => StudyPlanProvider(),
-          update: (_, cache, study) => study!..updateCacheEngine(cache),
+          update: (_, cache, settings, burnout, study) {
+            study!.updateCacheEngine(cache);
+            study.updateSettingsProvider(settings);
+            study.updateBurnoutProvider(burnout);
+            if (settings.currentSemesterId != null) {
+              study.listenToLiveStudyPlan(semester: settings.currentSemesterId!);
+            }
+
+            return study;
+          },
         ),
 
         ChangeNotifierProvider(create: (_) => StudentProvider()),

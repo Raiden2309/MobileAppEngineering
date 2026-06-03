@@ -13,7 +13,8 @@ class StatusBadge extends StatelessWidget {
     final (label, bg, fg) = switch (status) {
       TaskStatus.completed  => ('Done',        AppColors.completed,  AppColors.greenSheen),
       TaskStatus.inProgress => ('In Progress', AppColors.inProgress, AppColors.mikadoYellow),
-      TaskStatus.dueToday   => ('Due Today',   AppColors.dueSoon,    AppColors.nectarine),
+      TaskStatus.overdue   => ('Overdue',   AppColors.dueSoon,    AppColors.red),
+      TaskStatus.dueToday   => ('Due Today',   AppColors.dueSoon,    AppColors.red),
       TaskStatus.dueSoon    => ('Due Soon',    AppColors.dueSoon,    AppColors.nectarine),
       TaskStatus.upcoming   => ('Upcoming',    AppColors.toDo,       AppColors.californiaBlue),
       TaskStatus.toDo       => ('To Do',       AppColors.toDo,       AppColors.californiaBlue),

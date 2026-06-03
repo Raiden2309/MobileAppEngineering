@@ -29,40 +29,6 @@ class DashboardModel {
           .toList(),
     );
   }
-
-  factory DashboardModel.mockData() {
-    return DashboardModel(
-      summary: DashboardSummary(
-        userName:       'John',
-        taskCountToday: 4,
-        date:           DateTime(2026, 5, 8),
-      ),
-      stats: const DashboardStats(
-        tasksDone:   10,
-        totalTasks:  20,
-        dueSoon:     3,
-        dueSoonDays: 3,
-        overdue:     1,
-        currentWeek: 8,
-        totalWeeks:  14,
-      ),
-      currentTask: const CurrentTask(
-        title:    'Write use case diagrams',
-        subtitle: 'CT124 System Proposal · 2 hrs',
-        status:   TaskStatus.inProgress,
-      ),
-      workloadPlan: const WorkloadPlan(
-        planLabel: "Today's Plan",
-        tasks:     [],
-      ),
-      todayTasks: const [
-        TaskItem(title: 'Review affinity analysis notes', subtitle: 'Research Methods · 45 min',      status: TaskStatus.completed,      checked: true),
-        TaskItem(title: 'Write use case diagrams',        subtitle: 'CT124 System Proposal · 2 hrs',  status: TaskStatus.inProgress),
-        TaskItem(title: 'Prepare functional requirements',subtitle: 'CT124 System Proposal · 1 hr',   status: TaskStatus.dueToday),
-        TaskItem(title: 'Prepare survey questions',       subtitle: 'Research Methods · 1.5 hrs',     status: TaskStatus.upcoming),
-      ],
-    );
-  }
 }
 
 class DashboardSummary {

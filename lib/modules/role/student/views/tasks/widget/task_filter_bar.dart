@@ -8,6 +8,8 @@ const _filters = [
   ('toDo',       'To Do'),
   ('completed',  'Completed'),
   ('dueSoon',    'Due Soon'),
+  ('dueToday',    'Due Today'),
+  ('overdue',    'Overdue'),
 ];
 
 class TaskFilterBar extends StatelessWidget {

@@ -290,8 +290,7 @@ class StudentDashboardProvider with ChangeNotifier {
     }
   }
 
-  void loadMock() {
-    data = DashboardModel.mockData();
+  void load() {
     notifyListeners();
   }
 
@@ -321,7 +320,8 @@ class StudentDashboardProvider with ChangeNotifier {
         .snapshots()
         .map((snapshot) {
       final List<TaskItem> result = [];
-      final now      = DateTime.now();
+      final now = DateTime.now();
+      final todayDate = DateTime(now.year, now.month, now.day);
       final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
       for (var doc in snapshot.docs) {
@@ -337,21 +337,56 @@ class StudentDashboardProvider with ChangeNotifier {
         final List<dynamic> tasks = d['tasksList'] as List? ?? [];
 
         for (var t in tasks) {
-          final String? statusStr  = t['status']?.toString();
+          final String statusStr = t['status']?.toString() ?? 'toDo';
+
+          // 1. Completely skip items marked completed or done
           if (statusStr == 'completed' || statusStr == 'done') continue;
 
           final String? dueDateStr = t['dueDate']?.toString() ?? t['due_date']?.toString();
           final String? estHours   = (t['estimated_hours'] ?? t['estimatedHours'] ?? '0').toString();
 
-          final bool isToday      = dueDateStr != null && dueDateStr.startsWith(todayStr);
-          final bool isInProgress = statusStr == 'inProgress' || statusStr == 'in_progress';
-          final bool isPending    = statusStr == 'toDo' || statusStr == 'todo' || statusStr == 'pending';
+          final bool isTodayString = dueDateStr != null && dueDateStr.startsWith(todayStr);
+          final bool isInProgress  = statusStr == 'inProgress' || statusStr == 'in_progress';
 
-          if (isToday || isInProgress || isPending) {
+          bool isToday = isTodayString;
+          bool isOverdue = false;
+          bool isCalendarDueSoon = false;
+
+          if (dueDateStr != null) {
+            final parsedDate = DateTime.tryParse(dueDateStr);
+            if (parsedDate != null) {
+              final taskDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
+
+              isToday = taskDate.isAtSameMomentAs(todayDate);
+              isOverdue = taskDate.isBefore(todayDate);
+
+              final daysDifference = taskDate.difference(todayDate).inDays;
+              if (daysDifference > 0 && daysDifference <= 3) {
+                isCalendarDueSoon = true;
+              }
+            }
+          }
+
+          if (isToday || isOverdue || isCalendarDueSoon || isInProgress || statusStr == 'toDo' || statusStr == 'todo' || statusStr == 'pending' || statusStr == 'dueSoon' || statusStr == 'due_soon') {
+
+            TaskStatus assignedStatus;
+
+            if (isInProgress) {
+              assignedStatus = TaskStatus.inProgress;
+            } else if (isOverdue) {
+              assignedStatus = TaskStatus.overdue;
+            } else if (isToday) {
+              assignedStatus = TaskStatus.dueToday;
+            } else if (isCalendarDueSoon || statusStr == 'dueSoon' || statusStr == 'due_soon') {
+              assignedStatus = TaskStatus.dueSoon;
+            } else {
+              assignedStatus = TaskStatus.toDo;
+            }
+
             result.add(TaskItem(
               title:    t['title']?.toString() ?? 'Task',
               subtitle: '$className · ${estHours}h',
-              status:   isInProgress ? TaskStatus.inProgress : TaskStatus.dueToday,
+              status:   assignedStatus,
               classId:  doc.id,
               taskId:   t['id']?.toString() ?? '',
             ));
@@ -362,18 +397,32 @@ class StudentDashboardProvider with ChangeNotifier {
     });
   }
 
+  final Set<String> _completingTasks = {};
+  Set<String> get completingTasks => _completingTasks;
+
   Future<void> toggleTaskCompletion(String classId, String taskId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
+    _completingTasks.add(taskId);
+    notifyListeners();
+
     try {
       final docRef  = _db.collection('enrollments').doc(classId);
       final docSnap = await docRef.get();
-      if (!docSnap.exists) return;
+      if (!docSnap.exists) {
+        _completingTasks.remove(taskId);
+        notifyListeners();
+        return;
+      }
 
       final List<dynamic> tasks = List.from(docSnap.data()?['tasksList'] ?? []);
       final index = tasks.indexWhere((t) => t['id'].toString() == taskId);
-      if (index == -1) return;
+      if (index == -1) {
+        _completingTasks.remove(taskId);
+        notifyListeners();
+        return;
+      }
 
       final currentStatus = tasks[index]['status']?.toString() ?? '';
       final isCompleting  = currentStatus != 'completed' && currentStatus != 'done';
@@ -389,6 +438,9 @@ class StudentDashboardProvider with ChangeNotifier {
       });
     } catch (e) {
       debugPrint('toggleTaskCompletion error: $e');
+    } finally {
+      _completingTasks.remove(taskId);
+      notifyListeners();
     }
   }
 

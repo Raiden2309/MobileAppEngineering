@@ -4,16 +4,282 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/student_settings_provider.dart';
 import '../models/app_enums.dart';
 import '../models/study_plan_model.dart';
 import '../../../../shared/services/ai_service.dart';
 import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
 
+import 'burnout_alert_provider.dart';
+
 class StudyPlanProvider with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  StudentSettingsProvider? _settingsProvider;
+  BurnoutAlertProvider? _burnoutProvider;
+
+  void updateSettingsProvider(StudentSettingsProvider p) => _settingsProvider = p;
+  void updateBurnoutProvider(BurnoutAlertProvider p)    => _burnoutProvider  = p;
+
   LocalCacheService? _cacheEngine;
+
+  void _generateLocalFastPlan() {
+    final now = DateTime.now();
+    final DateTime todayMidnight = DateTime(now.year, now.month, now.day);
+    final DateTime mondayOfThisWeek = now.subtract(Duration(days: now.weekday - 1));
+
+    // ── 1. Read real settings instead of hardcoded values ──────────
+    final settings = _settingsProvider;
+    final burnout  = _burnoutProvider;
+
+    final int studyStartMins = settings != null
+        ? settings.studyStart.hour * 60 + settings.studyStart.minute
+        : 9 * 60; // fallback 09:00
+
+    final int studyEndMins = settings != null
+        ? settings.studyEnd.hour * 60 + settings.studyEnd.minute
+        : 22 * 60; // fallback 22:00
+
+    final int availableWindowMins = (studyEndMins - studyStartMins).clamp(0, 14 * 60);
+
+    final String burnoutLevel = burnout?.alert?.workloadLevel.name ?? 'low';
+
+    // Burnout-aware daily cap (never exceeds available window)
+    final int burnoutCapMinutes = switch (burnoutLevel) {
+      'critical' => 120,
+      'high'     => 180,
+      'moderate' => 240,
+      _          => 360, // low
+    };
+
+    final int dailyCapMinutes = burnoutCapMinutes.clamp(0, availableWindowMins);
+
+    final Map<int, int> dayBudgetMinutes = {
+      for (int i = 0; i < 7; i++) i: dailyCapMinutes,
+    };
+
+    final Map<int, int> dayUsedMinutes  = {for (int i = 0; i < 7; i++) i: 0};
+    final Map<int, int> dayNextStart    = {for (int i = 0; i < 7; i++) i: studyStartMins};
+    final Map<int, List<StudyBlock>> dayBlocks = {for (int i = 0; i < 7; i++) i: []};
+
+    // ── Helper ──────────────────────────────────────────────────────
+    String minsToTime(int totalMins) {
+      final h = totalMins ~/ 60;
+      final m = totalMins % 60;
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+    }
+
+    // ── 2. Pre-fill blocked slots ───────────────────────────────────
+    // Expected format from settings: "Monday 09:00-11:00"
+    final List<String> blockedSlots = settings?.blockedSlots.toList() ?? [];
+    const List<String> _dayNames = [
+      'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'
+    ];
+
+    for (final slot in blockedSlots) {
+      final parts = slot.trim().split(' ');
+      if (parts.length < 2) continue;
+      final int dayIdx = _dayNames.indexOf(parts[0].toLowerCase());
+      if (dayIdx == -1) continue;
+
+      final times = parts[1].split('-');
+      if (times.length < 2) continue;
+
+      final startParts = times[0].split(':');
+      final endParts   = times[1].split(':');
+      if (startParts.length < 2 || endParts.length < 2) continue;
+
+      final int slotStart = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+      final int slotEnd   = int.parse(endParts[0])   * 60 + int.parse(endParts[1]);
+      final int slotMins  = slotEnd - slotStart;
+      if (slotMins <= 0) continue;
+
+      dayBlocks[dayIdx]!.add(StudyBlock(
+        startTime:       minsToTime(slotStart),
+        title:           'Blocked',
+        durationMinutes: slotMins,
+        type:            BlockType.blocked,
+        status:          BlockStatus.none,
+      ));
+
+      // Push the day's next-start pointer past this slot if needed
+      if (dayNextStart[dayIdx]! < slotEnd) {
+        dayNextStart[dayIdx] = slotEnd;
+      }
+      // Consume budget so study blocks never overlap
+      dayUsedMinutes[dayIdx] = dayUsedMinutes[dayIdx]! + slotMins;
+    }
+
+    // ── 3. Sort and schedule tasks ──────────────────────────────────
+    final sortedTasks = List<Map<String, dynamic>>.from(_latestFirestoreTasks)
+      ..sort((a, b) {
+        if (a['status'] == BlockStatus.inProgress && b['status'] != BlockStatus.inProgress) return -1;
+        if (b['status'] == BlockStatus.inProgress && a['status'] != BlockStatus.inProgress) return 1;
+        final DateTime? aDue = a['dueDate'];
+        final DateTime? bDue = b['dueDate'];
+        if (aDue != null && bDue != null) return aDue.compareTo(bDue);
+        if (aDue != null) return -1;
+        if (bDue != null) return 1;
+        return (b['hours'] as double).compareTo(a['hours'] as double);
+      });
+
+    const int maxSessionMinutes = 90;
+    const int minSessionMinutes = 30;
+    const int breakMinutes      = 15;
+
+    for (final task in sortedTasks) {
+      final double totalHours = task['hours'] as double;
+      int remainingMinutes = (totalHours * 60).round();
+      final DateTime? dueDate = task['dueDate'];
+
+      final List<int> eligibleDayIndexes = [];
+      for (int i = 0; i < 7; i++) {
+        final dayDate     = mondayOfThisWeek.add(Duration(days: i));
+        final dayMidnight = DateTime(dayDate.year, dayDate.month, dayDate.day);
+        if (dayMidnight.isBefore(todayMidnight)) continue;
+        if (dueDate != null) {
+          final dueMidnight = DateTime(dueDate.year, dueDate.month, dueDate.day);
+          if (dayMidnight.isAfter(dueMidnight)) continue;
+        }
+        eligibleDayIndexes.add(i);
+      }
+
+      if (eligibleDayIndexes.isEmpty) continue;
+
+      int dayCursor = 0;
+      while (remainingMinutes >= minSessionMinutes && dayCursor < eligibleDayIndexes.length) {
+        final int dayIdx    = eligibleDayIndexes[dayCursor];
+        final int budgetLeft = dayBudgetMinutes[dayIdx]! - dayUsedMinutes[dayIdx]!;
+
+        if (budgetLeft >= minSessionMinutes) {
+          final int sessionMins =
+          [remainingMinutes, maxSessionMinutes, budgetLeft].reduce((a, b) => a < b ? a : b);
+
+          final int startMin = dayNextStart[dayIdx]!;
+          dayBlocks[dayIdx]!.add(StudyBlock(
+            startTime:       minsToTime(startMin),
+            title:           task['title'],
+            subject:         task['subject'],
+            durationMinutes: sessionMins,
+            type:            BlockType.study,
+            status:          task['status'],
+          ));
+
+          dayUsedMinutes[dayIdx] = dayUsedMinutes[dayIdx]! + sessionMins;
+          dayNextStart[dayIdx]   = startMin + sessionMins;
+          remainingMinutes      -= sessionMins;
+
+          final int budgetAfter = dayBudgetMinutes[dayIdx]! - dayUsedMinutes[dayIdx]!;
+          if (budgetAfter >= breakMinutes && remainingMinutes > 0) {
+            final int breakStart = dayNextStart[dayIdx]!;
+            dayBlocks[dayIdx]!.add(StudyBlock(
+              startTime:       minsToTime(breakStart),
+              title:           'Short Break',
+              durationMinutes: breakMinutes,
+              type:            BlockType.breakSlot,
+              status:          BlockStatus.none,
+            ));
+            dayUsedMinutes[dayIdx] = dayUsedMinutes[dayIdx]! + breakMinutes;
+            dayNextStart[dayIdx]   = breakStart + breakMinutes;
+          }
+        }
+
+        dayCursor++;
+        if (dayCursor >= eligibleDayIndexes.length && remainingMinutes >= minSessionMinutes) {
+          dayCursor = 0;
+          final anyBudget = eligibleDayIndexes.any(
+                (idx) => (dayBudgetMinutes[idx]! - dayUsedMinutes[idx]!) >= minSessionMinutes,
+          );
+          if (!anyBudget) break;
+        }
+      }
+    }
+
+    // ── 4. Fill remaining slots with subject revision ───────────────
+    final List<String> subjects =
+        settings?.joinedClasses.map((c) => c.name).toList() ?? [];
+
+    if (subjects.isNotEmpty) {
+      int subjectCursor = 0;
+
+      for (int i = 0; i < 7; i++) {
+        final dayDate     = mondayOfThisWeek.add(Duration(days: i));
+        final dayMidnight = DateTime(dayDate.year, dayDate.month, dayDate.day);
+        if (dayMidnight.isBefore(todayMidnight)) continue;
+
+        // Track subjects already scheduled today to avoid repeats
+        final usedSubjects = dayBlocks[i]!
+            .where((b) => b.type == BlockType.study)
+            .map((b) => b.subject)
+            .toSet();
+
+        while (true) {
+          final int budgetLeft = dayBudgetMinutes[i]! - dayUsedMinutes[i]!;
+          if (budgetLeft < minSessionMinutes) break;
+
+          // Pick next subject not already used today
+          String? subject;
+          for (int s = 0; s < subjects.length; s++) {
+            final candidate = subjects[(subjectCursor + s) % subjects.length];
+            if (!usedSubjects.contains(candidate)) {
+              subject       = candidate;
+              subjectCursor = (subjectCursor + s + 1) % subjects.length;
+              break;
+            }
+          }
+          if (subject == null) break; // all subjects used today
+
+          final int sessionMins = budgetLeft.clamp(minSessionMinutes, maxSessionMinutes);
+          final int startMin    = dayNextStart[i]!;
+
+          dayBlocks[i]!.add(StudyBlock(
+            startTime:       minsToTime(startMin),
+            title:           'Revise $subject',
+            subject:         subject,
+            durationMinutes: sessionMins,
+            type:            BlockType.study,
+            status:          BlockStatus.toDo,
+          ));
+          usedSubjects.add(subject);
+          dayUsedMinutes[i] = dayUsedMinutes[i]! + sessionMins;
+          dayNextStart[i]   = startMin + sessionMins;
+
+          // Add break if room
+          final int budgetAfterRevision = dayBudgetMinutes[i]! - dayUsedMinutes[i]!;
+          if (budgetAfterRevision >= breakMinutes) {
+            dayBlocks[i]!.add(StudyBlock(
+              startTime:       minsToTime(dayNextStart[i]!),
+              title:           'Short Break',
+              durationMinutes: breakMinutes,
+              type:            BlockType.breakSlot,
+              status:          BlockStatus.none,
+            ));
+            dayUsedMinutes[i] = dayUsedMinutes[i]! + breakMinutes;
+            dayNextStart[i]   = dayNextStart[i]! + breakMinutes;
+          }
+        }
+      }
+    }
+
+    // ── 5. Build final sorted day plans ────────────────────────────
+    final List<DayPlan> generatedDays = List.generate(7, (i) {
+      final targetDate = mondayOfThisWeek.add(Duration(days: i));
+      final blocks = dayBlocks[i]!
+        ..sort((a, b) {
+          final aMins = int.parse(a.startTime.split(':')[0]) * 60 +
+              int.parse(a.startTime.split(':')[1]);
+          final bMins = int.parse(b.startTime.split(':')[0]) * 60 +
+              int.parse(b.startTime.split(':')[1]);
+          return aMins.compareTo(bMins);
+        });
+      return DayPlan(date: targetDate, blocks: blocks);
+    });
+
+    plan    = WeekPlan(days: generatedDays, lastUpdated: DateTime.now());
+    loading = false;
+    notifyListeners();
+  }
 
   void updateCacheEngine(LocalCacheService engine) {
     _cacheEngine = engine;
@@ -55,7 +321,8 @@ class StudyPlanProvider with ChangeNotifier {
       final decoded = await _cacheEngine?.read(_tasksCacheKey(uid));
       if (decoded == null) return false;
 
-      final List<dynamic> list = decoded is String ? jsonDecode(decoded) : List.from(decoded);
+      final List<dynamic> list =
+      decoded is String ? jsonDecode(decoded) : List.from(decoded);
       _latestFirestoreTasks = list.map((t) {
         BlockStatus status = BlockStatus.toDo;
         if (t['status'] == 'inProgress') status = BlockStatus.inProgress;
@@ -106,7 +373,7 @@ class StudyPlanProvider with ChangeNotifier {
         final sem = dataMap['semester'] as String?;
         if (sem != null && semester != null && semester.isNotEmpty && sem != semester) continue;
 
-        final String className    = dataMap['classId']?.toString() ?? 'General';
+        final String className       = dataMap['classId']?.toString() ?? 'General';
         final List<dynamic> rawTasks = dataMap['tasksList'] ?? [];
 
         for (var t in rawTasks) {
@@ -115,8 +382,12 @@ class StudyPlanProvider with ChangeNotifier {
               'title':   t['title'] ?? 'Assignment Task',
               'subject': className,
               'hours':   (t['estimated_hours'] as num? ?? 1.5).toDouble(),
-              'status':  t['status'] == 'inProgress' ? BlockStatus.inProgress : BlockStatus.toDo,
-              'dueDate': t['due_date'] != null ? DateTime.parse(t['due_date'] as String) : null,
+              'status':  t['status'] == 'inProgress'
+                  ? BlockStatus.inProgress
+                  : BlockStatus.toDo,
+              'dueDate': t['due_date'] != null
+                  ? DateTime.parse(t['due_date'] as String)
+                  : null,
             });
           }
         }
@@ -126,7 +397,7 @@ class StudyPlanProvider with ChangeNotifier {
       isOffline = false;
       _generateLocalFastPlan();
     }, onError: (e) {
-      error = e.toString();
+      error   = e.toString();
       loading = false;
       _loadTasksFromCache().then((hasCached) {
         isOffline = hasCached;
@@ -140,70 +411,6 @@ class StudyPlanProvider with ChangeNotifier {
   Future<void> fetch({String? semester}) async => listenToLiveStudyPlan(semester: semester);
   void loadMock() => listenToLiveStudyPlan();
 
-  void _generateLocalFastPlan() {
-    final List<DayPlan> generatedDays = [];
-    final now = DateTime.now();
-    final DateTime mondayOfThisWeek = now.subtract(Duration(days: now.weekday - 1));
-    int unDatedTaskDistributionIndex = 0;
-
-    for (int i = 0; i < 7; i++) {
-      final targetDate = mondayOfThisWeek.add(Duration(days: i));
-      final List<StudyBlock> dailyBlocks = [];
-      final DateTime todayMidnight  = DateTime(now.year, now.month, now.day);
-      final DateTime targetMidnight = DateTime(targetDate.year, targetDate.month, targetDate.day);
-
-      final matchDayTasks = _latestFirestoreTasks.where((t) {
-        final DateTime? taskDue = t['dueDate'];
-        if (taskDue == null) {
-          if (!targetMidnight.isBefore(todayMidnight)) {
-            final int dayOffset    = targetMidnight.difference(todayMidnight).inDays;
-            final int assignedSlot = unDatedTaskDistributionIndex % 3;
-            if (dayOffset == assignedSlot) return true;
-          }
-          return false;
-        }
-        return taskDue.day   == targetDate.day &&
-            taskDue.month == targetDate.month &&
-            taskDue.year  == targetDate.year;
-      }).toList();
-
-      if (matchDayTasks.isNotEmpty) unDatedTaskDistributionIndex++;
-
-      String timeTracker = "10:00";
-      for (var targetTask in matchDayTasks) {
-        final double taskHours     = targetTask['hours'];
-        final int executionMinutes = (taskHours * 60).round();
-
-        dailyBlocks.add(StudyBlock(
-          startTime:       timeTracker,
-          title:           targetTask['title'],
-          subject:         targetTask['subject'],
-          durationMinutes: executionMinutes,
-          type:            BlockType.study,
-          status:          targetTask['status'],
-        ));
-
-        timeTracker = taskHours == 1.5 ? "11:30" : "12:00";
-
-        dailyBlocks.add(StudyBlock(
-          startTime:       timeTracker,
-          title:           "Post-Study Recharge Break",
-          durationMinutes: 30,
-          type:            BlockType.breakSlot,
-          status:          BlockStatus.toDo,
-        ));
-
-        timeTracker = taskHours == 1.5 ? "12:00" : "12:30";
-      }
-
-      generatedDays.add(DayPlan(date: targetDate, blocks: dailyBlocks));
-    }
-
-    plan    = WeekPlan(days: generatedDays, lastUpdated: DateTime.now());
-    loading = false;
-    notifyListeners();
-  }
-
   Future<void> generateAiWeeklyPlan() async {
     loading = true;
     error   = null;
@@ -214,7 +421,8 @@ class StudyPlanProvider with ChangeNotifier {
       final DateTime monday = now.subtract(Duration(days: now.weekday - 1));
       final String mondayIsoStr = DateFormat('yyyy-MM-dd').format(monday);
 
-      final List<Map<String, dynamic>> input = _latestFirestoreTasks.map((t) {
+      // ── Build task list with priority ──────────────────────────────
+      final List<Map<String, dynamic>> taskInput = _latestFirestoreTasks.map((t) {
         String priority = 'medium';
         if (t['status'] == BlockStatus.inProgress) {
           priority = 'high';
@@ -228,17 +436,34 @@ class StudyPlanProvider with ChangeNotifier {
           'task_title':      t['title'],
           'estimated_hours': t['hours'],
           'priority':        priority,
+          'due_date':        t['dueDate'] != null
+              ? DateFormat('yyyy-MM-dd').format(t['dueDate'] as DateTime)
+              : null,
         };
       }).toList();
 
-      if (input.isEmpty) {
-        input.add({'name': 'General Study', 'task_title': 'Review Semester Materials', 'estimated_hours': 2.0, 'priority': 'medium'});
-      }
+      final settings = _settingsProvider;
+      final burnout  = _burnoutProvider;
+
+      final String studyStart = settings != null
+          ? '${settings.studyStart.hour.toString().padLeft(2, '0')}:${settings.studyStart.minute.toString().padLeft(2, '0')}'
+          : '08:00';
+      final String studyEnd = settings != null
+          ? '${settings.studyEnd.hour.toString().padLeft(2, '0')}:${settings.studyEnd.minute.toString().padLeft(2, '0')}'
+          : '22:00';
+      final List<String> blockedSlots      = settings?.blockedSlots.toList() ?? [];
+      final List<String> enrolledSubjects  =
+          settings?.joinedClasses.map((c) => c.name).toList() ?? [];
+      final String burnoutLevel = burnout?.alert?.workloadLevel.name ?? 'low';
 
       final Map<String, dynamic> aiResponse = await AiService.generateStudyPlan(
-        subjects:             input,
-        availableHoursPerDay: 6,
-        startDateIso:         mondayIsoStr,
+        tasks:            taskInput,
+        enrolledSubjects: enrolledSubjects,
+        studyStart:       studyStart,
+        studyEnd:         studyEnd,
+        blockedSlots:     blockedSlots,
+        burnoutLevel:     burnoutLevel,
+        startDateIso:     mondayIsoStr,
       );
 
       final List<DayPlan> parsedDays = [];
@@ -250,11 +475,11 @@ class StudyPlanProvider with ChangeNotifier {
           BlockType   bType   = BlockType.study;
           BlockStatus bStatus = BlockStatus.toDo;
 
-          if (blockMap['type']   == 'breakSlot')  bType   = BlockType.breakSlot;
-          if (blockMap['type']   == 'blocked')     bType   = BlockType.blocked;
-          if (blockMap['status'] == 'inProgress')  bStatus = BlockStatus.inProgress;
-          if (blockMap['status'] == 'completed')   bStatus = BlockStatus.completed;
-          if (blockMap['status'] == 'dueSoon')     bStatus = BlockStatus.dueSoon;
+          if (blockMap['type']   == 'breakSlot') bType   = BlockType.breakSlot;
+          if (blockMap['type']   == 'blocked')   bType   = BlockType.blocked;
+          if (blockMap['status'] == 'inProgress') bStatus = BlockStatus.inProgress;
+          if (blockMap['status'] == 'completed')  bStatus = BlockStatus.completed;
+          if (blockMap['status'] == 'dueSoon')    bStatus = BlockStatus.dueSoon;
 
           blocks.add(StudyBlock(
             startTime:       blockMap['start_time'] ?? '09:00',
@@ -271,10 +496,10 @@ class StudyPlanProvider with ChangeNotifier {
       if (parsedDays.isNotEmpty) {
         plan = WeekPlan(days: parsedDays, lastUpdated: DateTime.now());
       } else {
-        throw Exception("AI returned empty plan.");
+        throw Exception('AI returned empty plan.');
       }
     } catch (e) {
-      error = "AI Generation Failed: ${e.toString()}";
+      error = 'AI Generation Failed: ${e.toString()}';
       _generateLocalFastPlan();
     } finally {
       loading = false;

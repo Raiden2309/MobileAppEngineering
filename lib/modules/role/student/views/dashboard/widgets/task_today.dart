@@ -64,12 +64,19 @@ class TaskToday extends StatelessWidget {
               );
             }
 
+            final provider = context.watch<StudentDashboardProvider>();
+
             return Column(
               children: List.generate(tasks.length, (index) {
+                final item = tasks[index];
+                final isLoading = provider.completingTasks.contains(item.taskId);
                 return TaskCard(
-                  task: tasks[index],
-                  onToggle: () => context.read<StudentDashboardProvider>()
-                      .toggleTaskCompletion(tasks[index].classId, tasks[index].taskId),
+                  task: item,
+                  isLoading: isLoading,
+                  onToggle: isLoading
+                      ? null
+                      : () => context.read<StudentDashboardProvider>()
+                      .toggleTaskCompletion(item.classId, item.taskId),
                 );
               }),
             );

@@ -182,6 +182,8 @@ class RegisterPageState extends State<RegisterPage> {
                           onPressed: () => controller.registerWithGoogle(
                             context,
                             onError: () {
+                              if (!mounted) return;
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Google registration failed. Please try again.')),
                               );

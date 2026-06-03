@@ -7,19 +7,29 @@ import '../models/app_enums.dart';
 import '../models/tasks_model.dart';
 import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
 
+import 'dashboard_provider.dart';
+
 class TasksProvider with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Centralized cache link
   LocalCacheService? _cacheEngine;
+  StudentDashboardProvider? _dashboardProvider;
 
   void updateCacheEngine(LocalCacheService engine) {
     _cacheEngine = engine;
   }
 
+  void updateDashboardProvider(StudentDashboardProvider dash) {
+    _dashboardProvider = dash;
+  }
+
   List<SubjectGroup> groups = [];
   String activeFilter = 'all';
+
+  int get totalTasksCount => groups.fold(0, (sum, g) => sum + g.tasks.length);
+  int get pendingTasksCount => groups.fold(0, (sum, g) => sum + g.tasks.where((t) => t.status != TaskStatus.completed).length);
   bool loading = false;
   bool isOffline = false;
   String? error;
@@ -139,14 +149,19 @@ class TasksProvider with ChangeNotifier {
               data['classId']?.toString() ??
               'Unknown Subject',
           colorKey: data['colorKey'] ?? 'blue',
-          tasks: rawTasks.map((t) => Task.fromJson(Map<String, dynamic>.from(t))).toList(),
+          tasks: rawTasks.map((t) {
+            final task = Task.fromJson(Map<String, dynamic>.from(t));
+            final liveStatus = _getLiveStatus(task);
+            return liveStatus != task.status ? task.copyWith(status: liveStatus) : task;
+          }).toList(),
         );
       }).toList();
 
       loading = false;
       isOffline = false;
-      _saveToCache(); // Keeps local storage fresh
+      _saveToCache();
       notifyListeners();
+
     }, onError: (e) {
       error = e.toString();
       loading = false;
@@ -169,6 +184,8 @@ class TasksProvider with ChangeNotifier {
     groups[gIdx].tasks.removeWhere((t) => t.id == task.id);
     _saveToCache();
     notifyListeners();
+
+    _dashboardProvider?.listenToLiveDashboardStats();
 
     try {
       await _db.runTransaction((transaction) async {
@@ -204,12 +221,22 @@ class TasksProvider with ChangeNotifier {
 
   List<Task> filteredTasks(List<Task> tasks) {
     if (activeFilter == 'all') return tasks;
-    return tasks.where((t) => t.status.name == activeFilter).toList();
+    return tasks.where((t) {
+      final liveStatus = _getLiveStatus(t); // Calls the function here 👈
+
+      if (activeFilter == 'completed') return liveStatus == TaskStatus.completed;
+      if (activeFilter == 'inProgress') return liveStatus == TaskStatus.inProgress;
+      if (activeFilter == 'dueSoon') return liveStatus == TaskStatus.dueSoon;
+      if (activeFilter == 'dueToday') return liveStatus == TaskStatus.dueToday;
+      if (activeFilter == 'toDo') return liveStatus == TaskStatus.toDo || liveStatus == TaskStatus.upcoming;
+
+      return liveStatus.name == activeFilter;
+    }).toList();
   }
 
   Future<void> fetch() async => listenToLiveTasks(semester: _currentSemester ?? '');
 
-  void loadMock() => listenToLiveTasks(semester: _currentSemester ?? '');
+  void load() => listenToLiveTasks(semester: _currentSemester ?? '');
 
   Future<void> addTask({
     required String groupId,
@@ -252,24 +279,29 @@ class TasksProvider with ChangeNotifier {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
-    final gIdx = groups.indexWhere((g) => g.tasks.any((t) => t.id == task.id));
+    final updatedTask = task;
+
+    final gIdx = groups.indexWhere((g) => g.tasks.any((t) => t.id == updatedTask.id));
     if (gIdx == -1) return;
 
-    final tIdx = groups[gIdx].tasks.indexWhere((t) => t.id == task.id);
-    groups[gIdx].tasks[tIdx] = task;
+    final tIdx = groups[gIdx].tasks.indexWhere((t) => t.id == updatedTask.id);
+    groups[gIdx].tasks[tIdx] = updatedTask;
+
     _saveToCache();
     notifyListeners();
 
+    _dashboardProvider?.listenToLiveDashboardStats();
+
     try {
-      final docRef  = _db.collection('enrollments').doc(groups[gIdx].id);
+      final docRef = _db.collection('enrollments').doc(groups[gIdx].id);
       final docSnap = await docRef.get();
       if (!docSnap.exists) return;
 
       final List<dynamic> raw = List.from(docSnap.data()?['tasksList'] ?? []);
-      final idx = raw.indexWhere((t) => t['id'] == task.id);
+      final idx = raw.indexWhere((t) => t['id'] == updatedTask.id);
       if (idx == -1) return;
 
-      raw[idx] = task.toJson();
+      raw[idx] = updatedTask.toJson();
       await docRef.update({'tasksList': raw});
     } catch (e) {
       error = e.toString();
@@ -278,6 +310,30 @@ class TasksProvider with ChangeNotifier {
   }
 
   Future<void> saveCache() => _saveToCache();
+
+  TaskStatus _getLiveStatus(Task task) {
+    if (task.status == TaskStatus.completed || task.status == TaskStatus.inProgress) {
+      return task.status;
+    }
+    if (task.dueDate == null) return task.status;
+
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+
+    if (taskDate.isBefore(todayDate)) {
+      return TaskStatus.overdue;
+    }
+    if (taskDate.isAtSameMomentAs(todayDate)) {
+      return TaskStatus.dueToday;
+    }
+    final daysDifference = taskDate.difference(todayDate).inDays;
+    if (daysDifference <= 3) {
+      return TaskStatus.dueSoon;
+    }
+    return task.status;
+  }
+
 
   @override
   void dispose() {

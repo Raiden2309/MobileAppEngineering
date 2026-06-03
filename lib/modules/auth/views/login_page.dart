@@ -183,6 +183,9 @@ class LoginPageState extends State<LoginPage> {
                           onPressed: () => controller.signInWithGoogle(
                             context,
                             onError: () {
+                              // Add a mounted guard check here
+                              if (!mounted) return;
+
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Google Sign-In failed. Please try again.')),
                               );

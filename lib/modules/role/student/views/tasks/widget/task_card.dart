@@ -8,33 +8,50 @@ import 'dart:async'; // --- Added for runtime interval loops ---
 
 Color subjectColor(String key) {
   switch (key) {
-    case 'blue':   return AppColors.summerCampBlue;
-    case 'lime':   return AppColors.lime;
-    case 'yellow': return AppColors.mikadoYellow;
-    case 'orange': return AppColors.nectarine;
-    default:       return AppColors.californiaBlue;
+    case 'blue':
+      return AppColors.summerCampBlue;
+    case 'lime':
+      return AppColors.lime;
+    case 'yellow':
+      return AppColors.mikadoYellow;
+    case 'orange':
+      return AppColors.nectarine;
+    default:
+      return AppColors.californiaBlue;
   }
 }
 
 Color chipBg(TaskStatus status) {
   switch (status) {
-    case TaskStatus.completed:  return AppColors.completed;
-    case TaskStatus.inProgress: return AppColors.inProgress;
+    case TaskStatus.completed:
+      return AppColors.completed;
+    case TaskStatus.inProgress:
+      return AppColors.inProgress;
     case TaskStatus.dueSoon:
-    case TaskStatus.dueToday:   return AppColors.dueSoon;
+      return AppColors.dueSoon;
+    case TaskStatus.overdue:
+    case TaskStatus.dueToday:
+      return AppColors.dueSoon;
     case TaskStatus.toDo:
-    case TaskStatus.upcoming:   return AppColors.toDo;
+    case TaskStatus.upcoming:
+      return AppColors.toDo;
   }
 }
 
 Color chipFg(TaskStatus status) {
   switch (status) {
-    case TaskStatus.completed:  return AppColors.greenSheen;
-    case TaskStatus.inProgress: return AppColors.mikadoYellow;
+    case TaskStatus.completed:
+      return AppColors.greenSheen;
+    case TaskStatus.inProgress:
+      return AppColors.mikadoYellow;
     case TaskStatus.dueSoon:
-    case TaskStatus.dueToday:   return AppColors.red;
+      return AppColors.nectarine;
+    case TaskStatus.overdue:
+    case TaskStatus.dueToday:
+      return AppColors.red;
     case TaskStatus.toDo:
-    case TaskStatus.upcoming:   return AppColors.californiaBlue;
+    case TaskStatus.upcoming:
+      return AppColors.californiaBlue;
   }
 }
 
@@ -107,7 +124,10 @@ class TaskCardState extends State<TaskCard> {
                     // --- WIRED SELF-UPDATING LIVE TIMER ---
                     _TaskCardCountdownText(task: widget.task),
                     const SizedBox(width: 8),
-                    StatusChip(task: widget.task),
+                    StatusChip(
+                      task: widget.task,
+                      status: widget.controller.getLiveStatus(widget.task),
+                    ),
                   ],
                 ),
               ],
@@ -139,6 +159,7 @@ class TaskCardState extends State<TaskCard> {
 
 class TaskCheckbox extends StatelessWidget {
   final bool isCompleted;
+
   const TaskCheckbox({super.key, required this.isCompleted});
 
   @override
@@ -162,25 +183,35 @@ class TaskCheckbox extends StatelessWidget {
 
 class StatusChip extends StatelessWidget {
   final Task task;
-  const StatusChip({super.key, required this.task});
+  final TaskStatus status;
+
+  const StatusChip({
+    super.key,
+    required this.task,
+    required this.status,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: chipBg(task.status),
-        borderRadius: BorderRadius.circular(AppColors.glassBadgeBorderRadius),
+        color: chipBg(status),
+        borderRadius: BorderRadius.circular(
+          AppColors.glassBadgeBorderRadius,
+        ),
         border: Border.all(
-          color: chipFg(task.status).withValues(alpha: AppColors.glassBorderOpacity),
+          color: chipFg(status).withValues(
+            alpha: AppColors.glassBorderOpacity,
+          ),
         ),
       ),
       child: Text(
-        task.statusLabel,
+        status.label,
         style: TextStyle(
           fontSize: FontStyles.titleTiny,
           fontWeight: FontStyles.weightHeavy,
-          color: chipFg(task.status),
+          color: chipFg(status),
         ),
       ),
     );
@@ -241,11 +272,9 @@ class SubjectGroupSection extends StatelessWidget {
             ],
           ),
         ),
-        ...group.tasks.map((task) => TaskCard(
-          task: task,
-          group: group,
-          controller: controller,
-        )),
+        ...group.tasks.map(
+          (task) => TaskCard(task: task, group: group, controller: controller),
+        ),
         const SizedBox(height: 12),
       ],
     );
@@ -255,6 +284,7 @@ class SubjectGroupSection extends StatelessWidget {
 // --- SELF-CONTAINED SUB-TICKER IMPLEMENTATION WITH LIFECYCLE REBIND OVERRIDES ---
 class _TaskCardCountdownText extends StatefulWidget {
   final Task task;
+
   const _TaskCardCountdownText({required this.task});
 
   @override
@@ -270,7 +300,8 @@ class _TaskCardCountdownTextState extends State<_TaskCardCountdownText> {
     super.initState();
     _refreshCardRemainingTime();
 
-    if (widget.task.status == TaskStatus.inProgress && widget.task.startedAt != null) {
+    if (widget.task.status == TaskStatus.inProgress &&
+        widget.task.startedAt != null) {
       _cardTicker = Timer.periodic(const Duration(seconds: 1), (_) {
         _refreshCardRemainingTime();
       });
@@ -280,10 +311,12 @@ class _TaskCardCountdownTextState extends State<_TaskCardCountdownText> {
   @override
   void didUpdateWidget(_TaskCardCountdownText oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.task.status != widget.task.status || oldWidget.task.startedAt != widget.task.startedAt) {
+    if (oldWidget.task.status != widget.task.status ||
+        oldWidget.task.startedAt != widget.task.startedAt) {
       _cardTicker?.cancel();
       _refreshCardRemainingTime();
-      if (widget.task.status == TaskStatus.inProgress && widget.task.startedAt != null) {
+      if (widget.task.status == TaskStatus.inProgress &&
+          widget.task.startedAt != null) {
         _cardTicker = Timer.periodic(const Duration(seconds: 1), (_) {
           _refreshCardRemainingTime();
         });
@@ -292,13 +325,16 @@ class _TaskCardCountdownTextState extends State<_TaskCardCountdownText> {
   }
 
   void _refreshCardRemainingTime() {
-    if (widget.task.status != TaskStatus.inProgress || widget.task.startedAt == null) {
+    if (widget.task.status != TaskStatus.inProgress ||
+        widget.task.startedAt == null) {
       _cardDisplayString = widget.task.estimatedTime;
       return;
     }
 
     final totalMinutesLimit = (widget.task.estimatedHours * 60).round();
-    final elapsedMinutes = DateTime.now().difference(widget.task.startedAt!).inMinutes;
+    final elapsedMinutes = DateTime.now()
+        .difference(widget.task.startedAt!)
+        .inMinutes;
     final minutesLeft = totalMinutesLimit - elapsedMinutes;
 
     if (minutesLeft <= 0) {
