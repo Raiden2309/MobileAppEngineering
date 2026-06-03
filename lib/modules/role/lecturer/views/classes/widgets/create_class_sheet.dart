@@ -39,6 +39,7 @@ class _CreateClassSheetState extends State<CreateClassSheet> {
     super.dispose();
   }
 
+  // FIXED: Generates a clean 6-digit classroom code when the user taps the button
   Future<void> _generateJoinCode() async {
     if (nameController.text.trim().isEmpty) {
       setState(() => _error = 'Enter a subject name first');
@@ -47,14 +48,11 @@ class _CreateClassSheetState extends State<CreateClassSheet> {
     setState(() { isGenerating = true; _error = null; });
     await Future.delayed(const Duration(milliseconds: 900));
 
-    final code = nameController.text
-        .trim()
-        .split(' ')
-        .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
-        .join();
+    // Generates a randomized 6-digit numeric code string format (e.g. 483780)
+    final uniqueJoinCode = math.Random().nextInt(999999).toString().padLeft(6, '0');
 
     setState(() {
-      generatedJoinCode = '$code–A1';
+      generatedJoinCode = uniqueJoinCode;
       isGenerating = false;
     });
   }
@@ -78,14 +76,12 @@ class _CreateClassSheetState extends State<CreateClassSheet> {
           .map((w) => w.isNotEmpty ? w[0].toUpperCase() : '')
           .join();
 
-      final uniqueJoinCode = math.Random().nextInt(999999).toString().padLeft(6, '0');
-
       final newClass = ClassModel(
         id: FirebaseFirestore.instance.collection('classes').doc().id,
         name: nameController.text.trim(),
-        code: derivedCode,
+        code: generatedJoinCode!,
         subjectCode: derivedCode,
-        classCode: uniqueJoinCode,
+        classCode: generatedJoinCode!,
         semester: 'Semester 1',
         lecturerId: FirebaseAuth.instance.currentUser?.uid ?? '',
         joinCode: generatedJoinCode!,
