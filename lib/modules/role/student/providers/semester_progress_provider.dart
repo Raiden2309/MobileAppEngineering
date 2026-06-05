@@ -7,8 +7,11 @@ import '../models/semester_progress_model.dart';
 import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
 
 class SemesterProvider with ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+  SemesterProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   // Centralized cache link
   LocalCacheService? _cacheEngine;

@@ -12,9 +12,9 @@ import '../../../auth/views/login_page.dart';
 import '../models/lecturer_settings_model.dart';
 
 class LecturerSettingsProvider extends ChangeNotifier {
-  final FirebaseFirestore _db      = FirebaseFirestore.instance;
-  final FirebaseAuth      _auth    = FirebaseAuth.instance;
-  final FirebaseStorage   _storage = FirebaseStorage.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth      _auth;
+  final FirebaseStorage   _storage;
   static const _secureStorage      = FlutterSecureStorage();
 
   static const _keyBurnoutAlerts      = 'lec_burnout_alerts';
@@ -34,8 +34,14 @@ class LecturerSettingsProvider extends ChangeNotifier {
 
   String? get _uid => _auth.currentUser?.uid;
 
-  LecturerSettingsProvider() {
-    initLiveListeners();
+  final bool _testMode;
+
+  LecturerSettingsProvider({FirebaseFirestore? db, FirebaseAuth? auth, FirebaseStorage? storage, bool testMode = false})
+      : _db        = db      ?? FirebaseFirestore.instance,
+        _auth      = auth    ?? FirebaseAuth.instance,
+        _storage   = storage ?? FirebaseStorage.instance,
+        _testMode  = testMode {
+    if (!_testMode) initLiveListeners();
   }
 
   /// INITIALIZES LIVE LISTENERS: Links directly to the master users collection document for real-time name parsing
@@ -141,7 +147,7 @@ class LecturerSettingsProvider extends ChangeNotifier {
   }
 
   Future<void> _persistToggle(Map<String, dynamic> fields) async {
-    await _saveToCache();
+    if (!_testMode) await _saveToCache();
     _tryFirestorePatch(fields);
     notifyListeners();
   }

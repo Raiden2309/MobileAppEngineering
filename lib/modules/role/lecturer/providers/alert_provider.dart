@@ -5,8 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/alert_model.dart';
 
 class AlertProvider extends ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
 
   String selectedFilter = 'all';
   bool isLoading = false;
@@ -16,7 +16,9 @@ class AlertProvider extends ChangeNotifier {
   StreamSubscription? _classesSubscription;
   StreamSubscription? _enrollmentsSubscription;
 
-  AlertProvider() {
+  AlertProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
     initLiveAlertStream();
   }
 

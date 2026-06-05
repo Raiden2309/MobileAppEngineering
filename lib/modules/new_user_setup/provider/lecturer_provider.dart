@@ -5,8 +5,11 @@ import 'dart:math';
 import '../models/lecturer_model.dart';
 
 class LecturerProvider extends ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+  LecturerProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   LecturerModel? lecturer;
   bool loading = false;

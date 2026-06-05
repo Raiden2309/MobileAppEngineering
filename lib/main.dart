@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
+import 'package:mae_assignment_frontend/shared/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -99,14 +100,12 @@ void main() async {
         >(
           create: (_) => TasksProvider(),
           update: (_, cache, settingsProvider, dashboardProvider, tasksProvider) {
-            // Inject the local cache engine
             tasksProvider!.updateCacheEngine(cache);
-
-            // Inject the dashboard provider so edits/deletions notify the homepage stream
             tasksProvider.updateDashboardProvider(dashboardProvider);
 
-            // Refresh tasks mapping instantly whenever settings change
+            final previousCallback = settingsProvider.onSubjectsUpdated;
             settingsProvider.onSubjectsUpdated = () {
+              previousCallback?.call();
               if (settingsProvider.currentSemesterId != null) {
                 tasksProvider.listenToLiveTasks(
                   semester: settingsProvider.currentSemesterId!,
@@ -132,10 +131,10 @@ void main() async {
         ),
 
         ChangeNotifierProxyProvider3<
-            LocalCacheService,
-            StudentSettingsProvider,
-            BurnoutAlertProvider,
-            StudyPlanProvider
+          LocalCacheService,
+          StudentSettingsProvider,
+          BurnoutAlertProvider,
+          StudyPlanProvider
         >(
           create: (_) => StudyPlanProvider(),
           update: (_, cache, settings, burnout, study) {
@@ -143,7 +142,9 @@ void main() async {
             study.updateSettingsProvider(settings);
             study.updateBurnoutProvider(burnout);
             if (settings.currentSemesterId != null) {
-              study.listenToLiveStudyPlan(semester: settings.currentSemesterId!);
+              study.listenToLiveStudyPlan(
+                semester: settings.currentSemesterId!,
+              );
             }
 
             return study;
@@ -162,6 +163,7 @@ void main() async {
       child: const MyApp(),
     ),
   );
+  await NotificationService().setupNotificationTokenPipeline();
 }
 
 class MyApp extends StatelessWidget {

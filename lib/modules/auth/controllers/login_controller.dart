@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mae_assignment_frontend/modules/auth/services/validation_service.dart';
 import 'package:mae_assignment_frontend/modules/new_user_setup/views/role_setup.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/views/central_lecturer_navigation.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/central_student_navigation.dart';
 import '../services/auth_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/google_sign_in_stub.dart';
 
 class LoginController {
@@ -24,8 +24,8 @@ class LoginController {
     emailError    = null;
     passwordError = null;
 
-    if (email.isEmpty) emailError = 'Email is required';
-    if (password.isEmpty) passwordError = 'Password is required';
+    emailError    = ValidationService.validateEmail(email);
+    passwordError = ValidationService.validatePassword(password);
     if (emailError != null || passwordError != null) {
       onError();
       return;

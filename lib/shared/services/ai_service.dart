@@ -36,7 +36,7 @@ You must ALWAYS respond with ONLY a valid JSON object. No explanation, no markdo
 ---
 
 CONTEXT YOU WILL RECEIVE:
-- tasks: pending assignments/tasks with estimated hours, subject, priority, and optional due date
+- tasks: pending assignments/tasks with fields: subject, task_title, estimated_hours, priority, due_date (ISO), status
 - enrolled_subjects: all subjects the student is enrolled in (use these for revision sessions when no tasks exist)
 - study_window: the student's preferred study hours (start and end time)
 - blocked_slots: time slots already taken (classes, lectures, personal commitments) — never schedule study here

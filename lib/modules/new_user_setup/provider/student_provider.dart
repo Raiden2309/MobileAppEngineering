@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/student_model.dart';
 
 class StudentProvider extends ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
+  StudentProvider({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   StudentModel? student;
   SemesterModel? currentSemester;

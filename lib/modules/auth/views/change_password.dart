@@ -3,29 +3,29 @@ import 'package:mae_assignment_frontend/modules/auth/views/reset_password.dart';
 import 'package:mae_assignment_frontend/modules/auth/views/widget/otp_box.dart';
 import '../../../../shared/styles/app_colors.dart';
 import '../../../../shared/styles/font_styles.dart';
-import '../controllers/change_password_controller.dart';
 import '../models/change_password_request.dart';
 import '../providers/reset_password_provider.dart';
+import '../services/validation_service.dart';
 
 class ChangePassword {
   static void startForgotPassword(BuildContext context) {
-    final controller = ChangePasswordController();
+    final service = ValidationService();
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => EmailPage(controller: controller),
+        builder: (_) => EmailPage(service: service),
       ),
     );
   }
 
   static void startChangePassword(BuildContext context, {required int userId}) {
-    final controller = ChangePasswordController();
+    final service = ValidationService();
     final provider   = ChangePasswordProvider();
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ResetPasswordPage(
-          controller: controller,
+          service: service,
           request: ChangePasswordRequest(userId: userId),
           provider: provider,
         ),
@@ -265,8 +265,8 @@ class PrimaryButton extends StatelessWidget {
 }
 
 class EmailPage extends StatefulWidget {
-  final ChangePasswordController controller;
-  const EmailPage({super.key, required this.controller});
+  final ValidationService service;
+  const EmailPage({super.key, required this.service});
 
   @override
   State<EmailPage> createState() => EmailPageState();
@@ -304,7 +304,7 @@ class EmailPageState extends State<EmailPage> {
       MaterialPageRoute(
         builder: (_) => OtpPage(
           email:      emailController.text.trim(),
-          controller: widget.controller,
+          service: widget.service,
           provider:   changePassProvider,
         ),
       ),
@@ -337,13 +337,13 @@ class EmailPageState extends State<EmailPage> {
 
 class OtpPage extends StatefulWidget {
   final String                 email;
-  final ChangePasswordController controller;
+  final ValidationService service;
   final ChangePasswordProvider   provider;
 
   const OtpPage({
     super.key,
     required this.email,
-    required this.controller,
+    required this.service,
     required this.provider,
   });
 
@@ -379,7 +379,7 @@ class OtpPageState extends State<OtpPage> {
       context,
       MaterialPageRoute(
         builder: (_) => ResetPasswordPage(
-          controller: widget.controller,
+          service: widget.service,
           request:    ForgotPasswordRequest(email: widget.email),
           provider:   widget.provider,
         ),

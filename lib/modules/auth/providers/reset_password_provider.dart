@@ -3,11 +3,10 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
-import '../controllers/change_password_controller.dart';
+import '../services/validation_service.dart';
 import 'otp_provider.dart';
 
 class ChangePasswordProvider extends ChangeNotifier {
-  final ChangePasswordController _controller = ChangePasswordController();
   final FirebaseAuth             _auth        = FirebaseAuth.instance;
   final OtpProvider              _otpProvider = OtpProvider();
 
@@ -27,12 +26,12 @@ class ChangePasswordProvider extends ChangeNotifier {
   void _setLoading(bool value) { _isLoading = value; notifyListeners(); }
   void _setError(String? msg)  { _errorMessage = msg; notifyListeners(); }
 
-  String? validateEmail(String email)                              => _controller.validateEmail(email);
-  String? validatePassword(String password)                        => _controller.validatePassword(password);
-  String? validateConfirmPassword(String password, String confirm) => _controller.validateConfirmPassword(password, confirm);
+  String? validateEmail(String email)                              => ValidationService.validateEmail(email);
+  String? validatePassword(String password)                        => ValidationService.validatePassword(password);
+  String? validateConfirmPassword(String password, String confirm) => ValidationService.validateConfirmPassword(password, confirm);
 
   Future<String?> sendOtp(String email) async {
-    final error = _controller.validateEmail(email);
+    final error = ValidationService.validateEmail(email);
     if (error != null) return error;
 
     _setLoading(true);
@@ -83,10 +82,10 @@ class ChangePasswordProvider extends ChangeNotifier {
     required String confirm,
     required Object request,
   }) async {
-    final passError = _controller.validatePassword(password);
+    final passError = ValidationService.validatePassword(password);
     if (passError != null) return passError;
 
-    final confirmError = _controller.validateConfirmPassword(password, confirm);
+    final confirmError = ValidationService.validateConfirmPassword(password, confirm);
     if (confirmError != null) return confirmError;
 
     _setLoading(true);

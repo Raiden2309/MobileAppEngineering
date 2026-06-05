@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../shared/styles/app_colors.dart';
-import '../controllers/change_password_controller.dart';
 import '../models/change_password_request.dart';
 import '../providers/reset_password_provider.dart';
+import '../services/validation_service.dart';
 import 'change_password.dart';
 
 class ResetPasswordPage extends StatefulWidget {
-  final ChangePasswordController controller;
+  final ValidationService service;
   final PasswordRequest request;
   final ChangePasswordProvider   provider;
 
   const ResetPasswordPage({
     super.key,
-    required this.controller,
+    required this.service,
     required this.request,
     required this.provider,
   });

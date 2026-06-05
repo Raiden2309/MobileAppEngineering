@@ -7,8 +7,8 @@ import '../models/alert_model.dart';
 import '../models/class_model.dart';
 
 class LecturerDashboardProvider with ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
 
   bool isLoading = false;
   String lecturerName = 'Lecturer';
@@ -34,11 +34,12 @@ class LecturerDashboardProvider with ChangeNotifier {
   StreamSubscription? _classesSubscription;
   StreamSubscription? _enrollmentsSubscription;
 
-  LecturerDashboardProvider() {
+  LecturerDashboardProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
     _updateTimeBasedGreeting();
     initLiveDashboard();
   }
-
   void _updateTimeBasedGreeting() {
     final now = DateTime.now();
     final hour = now.hour;

@@ -13,8 +13,11 @@ import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart
 import 'burnout_alert_provider.dart';
 
 class StudyPlanProvider with ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+  StudyPlanProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   StudentSettingsProvider? _settingsProvider;
   BurnoutAlertProvider? _burnoutProvider;
@@ -107,8 +110,6 @@ class StudyPlanProvider with ChangeNotifier {
       if (dayNextStart[dayIdx]! < slotEnd) {
         dayNextStart[dayIdx] = slotEnd;
       }
-      // Consume budget so study blocks never overlap
-      dayUsedMinutes[dayIdx] = dayUsedMinutes[dayIdx]! + slotMins;
     }
 
     // ── 3. Sort and schedule tasks ──────────────────────────────────
@@ -197,8 +198,10 @@ class StudyPlanProvider with ChangeNotifier {
     }
 
     // ── 4. Fill remaining slots with subject revision ───────────────
-    final List<String> subjects =
-        settings?.joinedClasses.map((c) => c.name).toList() ?? [];
+    final List<String> subjects = [
+      ...?settings?.joinedClasses.map((c) => c.name),
+      ...?settings?.subjects.map((s) => s['name'] ?? '').where((n) => n.isNotEmpty),
+    ].toSet().toList();
 
     if (subjects.isNotEmpty) {
       int subjectCursor = 0;
@@ -290,8 +293,8 @@ class StudyPlanProvider with ChangeNotifier {
   bool isOffline = false;
   String? error;
   StreamSubscription? _enrollmentSubscription;
-  String? _currentSemester;
 
+  String? _currentSemester;
   List<Map<String, dynamic>> _latestFirestoreTasks = [];
 
   String _tasksCacheKey(String uid) => 'study_plan_tasks_$uid';
@@ -381,13 +384,17 @@ class StudyPlanProvider with ChangeNotifier {
             _latestFirestoreTasks.add({
               'title':   t['title'] ?? 'Assignment Task',
               'subject': className,
-              'hours':   (t['estimated_hours'] as num? ?? 1.5).toDouble(),
+              'hours':   (t['estimatedHours'] as num?
+                  ?? t['estimated_hours'] as num?
+                  ?? 1.5).toDouble(),
               'status':  t['status'] == 'inProgress'
                   ? BlockStatus.inProgress
                   : BlockStatus.toDo,
-              'dueDate': t['due_date'] != null
-                  ? DateTime.parse(t['due_date'] as String)
-                  : null,
+              'dueDate': () {
+                final raw = t['dueDate'] ?? t['due_date'];
+                if (raw == null) return null;
+                return raw is String ? DateTime.tryParse(raw) : null;
+              }(),
             });
           }
         }
@@ -432,10 +439,11 @@ class StudyPlanProvider with ChangeNotifier {
           if (days > 5)  priority = 'low';
         }
         return {
-          'name':            t['subject'],
+          'subject':         t['subject'],
           'task_title':      t['title'],
           'estimated_hours': t['hours'],
           'priority':        priority,
+          'status':          (t['status'] as BlockStatus).name,
           'due_date':        t['dueDate'] != null
               ? DateFormat('yyyy-MM-dd').format(t['dueDate'] as DateTime)
               : null,
@@ -445,15 +453,18 @@ class StudyPlanProvider with ChangeNotifier {
       final settings = _settingsProvider;
       final burnout  = _burnoutProvider;
 
-      final String studyStart = settings != null
-          ? '${settings.studyStart.hour.toString().padLeft(2, '0')}:${settings.studyStart.minute.toString().padLeft(2, '0')}'
-          : '08:00';
-      final String studyEnd = settings != null
-          ? '${settings.studyEnd.hour.toString().padLeft(2, '0')}:${settings.studyEnd.minute.toString().padLeft(2, '0')}'
-          : '22:00';
+      String toHHMM(TimeOfDay t) =>
+          '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+      final String studyStart = settings != null ? toHHMM(settings.studyStart) : '08:00';
+      final String studyEnd   = settings != null ? toHHMM(settings.studyEnd)   : '22:00';
+
+
       final List<String> blockedSlots      = settings?.blockedSlots.toList() ?? [];
-      final List<String> enrolledSubjects  =
-          settings?.joinedClasses.map((c) => c.name).toList() ?? [];
+      final List<String> enrolledSubjects = [
+        ...?settings?.joinedClasses.map((c) => c.name),
+        ...?settings?.subjects.map((s) => s['name'] ?? '').where((n) => n.isNotEmpty),
+      ].toSet().toList();
       final String burnoutLevel = burnout?.alert?.workloadLevel.name ?? 'low';
 
       final Map<String, dynamic> aiResponse = await AiService.generateStudyPlan(

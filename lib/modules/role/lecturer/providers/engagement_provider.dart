@@ -6,8 +6,8 @@ import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
 import '../models/engagement_student_model.dart';
 
 class EngagementProvider extends ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
 
   String _selectedFilter = 'all';
   String get selectedFilter => _selectedFilter;
@@ -31,7 +31,9 @@ class EngagementProvider extends ChangeNotifier {
   StreamSubscription? _classesSubscription;
   StreamSubscription? _enrollmentsSubscription;
 
-  EngagementProvider() {
+  EngagementProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
     initLiveEngagementStream();
   }
 

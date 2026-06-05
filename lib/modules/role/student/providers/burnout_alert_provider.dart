@@ -8,8 +8,11 @@ import '../models/burnout_alert_model.dart';
 import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
 
 class BurnoutAlertProvider with ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+  BurnoutAlertProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   // Centralized cache link
   LocalCacheService? _cacheEngine;

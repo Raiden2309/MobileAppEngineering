@@ -1,97 +1,113 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mae_assignment_frontend/modules/role/student/providers/semester_progress_provider.dart';
 import 'package:mae_assignment_frontend/modules/role/student/providers/study_plan_provider.dart';
 import 'package:mae_assignment_frontend/modules/role/student/providers/task_provider.dart';
-import 'package:mae_assignment_frontend/modules/role/student/providers/dashboard_provider.dart';
-import 'package:mae_assignment_frontend/modules/role/student/providers/semester_progress_provider.dart';
-import 'package:mae_assignment_frontend/modules/role/student/providers/burnout_alert_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async';
+
 import '../../../../shared/services/local_cache_service.dart';
 import '../models/student_settings_models.dart';
 import '../models/semester_details_model.dart';
+import 'burnout_alert_provider.dart';
+import 'dashboard_provider.dart';
 
 class StudentSettingsProvider with ChangeNotifier {
   static const _storage = FlutterSecureStorage();
-  final FirebaseFirestore _db        = FirebaseFirestore.instance;
-  final FirebaseAuth      _auth      = FirebaseAuth.instance;
-  final FirebaseStorage   _fbStorage = FirebaseStorage.instance;
-  VoidCallback? onSubjectsUpdated;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
+  final FirebaseStorage? _fbStorage;
+  final bool _testMode;
+
+  StudentSettingsProvider({
+    FirebaseFirestore? db,
+    FirebaseAuth? auth,
+    FirebaseStorage? fbStorage,
+    bool testMode = false,
+  }) : _db = db ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _fbStorage = fbStorage,
+       _testMode = testMode {
+    if (!_testMode) initLiveListeners();
+  }
 
   // ── Cache keys ──────────────────────────────────────────────────────────────
-  static const _keyStudyStart      = 'settings_study_start';
-  static const _keyStudyEnd        = 'settings_study_end';
-  static const _keyBlockedSlots    = 'settings_blocked_slots';
-  static const _keySubjects        = 'settings_subjects';
-  static const _keySemesters       = 'settings_semesters';
-  static const _keyTaskReminders   = 'settings_task_reminders';
-  static const _keySlotEndPrompts  = 'settings_slot_end_prompts';
+  static const _keyStudyStart = 'settings_study_start';
+  static const _keyStudyEnd = 'settings_study_end';
+  static const _keyBlockedSlots = 'settings_blocked_slots';
+  static const _keySubjects = 'settings_subjects';
+  static const _keySemesters = 'settings_semesters';
+  static const _keyTaskReminders = 'settings_task_reminders';
+  static const _keySlotEndPrompts = 'settings_slot_end_prompts';
   static const _keyBurnoutWarnings = 'settings_burnout_warnings';
-  static const _keyWeeklyReset     = 'settings_weekly_reset_summary';
-  static const _keyUserId          = 'settings_user_id';
-  static const _keyUserName        = 'settings_user_name';
-  static const _keySemester        = 'settings_semester';
-  static const _keyYear            = 'settings_year';
-  static const _keySubjectCount    = 'settings_subject_count';
-  static const _keyBlockedCount    = 'settings_blocked_slots_count';
-  static const _keyAppVersion      = 'settings_app_version';
-  static const _keyAvatarUrl       = 'settings_avatar_url';
-  static const _keyJoinedClasses   = 'settings_joined_classes';
-  static const _keyCurrentSemId    = 'settings_current_sem_id';
+  static const _keyWeeklyReset = 'settings_weekly_reset_summary';
+  static const _keyUserId = 'settings_user_id';
+  static const _keyUserName = 'settings_user_name';
+  static const _keySemester = 'settings_semester';
+  static const _keyYear = 'settings_year';
+  static const _keySubjectCount = 'settings_subject_count';
+  static const _keyBlockedCount = 'settings_blocked_slots_count';
+  static const _keyAppVersion = 'settings_app_version';
+  static const _keyAvatarUrl = 'settings_avatar_url';
+  static const _keyJoinedClasses = 'settings_joined_classes';
+  static const _keyCurrentSemId = 'settings_current_sem_id';
 
   // ── State ────────────────────────────────────────────────────────────────────
   StudentSettingsModel? data;
 
-  String currentLiveName     = '';
+  String currentLiveName = '';
   String currentLiveSemester = '1';
-  int    currentLiveYear     = 1;
+  int currentLiveYear = 1;
   String? avatarUrl;
 
-  TimeOfDay studyStart = const TimeOfDay(hour: 8,  minute: 0);
-  TimeOfDay studyEnd   = const TimeOfDay(hour: 22, minute: 0);
+  TimeOfDay studyStart = const TimeOfDay(hour: 8, minute: 0);
+  TimeOfDay studyEnd = const TimeOfDay(hour: 22, minute: 0);
 
-  Set<String>               blockedSlots  = {};
-  List<Map<String, String>> subjects      = [];
-  List<Map<String, String>> semesters     = [];
-  List<JoinedClassModel>    joinedClasses = [];
+  Set<String> blockedSlots = {};
+  List<Map<String, String>> subjects = [];
+  List<Map<String, String>> semesters = [];
+  List<JoinedClassModel> joinedClasses = [];
 
   String? currentSemesterId;
 
-  bool taskReminders      = false;
-  bool slotEndPrompts     = false;
-  bool burnoutWarnings    = false;
+  bool taskReminders = false;
+  bool slotEndPrompts = false;
+  bool burnoutWarnings = false;
   bool weeklyResetSummary = false;
 
-  bool    loading = false;
+  bool loading = false;
   String? error;
+
+  VoidCallback? onSubjectsUpdated;
 
   // Real-time listener subscriptions
   StreamSubscription? _userSubscription;
   StreamSubscription? _enrollmentSubscription;
 
   // ── Computed ────────────────────────────────────────────────────────────────
-  String get studyHoursDisplay  => '${_formatTime(studyStart)} – ${_formatTime(studyEnd)}';
-  int    get blockedSlotsCount  => blockedSlots.length;
-  int    get subjectCount       => subjects.length;
-  int    get joinedClassCount   => joinedClasses.length;
-  String? get _uid              => _auth.currentUser?.uid;
+  String get studyHoursDisplay =>
+      '${_formatTime(studyStart)} – ${_formatTime(studyEnd)}';
+
+  int get blockedSlotsCount => blockedSlots.length;
+
+  int get subjectCount => subjects.length;
+
+  int get joinedClassCount => joinedClasses.length;
+
+  String? get _uid => _auth.currentUser?.uid;
 
   String get activeSemesterName {
     final current = semesters.firstWhere(
-          (s) => s['isCurrent'] == 'true',
+      (s) => s['isCurrent'] == 'true',
       orElse: () => semesters.isNotEmpty ? semesters.first : {},
     );
     return current['id'] ?? current['semesterKey'] ?? current['name'] ?? '';
-  }
-
-  // ── Constructor ──────────────────────────────────────────────────────────────
-  StudentSettingsProvider() {
-    initLiveListeners();
   }
 
   // ── Real-time listeners ──────────────────────────────────────────────────────
@@ -111,32 +127,39 @@ class StudentSettingsProvider with ChangeNotifier {
         .doc(user.uid)
         .snapshots()
         .listen((snapshot) async {
-      if (!snapshot.exists || snapshot.data() == null) return;
+          if (!snapshot.exists || snapshot.data() == null) return;
 
-      final d = snapshot.data()!;
-      currentLiveName     = d['name']?.toString()     ?? currentLiveName;
-      currentLiveSemester = d['semester']?.toString() ?? currentLiveSemester;
-      currentLiveYear     = (d['year'] as num?)?.toInt() ?? currentLiveYear;
-      final newSemId      = d['currentSemesterId']?.toString();
+          final d = snapshot.data()!;
+          currentLiveName = d['name']?.toString() ?? currentLiveName;
+          currentLiveSemester =
+              d['semester']?.toString() ?? currentLiveSemester;
+          currentLiveYear = (d['year'] as num?)?.toInt() ?? currentLiveYear;
+          final newSemId = d['currentSemesterId']?.toString();
 
-      if (d['study_hours_start'] != null) studyStart   = _parseTimeString(d['study_hours_start'].toString());
-      if (d['study_hours_end']   != null) studyEnd     = _parseTimeString(d['study_hours_end'].toString());
-      if (d['blocked_slots']     != null) blockedSlots = Set<String>.from(d['blocked_slots'] as List);
-      if (d['joined_classes']    != null) {
-        joinedClasses = (d['joined_classes'] as List)
-            .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-      }
+          if (d['study_hours_start'] != null)
+            studyStart = _parseTimeString(d['study_hours_start'].toString());
+          if (d['study_hours_end'] != null)
+            studyEnd = _parseTimeString(d['study_hours_end'].toString());
+          if (d['blocked_slots'] != null)
+            blockedSlots = Set<String>.from(d['blocked_slots'] as List);
+          if (d['joined_classes'] != null) {
+            joinedClasses = (d['joined_classes'] as List)
+                .map(
+                  (e) => JoinedClassModel.fromJson(e as Map<String, dynamic>),
+                )
+                .toList();
+          }
 
-      taskReminders      = d['task_reminders']       as bool? ?? taskReminders;
-      slotEndPrompts     = d['slot_end_prompts']     as bool? ?? slotEndPrompts;
-      burnoutWarnings    = d['burnout_warnings']     as bool? ?? burnoutWarnings;
-      weeklyResetSummary = d['weekly_reset_summary'] as bool? ?? weeklyResetSummary;
-      avatarUrl          = d['avatar_url']?.toString() ?? avatarUrl;
+          taskReminders = d['task_reminders'] as bool? ?? taskReminders;
+          slotEndPrompts = d['slot_end_prompts'] as bool? ?? slotEndPrompts;
+          burnoutWarnings = d['burnout_warnings'] as bool? ?? burnoutWarnings;
+          weeklyResetSummary =
+              d['weekly_reset_summary'] as bool? ?? weeklyResetSummary;
+          avatarUrl = d['avatar_url']?.toString() ?? avatarUrl;
 
-      // Always load all semesters from subcollection (source of truth)
-      await _loadAllSemesters(user.uid, newCurrentSemId: newSemId);
-    });
+          // Always load all semesters from subcollection (source of truth)
+          await _loadAllSemesters(user.uid, newCurrentSemId: newSemId);
+        });
 
     // Pipeline 2: Listen to enrollments collection
     _enrollmentSubscription?.cancel();
@@ -146,35 +169,40 @@ class StudentSettingsProvider with ChangeNotifier {
         .where('source', isEqualTo: 'class')
         .snapshots()
         .asyncMap((snapshot) async {
-      final List<JoinedClassModel> resolved = [];
-      for (final doc in snapshot.docs) {
-        final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
-        if (subjectCode.isEmpty) continue;
-        try {
-          final classSnap = await _db
-              .collection('classes')
-              .where('subjectCode', isEqualTo: subjectCode)
-              .limit(1)
-              .get();
-          if (classSnap.docs.isNotEmpty) {
-            resolved.add(JoinedClassModel(
-              id:   classSnap.docs.first.id,
-              name: classSnap.docs.first.data()['name']?.toString() ?? 'Unknown Class',
-            ));
+          final List<JoinedClassModel> resolved = [];
+          for (final doc in snapshot.docs) {
+            final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
+            if (subjectCode.isEmpty) continue;
+            try {
+              final classSnap = await _db
+                  .collection('classes')
+                  .where('subjectCode', isEqualTo: subjectCode)
+                  .limit(1)
+                  .get();
+              if (classSnap.docs.isNotEmpty) {
+                resolved.add(
+                  JoinedClassModel(
+                    id: classSnap.docs.first.id,
+                    name:
+                        classSnap.docs.first.data()['name']?.toString() ??
+                        'Unknown Class',
+                  ),
+                );
+              }
+            } catch (_) {}
           }
-        } catch (_) {}
-      }
-      return resolved;
-    })
+          return resolved;
+        })
         .listen((resolved) {
-      joinedClasses = resolved;
-      _rebuildDataModel();
-    });
+          joinedClasses = resolved;
+          _rebuildDataModel();
+        });
   }
 
   /// Fallback / compatibility alias
   Future<void> load() async => initLiveListeners();
-  void loadMock()           => initLiveListeners();
+
+  void loadMock() => initLiveListeners();
 
   LocalCacheService? _cacheEngine;
 
@@ -199,20 +227,20 @@ class StudentSettingsProvider with ChangeNotifier {
       final activeSemId = newCurrentSemId ?? currentSemesterId;
 
       semesters = semSnap.docs.map((doc) {
-        final d    = doc.data();
-        final id   = doc.id;
-        final sem  = (d['semester'] as num?)?.toInt() ?? 1;
-        final yr   = (d['year']     as num?)?.toInt() ?? 1;
+        final d = doc.data();
+        final id = doc.id;
+        final sem = (d['semester'] as num?)?.toInt() ?? 1;
+        final yr = (d['year'] as num?)?.toInt() ?? 1;
         final subj = (d['subjects'] as List?)?.length ?? 0;
         return {
-          'id':           id,
-          'name':         'Semester $sem · Year $yr',
-          'semesterKey':  id,
-          'semesterNum':  sem.toString(),
-          'yearNum':      yr.toString(),
-          'start':        d['semStart']?.toString() ?? '',
-          'end':          d['semEnd']?.toString()   ?? '',
-          'isCurrent':    (id == activeSemId).toString(),
+          'id': id,
+          'name': 'Semester $sem · Year $yr',
+          'semesterKey': id,
+          'semesterNum': sem.toString(),
+          'yearNum': yr.toString(),
+          'start': d['semStart']?.toString() ?? '',
+          'end': d['semEnd']?.toString() ?? '',
+          'isCurrent': (id == activeSemId).toString(),
           'subjectCount': subj.toString(),
         };
       }).toList();
@@ -235,10 +263,14 @@ class StudentSettingsProvider with ChangeNotifier {
         await _loadSubjectsForSemester(currentSemesterId!);
       } else if (semesters.isNotEmpty) {
         currentSemesterId = semesters.first['id'];
-        semesters = semesters.map((s) => {
-          ...s,
-          'isCurrent': (s['id'] == currentSemesterId).toString(),
-        }).toList();
+        semesters = semesters
+            .map(
+              (s) => {
+                ...s,
+                'isCurrent': (s['id'] == currentSemesterId).toString(),
+              },
+            )
+            .toList();
         await _loadSubjectsForSemester(currentSemesterId!);
       }
 
@@ -249,8 +281,7 @@ class StudentSettingsProvider with ChangeNotifier {
         await _cacheEngine?.write('settings_current_sem_id', currentSemesterId);
       }
       await _cacheEngine?.write('settings_semesters', semesters);
-      await _cacheEngine?.write('settings_subjects',  subjects);
-
+      await _cacheEngine?.write('settings_subjects', subjects);
     } catch (e) {
       debugPrint('_loadAllSemesters error: $e');
       _rebuildDataModel();
@@ -282,17 +313,17 @@ class StudentSettingsProvider with ChangeNotifier {
 
   // ── Save subjects ─────────────────────────────────────────────────────────────
   Future<void> saveSubjects(
-      List<Map<String, String>> updated, {
-        TasksProvider? tasks,
-        StudyPlanProvider? studyPlan,
-        SemesterProvider? semesterProgress,
-        StudentDashboardProvider? dashboard,
-        BurnoutAlertProvider? burnout,
-      }) async {
+    List<Map<String, String>> updated, {
+    TasksProvider? tasks,
+    StudyPlanProvider? studyPlan,
+    SemesterProvider? semesterProgress,
+    StudentDashboardProvider? dashboard,
+    BurnoutAlertProvider? burnout,
+  }) async {
     subjects = updated;
     _rebuildDataModel();
     await _saveToCache();
-
+    onSubjectsUpdated?.call();
     // 1. Write the subjects directly to the shared local storage keys so other providers see it instantly
     if (_cacheEngine != null) {
       await _cacheEngine!.write('settings_subjects', updated);
@@ -327,15 +358,15 @@ class StudentSettingsProvider with ChangeNotifier {
           final enrollmentId = '${_uid}_$safeClassId';
 
           await _db.collection('enrollments').doc(enrollmentId).set({
-            'studentId':        _uid,
-            'classId':          subjectName,
-            'subjectCode':      subject['code'] ?? subjectName.toUpperCase(),
-            'semester':         currentSemesterId,
+            'studentId': _uid,
+            'classId': subjectName,
+            'subjectCode': subject['code'] ?? subjectName.toUpperCase(),
+            'semester': currentSemesterId,
             'weeklyStudyHours': 0.0,
-            'completedTasks':   0,
-            'pendingTasks':     0,
-            'burnoutIndex':     0.0,
-            'tasksList':        [],
+            'completedTasks': 0,
+            'pendingTasks': 0,
+            'burnoutIndex': 0.0,
+            'tasksList': [],
           }, SetOptions(merge: true));
         }
 
@@ -362,9 +393,9 @@ class StudentSettingsProvider with ChangeNotifier {
   // ── Semesters CRUD ────────────────────────────────────────────────────────────
   Future<void> saveSemesters(List<Map<String, String>> updated) async {
     final newEntry = updated.last;
-    final semNum  = int.tryParse(newEntry['semesterNum'] ?? '') ?? 1;
-    final semYear = int.tryParse(newEntry['yearNum']     ?? '') ?? 1;
-    final semId   = 'sem_${semNum}_yr$semYear';
+    final semNum = int.tryParse(newEntry['semesterNum'] ?? '') ?? 1;
+    final semYear = int.tryParse(newEntry['yearNum'] ?? '') ?? 1;
+    final semId = 'sem_${semNum}_yr$semYear';
 
     if (_uid != null) {
       await _db
@@ -373,14 +404,14 @@ class StudentSettingsProvider with ChangeNotifier {
           .collection('semesters')
           .doc(semId)
           .set({
-        'id':        semId,
-        'semester':  semNum,
-        'year':      semYear,
-        'semStart':  newEntry['start'] ?? '',
-        'semEnd':    newEntry['end']   ?? '',
-        'examDates': [],
-        'subjects':  [],
-      });
+            'id': semId,
+            'semester': semNum,
+            'year': semYear,
+            'semStart': newEntry['start'] ?? '',
+            'semEnd': newEntry['end'] ?? '',
+            'examDates': [],
+            'subjects': [],
+          });
 
       // Reload from Firestore so the list is always in sync
       await _loadAllSemesters(_uid!);
@@ -390,7 +421,7 @@ class StudentSettingsProvider with ChangeNotifier {
 
   Future<void> editSemester(String oldName, Map<String, String> updated) async {
     final existing = semesters.firstWhere(
-          (s) => s['name'] == oldName,
+      (s) => s['name'] == oldName,
       orElse: () => {},
     );
     final semId = existing['id'] ?? existing['semesterKey'];
@@ -411,9 +442,9 @@ class StudentSettingsProvider with ChangeNotifier {
             .collection('semesters')
             .doc(semId)
             .update({
-          'semStart': updated['start'] ?? '',
-          'semEnd':   updated['end']   ?? '',
-        });
+              'semStart': updated['start'] ?? '',
+              'semEnd': updated['end'] ?? '',
+            });
       } catch (e) {
         debugPrint('editSemester error: $e');
       }
@@ -423,7 +454,7 @@ class StudentSettingsProvider with ChangeNotifier {
 
   Future<void> deleteSemester(String name) async {
     final existing = semesters.firstWhere(
-          (s) => s['name'] == name,
+      (s) => s['name'] == name,
       orElse: () => {},
     );
     final semId = existing['id'] ?? existing['semesterKey'];
@@ -437,8 +468,8 @@ class StudentSettingsProvider with ChangeNotifier {
     if (uid != null) {
       await _cacheEngine?.clearTargetCaches(uid);
       // Also clear the settings keys from shared cache
-      await _cacheEngine?.write('settings_subjects',       []);
-      await _cacheEngine?.write('settings_semesters',      semesters);
+      await _cacheEngine?.write('settings_subjects', []);
+      await _cacheEngine?.write('settings_semesters', semesters);
       await _cacheEngine?.write('settings_current_sem_id', '');
     }
 
@@ -458,19 +489,19 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   void selectSemester(
-      String name, {
-        TasksProvider? tasks,
-        StudyPlanProvider? studyPlan,
-        SemesterProvider? semesterProgress,
-        StudentDashboardProvider? dashboard,
-        BurnoutAlertProvider? burnout,
-      }) {
+    String name, {
+    TasksProvider? tasks,
+    StudyPlanProvider? studyPlan,
+    SemesterProvider? semesterProgress,
+    StudentDashboardProvider? dashboard,
+    BurnoutAlertProvider? burnout,
+  }) {
     semesters = semesters.map((s) {
       return {...s, 'isCurrent': (s['name'] == name).toString()};
     }).toList();
 
     final selected = semesters.firstWhere(
-          (s) => s['name'] == name,
+      (s) => s['name'] == name,
       orElse: () => {},
     );
     final newSemId = selected['id'] ?? selected['semesterKey'];
@@ -483,16 +514,17 @@ class StudentSettingsProvider with ChangeNotifier {
     }
 
     currentLiveSemester = selected['semesterNum'] ?? currentLiveSemester;
-    currentLiveYear     = int.tryParse(selected['yearNum'] ?? '') ?? currentLiveYear;
+    currentLiveYear =
+        int.tryParse(selected['yearNum'] ?? '') ?? currentLiveYear;
 
     tasks?.switchSemester(newSemId ?? name);
     studyPlan?.switchSemester(newSemId ?? name);
     dashboard?.updateActiveSemester(newSemId);
     semesterProgress?.switchSemester(
-      semesterId:   newSemId ?? name,
+      semesterId: newSemId ?? name,
       semesterName: selected['name'] ?? name,
-      start:        selected['start'] ?? '',
-      end:          selected['end']   ?? '',
+      start: selected['start'] ?? '',
+      end: selected['end'] ?? '',
     );
     burnout?.listenToLiveBurnoutMetrics();
 
@@ -504,12 +536,12 @@ class StudentSettingsProvider with ChangeNotifier {
   // ── Study hours & blocked slots ───────────────────────────────────────────────
   Future<void> saveStudyHours(TimeOfDay start, TimeOfDay end) async {
     studyStart = start;
-    studyEnd   = end;
+    studyEnd = end;
     _rebuildDataModel();
     await _saveToCache();
     _tryFirestorePatch({
       'study_hours_start': _formatTime(start),
-      'study_hours_end':   _formatTime(end),
+      'study_hours_end': _formatTime(end),
     });
     notifyListeners();
   }
@@ -579,30 +611,33 @@ class StudentSettingsProvider with ChangeNotifier {
 
       if (classQuery.docs.isEmpty) return false;
 
-      final classDoc   = classQuery.docs.first;
-      final classData  = classDoc.data();
-      final className  = classData['name']?.toString()        ?? 'Unknown Class';
-      final subjectCode = classData['subjectCode']?.toString() ?? classDoc.id.toUpperCase();
+      final classDoc = classQuery.docs.first;
+      final classData = classDoc.data();
+      final className = classData['name']?.toString() ?? 'Unknown Class';
+      final subjectCode =
+          classData['subjectCode']?.toString() ?? classDoc.id.toUpperCase();
       debugPrint('joinClass subjectCode resolved: $subjectCode');
 
-      final safeDocId = '${_uid}_${className.toLowerCase()
-          .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
-          .replaceAll(RegExp(r'[\s-]'), '_')}';
+      final safeDocId =
+          '${_uid}_${className.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s-]'), '').replaceAll(RegExp(r'[\s-]'), '_')}';
 
-      final duplicate = await _db.collection('enrollments').doc(safeDocId).get();
+      final duplicate = await _db
+          .collection('enrollments')
+          .doc(safeDocId)
+          .get();
       if (duplicate.exists) return true;
 
       await _db.collection('enrollments').doc(safeDocId).set({
-        'studentId':      _uid,
-        'classId':        className,
-        'subjectCode':    subjectCode,
-        'source':         'class',
-        'colorHex':       '#60A5FA',
+        'studentId': _uid,
+        'classId': className,
+        'subjectCode': subjectCode,
+        'source': 'class',
+        'colorHex': '#60A5FA',
         'completedTasks': 0,
-        'pendingTasks':   0,
-        'burnoutIndex':   0.0,
-        'tasksList':      classData['initialTasks'] ?? [],
-        'joinedAt':       FieldValue.serverTimestamp(),
+        'pendingTasks': 0,
+        'burnoutIndex': 0.0,
+        'tasksList': classData['initialTasks'] ?? [],
+        'joinedAt': FieldValue.serverTimestamp(),
       });
 
       return true;
@@ -640,7 +675,8 @@ class StudentSettingsProvider with ChangeNotifier {
   Future<void> updateAvatar(XFile file) async {
     if (_uid == null) return;
     try {
-      final ref = _fbStorage.ref().child('avatars/students/$_uid.jpg');
+      final ref = _fbStorage?.ref().child('avatars/students/$_uid.jpg');
+      if (ref == null) return;
       await ref.putFile(File(file.path));
       final url = await ref.getDownloadURL();
       avatarUrl = url;
@@ -656,34 +692,34 @@ class StudentSettingsProvider with ChangeNotifier {
   // ── Helpers ───────────────────────────────────────────────────────────────────
   void _rebuildDataModel() {
     data = StudentSettingsModel(
-      userId:             data?.userId ?? _uid?.hashCode.abs() ?? 0,
-      userName:           currentLiveName,
-      semester:           currentLiveSemester,
-      year:               currentLiveYear,
-      subjectCount:       subjects.length,
-      studyHoursStart:    _formatTime(studyStart),
-      studyHoursEnd:      _formatTime(studyEnd),
-      blockedSlotsCount:  blockedSlots.length,
-      taskReminders:      taskReminders,
-      slotEndPrompts:     slotEndPrompts,
-      burnoutWarnings:    burnoutWarnings,
+      userId: data?.userId ?? _uid?.hashCode.abs() ?? 0,
+      userName: currentLiveName,
+      semester: currentLiveSemester,
+      year: currentLiveYear,
+      subjectCount: subjects.length,
+      studyHoursStart: _formatTime(studyStart),
+      studyHoursEnd: _formatTime(studyEnd),
+      blockedSlotsCount: blockedSlots.length,
+      taskReminders: taskReminders,
+      slotEndPrompts: slotEndPrompts,
+      burnoutWarnings: burnoutWarnings,
       weeklyResetSummary: weeklyResetSummary,
-      appVersion:         data?.appVersion ?? 'v1.0',
-      joinedClassCount:   joinedClasses.length,
-      joinedClasses:      joinedClasses,
+      appVersion: data?.appVersion ?? 'v1.0',
+      joinedClassCount: joinedClasses.length,
+      joinedClasses: joinedClasses,
       semesters: semesters.map((s) {
         final isCurrent = s['isCurrent'] == 'true';
         final count = isCurrent
             ? subjects.length
             : int.tryParse(s['subjectCount'] ?? '0') ?? 0;
         return SemesterModel(
-          name:            s['name']  ?? '',
-          start:           s['start'] ?? '',
-          end:             s['end']   ?? '',
-          isCurrent:       isCurrent,
-          subjectCount:    count,
+          name: s['name'] ?? '',
+          start: s['start'] ?? '',
+          end: s['end'] ?? '',
+          isCurrent: isCurrent,
+          subjectCount: count,
           studyHoursStart: _formatTime(studyStart),
-          studyHoursEnd:   _formatTime(studyEnd),
+          studyHoursEnd: _formatTime(studyEnd),
         );
       }).toList(),
       avatarUrl: avatarUrl,
@@ -696,84 +732,101 @@ class StudentSettingsProvider with ChangeNotifier {
   void _tryFirestorePatch(Map<String, dynamic> fields) async {
     if (_uid == null) return;
     try {
-      await _db.collection('users').doc(_uid).set(fields, SetOptions(merge: true));
+      await _db
+          .collection('users')
+          .doc(_uid)
+          .set(fields, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Firestore patch failed: $e');
     }
   }
 
   Future<void> _loadFromCache() async {
-    final start        = await _storage.read(key: _keyStudyStart);
-    final end          = await _storage.read(key: _keyStudyEnd);
-    final slots        = await _storage.read(key: _keyBlockedSlots);
-    final subjRaw      = await _storage.read(key: _keySubjects);
-    final semRaw       = await _storage.read(key: _keySemesters);
-    final trRaw        = await _storage.read(key: _keyTaskReminders);
-    final sepRaw       = await _storage.read(key: _keySlotEndPrompts);
-    final bwRaw        = await _storage.read(key: _keyBurnoutWarnings);
-    final wrsRaw       = await _storage.read(key: _keyWeeklyReset);
-    final userIdRaw    = await _storage.read(key: _keyUserId);
-    final userNameRaw  = await _storage.read(key: _keyUserName);
-    final semesterRaw  = await _storage.read(key: _keySemester);
-    final yearRaw      = await _storage.read(key: _keyYear);
+    final start = await _storage.read(key: _keyStudyStart);
+    final end = await _storage.read(key: _keyStudyEnd);
+    final slots = await _storage.read(key: _keyBlockedSlots);
+    final subjRaw = await _storage.read(key: _keySubjects);
+    final semRaw = await _storage.read(key: _keySemesters);
+    final trRaw = await _storage.read(key: _keyTaskReminders);
+    final sepRaw = await _storage.read(key: _keySlotEndPrompts);
+    final bwRaw = await _storage.read(key: _keyBurnoutWarnings);
+    final wrsRaw = await _storage.read(key: _keyWeeklyReset);
+    final userIdRaw = await _storage.read(key: _keyUserId);
+    final userNameRaw = await _storage.read(key: _keyUserName);
+    final semesterRaw = await _storage.read(key: _keySemester);
+    final yearRaw = await _storage.read(key: _keyYear);
     final subjCountRaw = await _storage.read(key: _keySubjectCount);
-    final blockedCntRaw= await _storage.read(key: _keyBlockedCount);
-    final appVersionRaw= await _storage.read(key: _keyAppVersion);
-    final avatarRaw    = await _storage.read(key: _keyAvatarUrl);
-    final classesRaw   = await _storage.read(key: _keyJoinedClasses);
-    final currentSemRaw= await _storage.read(key: _keyCurrentSemId);
+    final blockedCntRaw = await _storage.read(key: _keyBlockedCount);
+    final appVersionRaw = await _storage.read(key: _keyAppVersion);
+    final avatarRaw = await _storage.read(key: _keyAvatarUrl);
+    final classesRaw = await _storage.read(key: _keyJoinedClasses);
+    final currentSemRaw = await _storage.read(key: _keyCurrentSemId);
 
-    if (avatarRaw    != null) avatarUrl          = avatarRaw;
-    if (start        != null) studyStart         = _parseTimeString(start);
-    if (end          != null) studyEnd           = _parseTimeString(end);
-    if (slots        != null) blockedSlots       = Set<String>.from(jsonDecode(slots) as List);
-    if (trRaw        != null) taskReminders      = trRaw  == 'true';
-    if (sepRaw       != null) slotEndPrompts     = sepRaw == 'true';
-    if (bwRaw        != null) burnoutWarnings    = bwRaw  == 'true';
-    if (wrsRaw       != null) weeklyResetSummary = wrsRaw == 'true';
-    if (currentSemRaw!= null) currentSemesterId  = currentSemRaw;
+    if (avatarRaw != null) avatarUrl = avatarRaw;
+    if (start != null) studyStart = _parseTimeString(start);
+    if (end != null) studyEnd = _parseTimeString(end);
+    if (slots != null)
+      blockedSlots = Set<String>.from(jsonDecode(slots) as List);
+    if (trRaw != null) taskReminders = trRaw == 'true';
+    if (sepRaw != null) slotEndPrompts = sepRaw == 'true';
+    if (bwRaw != null) burnoutWarnings = bwRaw == 'true';
+    if (wrsRaw != null) weeklyResetSummary = wrsRaw == 'true';
+    if (currentSemRaw != null) currentSemesterId = currentSemRaw;
 
-    currentLiveName     = userNameRaw ?? currentLiveName;
+    currentLiveName = userNameRaw ?? currentLiveName;
     currentLiveSemester = semesterRaw ?? currentLiveSemester;
-    currentLiveYear     = int.tryParse(yearRaw ?? '') ?? currentLiveYear;
+    currentLiveYear = int.tryParse(yearRaw ?? '') ?? currentLiveYear;
 
-    if (subjRaw    != null) subjects      = (jsonDecode(subjRaw)    as List).map((e) => Map<String, String>.from(e as Map)).toList();
-    if (semRaw     != null) semesters     = (jsonDecode(semRaw)     as List).map((e) => Map<String, String>.from(e as Map)).toList();
-    if (classesRaw != null) joinedClasses = (jsonDecode(classesRaw) as List).map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>)).toList();
+    if (subjRaw != null)
+      subjects = (jsonDecode(subjRaw) as List)
+          .map((e) => Map<String, String>.from(e as Map))
+          .toList();
+    if (semRaw != null)
+      semesters = (jsonDecode(semRaw) as List)
+          .map((e) => Map<String, String>.from(e as Map))
+          .toList();
+    if (classesRaw != null)
+      joinedClasses = (jsonDecode(classesRaw) as List)
+          .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
+          .toList();
 
     if (userIdRaw != null || semesters.isNotEmpty) {
       data = StudentSettingsModel(
-        userId:             int.tryParse(userIdRaw ?? '0') ?? 0,
-        userName:           currentLiveName,
-        semester:           currentLiveSemester,
-        year:               currentLiveYear,
-        subjectCount:       int.tryParse(subjCountRaw   ?? '0') ?? 0,
-        studyHoursStart:    _formatTime(studyStart),
-        studyHoursEnd:      _formatTime(studyEnd),
-        blockedSlotsCount:  int.tryParse(blockedCntRaw  ?? '0') ?? 0,
-        taskReminders:      taskReminders,
-        slotEndPrompts:     slotEndPrompts,
-        burnoutWarnings:    burnoutWarnings,
+        userId: int.tryParse(userIdRaw ?? '0') ?? 0,
+        userName: currentLiveName,
+        semester: currentLiveSemester,
+        year: currentLiveYear,
+        subjectCount: int.tryParse(subjCountRaw ?? '0') ?? 0,
+        studyHoursStart: _formatTime(studyStart),
+        studyHoursEnd: _formatTime(studyEnd),
+        blockedSlotsCount: int.tryParse(blockedCntRaw ?? '0') ?? 0,
+        taskReminders: taskReminders,
+        slotEndPrompts: slotEndPrompts,
+        burnoutWarnings: burnoutWarnings,
         weeklyResetSummary: weeklyResetSummary,
-        appVersion:         appVersionRaw ?? 'v1.0',
-        joinedClassCount:   joinedClasses.length,
-        joinedClasses:      joinedClasses,
-        semesters: semesters.map((s) => SemesterModel(
-          name:            s['name']  ?? '',
-          start:           s['start'] ?? '',
-          end:             s['end']   ?? '',
-          isCurrent:       s['isCurrent'] == 'true',
-          subjectCount:    int.tryParse(s['subjectCount'] ?? '0') ?? 0,
-          studyHoursStart: _formatTime(studyStart),
-          studyHoursEnd:   _formatTime(studyEnd),
-        )).toList(),
+        appVersion: appVersionRaw ?? 'v1.0',
+        joinedClassCount: joinedClasses.length,
+        joinedClasses: joinedClasses,
+        semesters: semesters
+            .map(
+              (s) => SemesterModel(
+                name: s['name'] ?? '',
+                start: s['start'] ?? '',
+                end: s['end'] ?? '',
+                isCurrent: s['isCurrent'] == 'true',
+                subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
+                studyHoursStart: _formatTime(studyStart),
+                studyHoursEnd: _formatTime(studyEnd),
+              ),
+            )
+            .toList(),
       );
     }
 
     // Seed shared cache from secure storage so other providers
     // can read subjects/semesters even when Firestore is offline
     if (subjects.isNotEmpty) {
-      await _cacheEngine?.write('settings_subjects',  subjects);
+      await _cacheEngine?.write('settings_subjects', subjects);
     }
     if (semesters.isNotEmpty) {
       await _cacheEngine?.write('settings_semesters', semesters);
@@ -784,76 +837,105 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   Future<void> _saveToCache() async {
-    await _storage.write(key: _keyStudyStart,     value: _formatTime(studyStart));
-    await _storage.write(key: _keyStudyEnd,       value: _formatTime(studyEnd));
-    await _storage.write(key: _keyBlockedSlots,   value: jsonEncode(blockedSlots.toList()));
-    await _storage.write(key: _keySubjects,       value: jsonEncode(subjects));
-    await _storage.write(key: _keySemesters,      value: jsonEncode(semesters));
-    await _storage.write(key: _keyTaskReminders,  value: taskReminders.toString());
-    await _storage.write(key: _keySlotEndPrompts, value: slotEndPrompts.toString());
-    await _storage.write(key: _keyBurnoutWarnings,value: burnoutWarnings.toString());
-    await _storage.write(key: _keyWeeklyReset,    value: weeklyResetSummary.toString());
-    await _storage.write(key: _keyJoinedClasses,  value: jsonEncode(
-      joinedClasses.map((c) => {'id': c.id, 'name': c.name}).toList(),
-    ));
+    await _storage.write(key: _keyStudyStart, value: _formatTime(studyStart));
+    await _storage.write(key: _keyStudyEnd, value: _formatTime(studyEnd));
+    await _storage.write(
+      key: _keyBlockedSlots,
+      value: jsonEncode(blockedSlots.toList()),
+    );
+    await _storage.write(key: _keySubjects, value: jsonEncode(subjects));
+    await _storage.write(key: _keySemesters, value: jsonEncode(semesters));
+    await _storage.write(
+      key: _keyTaskReminders,
+      value: taskReminders.toString(),
+    );
+    await _storage.write(
+      key: _keySlotEndPrompts,
+      value: slotEndPrompts.toString(),
+    );
+    await _storage.write(
+      key: _keyBurnoutWarnings,
+      value: burnoutWarnings.toString(),
+    );
+    await _storage.write(
+      key: _keyWeeklyReset,
+      value: weeklyResetSummary.toString(),
+    );
+    await _storage.write(
+      key: _keyJoinedClasses,
+      value: jsonEncode(
+        joinedClasses.map((c) => {'id': c.id, 'name': c.name}).toList(),
+      ),
+    );
     if (currentSemesterId != null) {
       await _storage.write(key: _keyCurrentSemId, value: currentSemesterId!);
     }
     if (data != null) {
-      await _storage.write(key: _keyUserId,       value: data!.userId.toString());
-      await _storage.write(key: _keyUserName,     value: currentLiveName);
-      await _storage.write(key: _keySemester,     value: currentLiveSemester);
-      await _storage.write(key: _keyYear,         value: currentLiveYear.toString());
-      await _storage.write(key: _keySubjectCount, value: subjectCount.toString());
-      await _storage.write(key: _keyBlockedCount, value: blockedSlotsCount.toString());
-      await _storage.write(key: _keyAppVersion,   value: data!.appVersion);
-      if (avatarUrl != null) await _storage.write(key: _keyAvatarUrl, value: avatarUrl!);
+      await _storage.write(key: _keyUserId, value: data!.userId.toString());
+      await _storage.write(key: _keyUserName, value: currentLiveName);
+      await _storage.write(key: _keySemester, value: currentLiveSemester);
+      await _storage.write(key: _keyYear, value: currentLiveYear.toString());
+      await _storage.write(
+        key: _keySubjectCount,
+        value: subjectCount.toString(),
+      );
+      await _storage.write(
+        key: _keyBlockedCount,
+        value: blockedSlotsCount.toString(),
+      );
+      await _storage.write(key: _keyAppVersion, value: data!.appVersion);
+      if (avatarUrl != null)
+        await _storage.write(key: _keyAvatarUrl, value: avatarUrl!);
     }
   }
 
   // ── Misc public methods ───────────────────────────────────────────────────────
   void setData(StudentSettingsModel model) {
-    data               = model;
-    studyStart         = _parseTimeString(model.studyHoursStart);
-    studyEnd           = _parseTimeString(model.studyHoursEnd);
-    taskReminders      = model.taskReminders;
-    slotEndPrompts     = model.slotEndPrompts;
-    burnoutWarnings    = model.burnoutWarnings;
+    data = model;
+    studyStart = _parseTimeString(model.studyHoursStart);
+    studyEnd = _parseTimeString(model.studyHoursEnd);
+    taskReminders = model.taskReminders;
+    slotEndPrompts = model.slotEndPrompts;
+    burnoutWarnings = model.burnoutWarnings;
     weeklyResetSummary = model.weeklyResetSummary;
-    currentLiveName    = model.userName;
-    currentLiveSemester= model.semester;
-    currentLiveYear    = model.year;
-    blockedSlots       = Set.from(model.blockedSlots);
-    semesters = model.semesters.map((s) => {
-      'name':         s.name,
-      'isCurrent':    s.isCurrent.toString(),
-      'subjectCount': s.subjectCount.toString(),
-    }).toList();
+    currentLiveName = model.userName;
+    currentLiveSemester = model.semester;
+    currentLiveYear = model.year;
+    blockedSlots = Set.from(model.blockedSlots);
+    semesters = model.semesters
+        .map(
+          (s) => {
+            'name': s.name,
+            'isCurrent': s.isCurrent.toString(),
+            'subjectCount': s.subjectCount.toString(),
+          },
+        )
+        .toList();
     avatarUrl = model.avatarUrl;
     notifyListeners();
   }
 
   void clearCache() async {
     await _storage.deleteAll();
-    studyStart         = const TimeOfDay(hour: 8,  minute: 0);
-    studyEnd           = const TimeOfDay(hour: 22, minute: 0);
-    blockedSlots       = {};
-    subjects           = [];
-    semesters          = [];
-    joinedClasses      = [];
-    taskReminders      = false;
-    slotEndPrompts     = false;
-    burnoutWarnings    = false;
+    studyStart = const TimeOfDay(hour: 8, minute: 0);
+    studyEnd = const TimeOfDay(hour: 22, minute: 0);
+    blockedSlots = {};
+    subjects = [];
+    semesters = [];
+    joinedClasses = [];
+    taskReminders = false;
+    slotEndPrompts = false;
+    burnoutWarnings = false;
     weeklyResetSummary = false;
-    loading            = false;
-    error              = null;
-    avatarUrl          = null;
+    loading = false;
+    error = null;
+    avatarUrl = null;
     notifyListeners();
   }
 
   void clear() {
-    data               = null;
-    currentSemesterId  = null;
+    data = null;
+    currentSemesterId = null;
     clearCache();
   }
 
@@ -863,7 +945,7 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   void setError(String message) {
-    error   = message;
+    error = message;
     loading = false;
     notifyListeners();
   }
@@ -877,19 +959,20 @@ class StudentSettingsProvider with ChangeNotifier {
     }
     final isPm = s.toUpperCase().contains('PM');
     final isAm = s.toUpperCase().contains('AM');
-    final val  = int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 8;
+    final val = int.tryParse(s.replaceAll(RegExp(r'[^0-9]'), '')) ?? 8;
     if (isPm && val < 12) return TimeOfDay(hour: val + 12, minute: 0);
     if (isAm && val == 12) return const TimeOfDay(hour: 0, minute: 0);
     return TimeOfDay(hour: val, minute: 0);
   }
 
   String _formatTime(TimeOfDay t) {
-    final hour   = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
     final period = t.period == DayPeriod.am ? 'AM' : 'PM';
-    final minute = t.minute == 0 ? '' : ':${t.minute.toString().padLeft(2, '0')}';
+    final minute = t.minute == 0
+        ? ''
+        : ':${t.minute.toString().padLeft(2, '0')}';
     return '$hour$minute $period';
   }
-
 
   Stream<List<Map<String, dynamic>>> streamJoinedClasses() {
     final user = FirebaseAuth.instance.currentUser;
@@ -901,44 +984,48 @@ class StudentSettingsProvider with ChangeNotifier {
         .where('source', isEqualTo: 'class')
         .snapshots()
         .asyncMap((snapshot) async {
-      final List<Map<String, dynamic>> result = [];
+          final List<Map<String, dynamic>> result = [];
 
-      for (final doc in snapshot.docs) {
-        final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
-        debugPrint('enrollment subjectCode: $subjectCode');
+          for (final doc in snapshot.docs) {
+            final subjectCode = doc.data()['subjectCode']?.toString() ?? '';
+            debugPrint('enrollment subjectCode: $subjectCode');
 
-        if (subjectCode.isEmpty) continue;
+            if (subjectCode.isEmpty) continue;
 
-        try {
-          final classSnap = await FirebaseFirestore.instance
-              .collection('classes')
-              .where('subjectCode', isEqualTo: subjectCode)
-              .limit(1)
-              .get();
+            try {
+              final classSnap = await FirebaseFirestore.instance
+                  .collection('classes')
+                  .where('subjectCode', isEqualTo: subjectCode)
+                  .limit(1)
+                  .get();
 
-          debugPrint('classSnap found: ${classSnap.docs.isNotEmpty}');
+              debugPrint('classSnap found: ${classSnap.docs.isNotEmpty}');
 
-          if (classSnap.docs.isNotEmpty) {
-            final d = classSnap.docs.first.data();
-            result.add({
-              'name': d['name'] ?? 'Unknown Class',
-              'subjectCode': d['subjectCode'] ?? subjectCode,
-              'classId': classSnap.docs.first.id,
-            });
+              if (classSnap.docs.isNotEmpty) {
+                final d = classSnap.docs.first.data();
+                result.add({
+                  'name': d['name'] ?? 'Unknown Class',
+                  'subjectCode': d['subjectCode'] ?? subjectCode,
+                  'classId': classSnap.docs.first.id,
+                });
+              }
+            } catch (e) {
+              debugPrint('Failed to resolve class for enrollment: $e');
+            }
           }
-        } catch (e) {
-          debugPrint('Failed to resolve class for enrollment: $e');
-        }
-      }
 
-      joinedClasses = result.map((e) => JoinedClassModel(
-        id: e['classId'] ?? '',
-        name: e['name'] ?? '',
-      )).toList();
-      _rebuildDataModel(); // this calls notifyListeners(), updating the counter
+          joinedClasses = result
+              .map(
+                (e) => JoinedClassModel(
+                  id: e['classId'] ?? '',
+                  name: e['name'] ?? '',
+                ),
+              )
+              .toList();
+          _rebuildDataModel(); // this calls notifyListeners(), updating the counter
 
-      return result;
-    });
+          return result;
+        });
   }
 
   @override

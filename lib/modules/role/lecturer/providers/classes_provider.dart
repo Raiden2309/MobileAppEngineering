@@ -6,8 +6,8 @@ import '../models/class_model.dart';
 import '../models/class_student_model.dart';
 
 class ClassesProvider with ChangeNotifier {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _db;
+  final FirebaseAuth _auth;
 
   List<ClassModel> _classes = [];
   List<ClassModel> get classes => _classes;
@@ -17,8 +17,10 @@ class ClassesProvider with ChangeNotifier {
 
   StreamSubscription? _classesSubscription;
 
-  ClassesProvider() {
-    FirebaseAuth.instance.authStateChanges().listen((user) {
+  ClassesProvider({FirebaseFirestore? db, FirebaseAuth? auth})
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
+    _auth.authStateChanges().listen((user) {
       if (user != null) startLiveClassesListener();
     });
   }
