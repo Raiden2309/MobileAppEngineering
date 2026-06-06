@@ -142,7 +142,10 @@ class RegisterController {
       }
     } catch (e) {
       debugPrint("Google Registration Interruption: $e");
-      onError();
+      if (e is UnsupportedError) {
+        emailError = 'Google Sign-In is not available on desktop.';
+      }
+      if (context.mounted) onError();
     }
   }
 
