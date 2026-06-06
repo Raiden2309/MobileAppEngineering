@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider, User;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
 
@@ -78,6 +79,9 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> logout() async {
     await AuthService.clearAll();
+
+    const storage = FlutterSecureStorage();
+    await storage.deleteAll();
 
     uid  = null;
     role = null;

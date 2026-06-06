@@ -20,7 +20,6 @@ class StudentSemester extends StatefulWidget {
 }
 
 class StudentSemesterState extends State<StudentSemester> {
-  final List<DateTime?> _examDates = [null];
   String? _semStartError;
   String? _semEndError;
 
@@ -46,9 +45,9 @@ class StudentSemesterState extends State<StudentSemester> {
       }
     });
 
-    if (!programmeValid || _semStartError != null || _semEndError != null) return;
+    if (!programmeValid || _semStartError != null || _semEndError != null)
+      return;
 
-    widget.controller.examDates = _examDates.whereType<DateTime>().toList();
     widget.onNext();
   }
 
@@ -91,7 +90,6 @@ class StudentSemesterState extends State<StudentSemester> {
         child: child!,
       ),
     );
-    if (picked != null) setState(() => _examDates[index] = picked);
   }
 
   String formatDate(DateTime? d) =>
@@ -104,7 +102,7 @@ class StudentSemesterState extends State<StudentSemester> {
       step: 2,
       title: 'Your Semester',
       subtitle:
-      'Add your current semester details so we can track your progress correctly.',
+          'Add your current semester details so we can track your progress correctly.',
       onNext: () => handleNext(context),
       onBack: widget.onBack,
       child: Column(
@@ -191,43 +189,6 @@ class StudentSemesterState extends State<StudentSemester> {
               ),
             ],
           ),
-          const SizedBox(height: 14),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const SetupLabel('Final Exam Dates (Optional)'),
-              GestureDetector(
-                onTap: () => setState(() => _examDates.add(null)),
-                child: const Icon(Icons.add_circle_outline, size: 20),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          ...List.generate(_examDates.length, (i) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  if (_examDates.length > 1) ...[
-                    GestureDetector(
-                      onTap: () => setState(() => _examDates.removeAt(i)),
-                      child: const Icon(Icons.remove_circle_outline,
-                          size: 20, color: Colors.redAccent),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Expanded(
-                    child: DateTile(
-                      label: formatDate(_examDates[i]),
-                      onTap: () => _pickExamDate(i),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
         ],
       ),
     );

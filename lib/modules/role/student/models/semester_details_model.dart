@@ -6,6 +6,7 @@ class SemesterModel {
   final String studyHoursEnd;
   final int subjectCount;
   final bool isCurrent;
+  final String examDate;
 
   const SemesterModel({
     required this.name,
@@ -15,6 +16,7 @@ class SemesterModel {
     required this.isCurrent,
     required this.start,
     required this.end,
+    required this.examDate,
   });
 
   factory SemesterModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class SemesterModel {
       studyHoursEnd: json['study_hours_end'] as String? ?? '',
       subjectCount: json['subject_count'] as int? ?? 0,
       isCurrent: json['is_current'] as bool? ?? false,
+      examDate: json['exam_date'] as String? ?? '',
     );
   }
 
@@ -35,6 +38,7 @@ class SemesterModel {
     String? studyHoursEnd,
     int? subjectCount,
     bool? isCurrent,
+    String? examDate,
   }) {
     return SemesterModel(
       name: name ?? this.name,
@@ -44,6 +48,7 @@ class SemesterModel {
       studyHoursEnd: studyHoursEnd ?? this.studyHoursEnd,
       subjectCount: subjectCount ?? this.subjectCount,
       isCurrent: isCurrent ?? this.isCurrent,
+      examDate: examDate ?? this.examDate,
     );
   }
 }

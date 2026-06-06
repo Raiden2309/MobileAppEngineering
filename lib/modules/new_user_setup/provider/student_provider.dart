@@ -52,7 +52,6 @@ class StudentProvider extends ChangeNotifier {
         year: semester.year,
         semStart: semester.semStart,
         semEnd: semester.semEnd,
-        examDates: semester.examDates,
         subjects: semester.subjects,
       );
 

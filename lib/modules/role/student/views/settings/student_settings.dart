@@ -677,7 +677,11 @@ class NewSemesterCard extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    '${semester.subjectCount} subjects · ${semester.studyHoursStart} – ${semester.studyHoursEnd}',
+                                    [
+                                      '${semester.subjectCount} subjects',
+                                      '${semester.studyHoursStart} – ${semester.studyHoursEnd}',
+                                      if (semester.examDate.isNotEmpty) 'Exam: ${semester.examDate}',
+                                    ].join(' · '),
                                     style: TextStyle(
                                       fontSize: FontStyles.titleTiny,
                                       color: AppColors.legendText,
