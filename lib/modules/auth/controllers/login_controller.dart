@@ -120,6 +120,7 @@ class LoginController {
 
   // ── Multi-Platform Google Sign-In Flow ────────────────────
   Future<void> signInWithGoogle(BuildContext context, {required VoidCallback onError}) async {
+    final messenger = ScaffoldMessenger.of(context);
     try {
       // Direct call to the multi-platform utility layer
       final UserCredential userCredential = await GoogleSignInService.authenticate();
@@ -173,7 +174,10 @@ class LoginController {
       }
     } catch (e) {
       debugPrint("Google Authentication Exception: $e");
-      onError();
+      if (e is UnsupportedError) {
+        emailError = 'Google Sign-In is not available on desktop.';
+      }
+      if (context.mounted) onError();
     }
   }
 }
