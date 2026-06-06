@@ -176,21 +176,35 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 side: const BorderSide(color: Colors.white12, width: 1),
               ),
-              onPressed: () {
+              // FIXED: Added async modifier to the button closure signature
+              onPressed: () async {
                 final title = _titleController.text.trim();
                 if (title.isEmpty) return;
 
+                final String targetDateString = _selectedDueDate != null
+                    ? DateFormat('yyyy-MM-dd').format(_selectedDueDate!)
+                    : DateTime.now().toIso8601String().split('T').first;
+
+                // Build mapping payload containing active parameters explicitly
+                final Map<String, dynamic> customTaskPayload = {
+                  'id': DateTime.now().millisecondsSinceEpoch.toString(),
+                  'title': title,
+                  'description': _descController.text.trim(),
+                  'dueDate': targetDateString,
+                  'scheduledDate': targetDateString, // Ensures immediate sync with 'Today Tasks' dashboard feed
+                  'subjectCode': widget.subjectCode,
+                };
+
                 // UNCONSTRAINED UNINTERRUPTED EXECUTION ROUTE: Dismiss sheet instantly
-                // while the async write transactions process efficiently in the background background
-                context.read<ClassesProvider>().assignTaskToClass(
-                  classId: widget.classId,
-                  subjectCode: widget.subjectCode,
-                  taskTitle: title,
-                  description: _descController.text.trim(),
-                  dueDate: _selectedDueDate ?? DateTime.now().add(const Duration(days: 7)),
+                // while the async write transactions process efficiently in the background
+                await context.read<ClassesProvider>().assignTaskToClass(
+                  widget.classId,
+                  customTaskPayload,
                 );
 
-                Navigator.pop(context); // CLOSES INSTANTLY
+                if (context.mounted) {
+                  Navigator.pop(context); // CLOSES INSTANTLY
+                }
               },
               child: const Text(
                 'Publish Task to Students',

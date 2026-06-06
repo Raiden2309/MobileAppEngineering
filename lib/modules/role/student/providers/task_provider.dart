@@ -12,6 +12,7 @@ import 'dashboard_provider.dart';
 class TasksProvider with ChangeNotifier {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
+
   TasksProvider({FirebaseFirestore? db, FirebaseAuth? auth})
       : _db = db ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance;
@@ -40,7 +41,6 @@ class TasksProvider with ChangeNotifier {
   String? _currentSemester;
   String? get currentSemester => _currentSemester;
 
-  // FIXED: Consistent uniform key mapping matching your dynamic controller targets
   String _cacheKey(String uid) => 'tasks_cache_$uid';
 
   Future<bool> _loadFromCache() async {
@@ -48,12 +48,9 @@ class TasksProvider with ChangeNotifier {
     try {
       final decoded = await _cacheEngine?.read(_cacheKey(uid));
 
-      // 1. First scenario: Explicit local tasks list found in device memory
       if (decoded is List && decoded.isNotEmpty) {
         groups = decoded.map((g) {
           final Map<String, dynamic> itemMap = Map<String, dynamic>.from(g as Map);
-
-          // FIXED: Safeguard parsing to evaluate both local 'tasks' export key and server 'tasksList' key
           final List<dynamic> rawTasks = itemMap['tasks'] ?? itemMap['tasksList'] ?? [];
 
           return SubjectGroup(
@@ -66,8 +63,6 @@ class TasksProvider with ChangeNotifier {
         return true;
       }
 
-      // 2. Offline Fallback scenario: If user tasks are totally un-cached,
-      // dynamically pull from your active local user cache key signature
       final settingsSubj = await _cacheEngine?.read('settings_subjects');
       if (settingsSubj is List && settingsSubj.isNotEmpty) {
         groups = settingsSubj.map((s) {
@@ -125,14 +120,14 @@ class TasksProvider with ChangeNotifier {
     });
 
     _tasksSubscription?.cancel();
+
+    // FIXED: Query broadly by studentId to prevent missing field drops, then filter locally
     _tasksSubscription = _db
         .collection('enrollments')
         .where('studentId', isEqualTo: uid)
-        .where('semester', isEqualTo: semester)
         .snapshots()
         .listen((snapshot) {
 
-      // If network yields nothing or is offline, do NOT clear out the dropdown/view lists!
       if (snapshot.docs.isEmpty) {
         _loadFromCache().then((hasCached) {
           loading = false;
@@ -142,20 +137,45 @@ class TasksProvider with ChangeNotifier {
         return;
       }
 
-      groups = snapshot.docs.map((doc) {
+      // Filter by semester locally in Dart to avoid strict query drops
+      final validDocs = snapshot.docs.where((doc) {
+        final data = doc.data();
+        final String docSemester = data['semester']?.toString() ??
+            data['semester_id']?.toString() ??
+            '';
+
+        // Fallback: If no semester is attached yet, let it show up to prevent data loss
+        if (docSemester.isEmpty) return true;
+        return docSemester == semester;
+      }).toList();
+
+      groups = validDocs.map((doc) {
         final data = doc.data();
         final List<dynamic> rawTasks = data['tasksList'] ?? [];
+
+        // FIXED: Uniform fallback normalization mapping across lecturer and student layers
+        final String resolvedSubjectName = data['classId']?.toString() ??
+            data['name']?.toString() ??
+            data['subjectName']?.toString() ??
+            'Unknown Subject';
+
         return SubjectGroup(
           id: doc.id,
-          name: data['name']?.toString() ??
-              data['subjectName']?.toString() ??
-              data['classId']?.toString() ??
-              'Unknown Subject',
-          colorKey: data['colorKey'] ?? 'blue',
+          name: resolvedSubjectName,
+          colorKey: data['colorHex'] ?? data['colorKey'] ?? 'blue',
           tasks: rawTasks.map((t) {
-            final task = Task.fromJson(Map<String, dynamic>.from(t));
-            final liveStatus = _getLiveStatus(task);
-            return liveStatus != task.status ? task.copyWith(status: liveStatus) : task;
+            final taskMap = Map<String, dynamic>.from(t as Map);
+
+            final parsedTask = Task.fromJson({
+              'id': taskMap['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              'title': taskMap['title'] ?? 'Untitled Assignment',
+              'estimatedHours': double.tryParse((taskMap['estimatedHours'] ?? taskMap['estimated_hours'] ?? '1.0').toString()) ?? 1.0,
+              'status': taskMap['status'] ?? 'toDo',
+              'dueDate': taskMap['dueDate'] ?? taskMap['due_date'],
+            });
+
+            final liveStatus = _getLiveStatus(parsedTask);
+            return liveStatus != parsedTask.status ? parsedTask.copyWith(status: liveStatus) : parsedTask;
           }).toList(),
         );
       }).toList();
@@ -175,46 +195,10 @@ class TasksProvider with ChangeNotifier {
     });
   }
 
+  // ── RESTORED REQUIREMENT CONTROLLER OPERATIONS METHODS ─────────────────────
+
   void switchSemester(String semester) {
     listenToLiveTasks(semester: semester);
-  }
-
-  Future<void> deleteTask(Task task) async {
-    final matchGroup = groups.firstWhere((g) => g.tasks.any((t) => t.id == task.id));
-    final docRef = _db.collection('enrollments').doc(matchGroup.id);
-
-    final gIdx = groups.indexOf(matchGroup);
-    groups[gIdx].tasks.removeWhere((t) => t.id == task.id);
-    _saveToCache();
-    notifyListeners();
-
-    _dashboardProvider?.listenToLiveDashboardStats();
-
-    try {
-      await _db.runTransaction((transaction) async {
-        final snapshot = await transaction.get(docRef);
-        if (!snapshot.exists) return;
-
-        final List<dynamic> currentTasks = List.from(snapshot.data()!['tasksList'] ?? []);
-        dynamic taskToRemove;
-        for (var t in currentTasks) {
-          if (t['id'] == task.id) { taskToRemove = t; break; }
-        }
-
-        if (taskToRemove != null) {
-          final oldStatus = taskToRemove['status'];
-          currentTasks.remove(taskToRemove);
-          transaction.update(docRef, {
-            'tasksList':      currentTasks,
-            'pendingTasks':   FieldValue.increment(oldStatus != 'completed' ? -1 : 0),
-            'completedTasks': FieldValue.increment(oldStatus == 'completed' ? -1 : 0),
-          });
-        }
-      });
-    } catch (e) {
-      error = e.toString();
-      notifyListeners();
-    }
   }
 
   void setFilter(String filter) {
@@ -225,7 +209,7 @@ class TasksProvider with ChangeNotifier {
   List<Task> filteredTasks(List<Task> tasks) {
     if (activeFilter == 'all') return tasks;
     return tasks.where((t) {
-      final liveStatus = _getLiveStatus(t); // Calls the function here 👈
+      final liveStatus = _getLiveStatus(t);
 
       if (activeFilter == 'completed') return liveStatus == TaskStatus.completed;
       if (activeFilter == 'inProgress') return liveStatus == TaskStatus.inProgress;
@@ -312,6 +296,44 @@ class TasksProvider with ChangeNotifier {
     }
   }
 
+  Future<void> deleteTask(Task task) async {
+    final matchGroup = groups.firstWhere((g) => g.tasks.any((t) => t.id == task.id));
+    final docRef = _db.collection('enrollments').doc(matchGroup.id);
+
+    final gIdx = groups.indexOf(matchGroup);
+    groups[gIdx].tasks.removeWhere((t) => t.id == task.id);
+    _saveToCache();
+    notifyListeners();
+
+    _dashboardProvider?.listenToLiveDashboardStats();
+
+    try {
+      await _db.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        if (!snapshot.exists) return;
+
+        final List<dynamic> currentTasks = List.from(snapshot.data()!['tasksList'] ?? []);
+        dynamic taskToRemove;
+        for (var t in currentTasks) {
+          if (t['id'] == task.id) { taskToRemove = t; break; }
+        }
+
+        if (taskToRemove != null) {
+          final oldStatus = taskToRemove['status'];
+          currentTasks.remove(taskToRemove);
+          transaction.update(docRef, {
+            'tasksList':      currentTasks,
+            'pendingTasks':   FieldValue.increment(oldStatus != 'completed' ? -1 : 0),
+            'completedTasks': FieldValue.increment(oldStatus == 'completed' ? -1 : 0),
+          });
+        }
+      });
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+    }
+  }
+
   Future<void> saveCache() => _saveToCache();
 
   TaskStatus _getLiveStatus(Task task) {
@@ -336,7 +358,6 @@ class TasksProvider with ChangeNotifier {
     }
     return task.status;
   }
-
 
   @override
   void dispose() {

@@ -79,34 +79,42 @@ class _StatCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    model.label,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleSmall,
-                      color: AppColors.black,
+              // FIXED: Wrapped the Column in an Expanded widget to isolate content scaling boundaries cleanly
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      model.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis, // Safely drops trailing characters into ... if text room fails
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleSmall,
+                        color: AppColors.black,
+                      ),
                     ),
-                  ),
-                  Text(
-                    model.value,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleGreeting,
-                      fontWeight: FontStyles.titleWeight,
-                      color: AppColors.black,
+                    Text(
+                      model.value,
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleGreeting,
+                        fontWeight: FontStyles.titleWeight,
+                        color: AppColors.black,
+                      ),
                     ),
-                  ),
-                  Text(
-                    model.sub,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleSmall,
-                      color: AppColors.legendText,
+                    Text(
+                      model.sub,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis, // Protects sub-labels text elements from wrap spills
+                      style: const TextStyle(
+                        fontSize: FontStyles.titleSmall,
+                        color: AppColors.legendText,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8), // Ensures a mandatory minimum whitespace gap between layout elements
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
