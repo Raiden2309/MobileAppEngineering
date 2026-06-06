@@ -242,6 +242,7 @@ class StudentSettingsProvider with ChangeNotifier {
           'end': d['semEnd']?.toString() ?? '',
           'isCurrent': (id == activeSemId).toString(),
           'subjectCount': subj.toString(),
+          'examDate': d['examDate']?.toString() ?? '',
         };
       }).toList();
 
@@ -409,7 +410,7 @@ class StudentSettingsProvider with ChangeNotifier {
             'year': semYear,
             'semStart': newEntry['start'] ?? '',
             'semEnd': newEntry['end'] ?? '',
-            'examDates': [],
+            'examDate': newEntry['examDate'] ?? '',
             'subjects': [],
           });
 
@@ -444,6 +445,7 @@ class StudentSettingsProvider with ChangeNotifier {
             .update({
               'semStart': updated['start'] ?? '',
               'semEnd': updated['end'] ?? '',
+              'examDate': updated['examDate'] ?? '',
             });
       } catch (e) {
         debugPrint('editSemester error: $e');
@@ -720,6 +722,7 @@ class StudentSettingsProvider with ChangeNotifier {
           subjectCount: count,
           studyHoursStart: _formatTime(studyStart),
           studyHoursEnd: _formatTime(studyEnd),
+          examDate:        s['examDate'] ?? '',
         );
       }).toList(),
       avatarUrl: avatarUrl,
@@ -817,6 +820,7 @@ class StudentSettingsProvider with ChangeNotifier {
                 subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
                 studyHoursStart: _formatTime(studyStart),
                 studyHoursEnd: _formatTime(studyEnd),
+                examDate:        s['examDate'] ?? '',
               ),
             )
             .toList(),

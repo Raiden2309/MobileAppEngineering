@@ -10,22 +10,28 @@ class SubjectGroupList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          ...controller.visibleGroups.map((group) => SubjectGroupSection(
-            controller: controller,
-            group: SubjectGroup(
-              id:       group.id,
-              name:     group.name,
-              colorKey: group.colorKey,
-              tasks:    controller.filteredTasksFor(group),
-            ),
-          )),
-          const SizedBox(height: 24),
-        ],
-      ),
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        return Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              ...controller.visibleGroups.map((group) =>
+                  SubjectGroupSection(
+                    controller: controller,
+                    group: SubjectGroup(
+                      id: group.id,
+                      name: group.name,
+                      colorKey: group.colorKey,
+                      tasks: controller.filteredTasksFor(group),
+                    ),
+                  )),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
     );
   }
 }
