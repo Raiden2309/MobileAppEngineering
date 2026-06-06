@@ -8,6 +8,7 @@ import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
 import '../../../models/app_enums.dart';
 import '../../../models/tasks_model.dart';
+import 'confirm_delete_widget.dart';
 
 class TaskBottomSheet extends StatefulWidget {
   final TaskController controller;
@@ -199,36 +200,7 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     if (mounted) Navigator.pop(context);
   }
 
-  void _confirmDelete() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2330),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text(
-          'Delete Task?',
-          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w700),
-        ),
-        content: const Text(
-          'Are you sure you want to delete this task? This cannot be undone.',
-          style: TextStyle(color: Colors.white60, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _delete();
-            },
-            child: Text('Delete', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
-    );
-  }
+  void _confirmDelete() => ConfirmDeleteWidget.show(context, onConfirm: _delete);
 
   @override
   Widget build(BuildContext context) {

@@ -4,7 +4,9 @@ import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
 import '../../../models/app_enums.dart';
 import '../../../models/tasks_model.dart';
-import 'dart:async'; // --- Added for runtime interval loops ---
+import 'dart:async';
+
+import 'confirm_delete_widget.dart'; // --- Added for runtime interval loops ---
 
 Color subjectColor(String key) {
   switch (key) {
@@ -145,7 +147,10 @@ class TaskCardState extends State<TaskCard> {
             padding: EdgeInsets.zero,
           ),
           IconButton(
-            onPressed: () => widget.controller.deleteTask(widget.task),
+            onPressed: () => ConfirmDeleteWidget.show(
+              context,
+              onConfirm: () => widget.controller.deleteTask(widget.task),
+            ),
             icon: const Icon(Icons.delete_outline_rounded, size: 16),
             color: AppColors.red.withValues(alpha: 0.6),
             visualDensity: VisualDensity.compact,
