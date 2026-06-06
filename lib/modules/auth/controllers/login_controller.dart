@@ -163,6 +163,10 @@ class LoginController {
 
         if (!context.mounted) return;
 
+        // Clear text controllers to free system resources before changing screens
+        emailController.clear();
+        passwordController.clear();
+
         if (role == 0) {
           Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RoleSetupPage()));
         } else if (role == 1) {
@@ -173,6 +177,7 @@ class LoginController {
       }
     } catch (e) {
       debugPrint("Google Authentication Exception: $e");
+      if (!context.mounted) return;
       onError();
     }
   }

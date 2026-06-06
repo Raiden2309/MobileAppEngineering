@@ -7,6 +7,7 @@ import '../../models/class_model.dart';
 import '../../models/class_student_model.dart';
 import '../../providers/classes_provider.dart';
 import 'widgets/assign_task_sheet.dart';
+import 'widgets/add_student_sheet.dart';
 
 class ClassDetailPage extends StatelessWidget {
   final ClassModel classModel;
@@ -107,15 +108,8 @@ class ClassDetailPage extends StatelessWidget {
                               _buildAssignedTasksTracker(dynamicClassModel, students),
                               const SizedBox(height: 16),
 
-                              if (students.isEmpty)
-                                const Center(
-                                  child: Text(
-                                    "No students enrolled in this class.",
-                                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                                  ),
-                                )
-                              else
-                                _buildStudentList(students),
+                              // Refactored to pass down the list and handle visibility consistently
+                              _buildStudentList(context, students),
                             ],
                           ),
                         );
@@ -458,7 +452,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStudentList(List<ClassStudentModel> students) {
+  Widget _buildStudentList(BuildContext context, List<ClassStudentModel> students) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -466,48 +460,78 @@ class ClassDetailPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Students', style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightHeavy, color: AppColors.black)),
-            const Text('+ Add', style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.californiaBlue, fontWeight: FontStyles.weightMedium)),
+
+            GestureDetector(
+              onTap: () {
+                AddStudentBottomSheet.show(
+                  context,
+                  className: classModel.name,
+                  subjectCode: classModel.subjectCode,
+                );
+              },
+              child: const Text(
+                '+ Add',
+                style: TextStyle(
+                  fontSize: FontStyles.titleSmall,
+                  color: AppColors.californiaBlue,
+                  fontWeight: FontStyles.weightMedium,
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 10),
-        ...students.map((s) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            decoration: _whiteCard(),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: s.chipColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(s.initials, style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: s.chipColor)),
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s.name, style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightMedium, color: AppColors.black), overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 1),
-                      Text(s.meta, style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5))),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: s.chipColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-                  child: Text(s.chip, style: TextStyle(fontSize: 11, fontWeight: FontStyles.weightMedium, color: s.chipColor)),
-                ),
-              ],
+
+        // Displays empty placeholder below the persistent header if snapshot payload returns zero items
+        if (students.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                "No students enrolled in this class.",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
             ),
-          ),
-        )),
+          )
+        else
+          ...students.map((s) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              decoration: _whiteCard(),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: s.chipColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(s.initials, style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: s.chipColor)),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.name, style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontWeight.w500, color: AppColors.black), overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 1),
+                        Text(s.meta, style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5))),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: s.chipColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                    child: Text(s.chip, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: s.chipColor)),
+                  ),
+                ],
+              ),
+            ),
+          )),
       ],
     );
   }

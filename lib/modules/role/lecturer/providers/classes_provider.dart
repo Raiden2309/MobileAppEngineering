@@ -194,6 +194,62 @@ class ClassesProvider with ChangeNotifier {
     }
   }
 
+  /// METHOD: Manually enrolls a targeted student by creating an authoritative document inside the enrollments collection
+  Future<bool> manuallyEnrollStudent({
+    required String studentUid,
+    required String className,
+    required String subjectCode,
+  }) async {
+    if (studentUid.isEmpty || className.isEmpty) return false;
+
+    try {
+      // 1. Construct a standardized matching layout key ID reference pattern matching the student side
+      final safeClassId = className
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+          .replaceAll(RegExp(r'[\s-]'), '_');
+      final enrollmentId = '${studentUid}_$safeClassId';
+
+      // 2. Prevent redundant duplication allocations across records inside Firestore
+      final DocumentSnapshot duplicateCheck =
+      await _db.collection('enrollments').doc(enrollmentId).get();
+
+      if (duplicateCheck.exists) return false;
+
+      // 3. Extract curriculum assignment tasks to pre-populate for the added profile context smoothly
+      List initialTasks = [];
+      final QuerySnapshot classSnap = await _db
+          .collection('classes')
+          .where('subjectCode', isEqualTo: subjectCode.toUpperCase())
+          .limit(1)
+          .get();
+
+      if (classSnap.docs.isNotEmpty) {
+        initialTasks = (classSnap.docs.first.data() as Map<String, dynamic>)['initialTasks'] ?? [];
+      }
+
+      // 4. Set authoritative structural documentation details inside the collection matching user expectations
+      await _db.collection('enrollments').doc(enrollmentId).set({
+        'studentId': studentUid,
+        'classId': className,
+        'subjectCode': subjectCode.toUpperCase(),
+        'source': 'class',
+        'colorHex': '#60A5FA',
+        'completedTasks': 0,
+        'pendingTasks': initialTasks.length,
+        'burnoutIndex': 0.0,
+        'tasksList': initialTasks,
+        'joinedAt': FieldValue.serverTimestamp(),
+      });
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('manuallyEnrollStudent exception context aborted: $e');
+      return false;
+    }
+  }
+
   @override
   void dispose() {
     _classesSubscription?.cancel();
