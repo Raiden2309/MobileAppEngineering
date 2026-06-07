@@ -9,6 +9,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../models/student_subject_model.dart';
+import '../../models/dashboard_models.dart'; // Ensure this model import path is correct
 import '../../providers/dashboard_provider.dart';
 import '../../providers/semester_progress_provider.dart';
 import 'widgets/workload_monitor.dart';
@@ -39,71 +40,76 @@ class _StudentDashboardState extends State<StudentDashboard> {
     final semId = context.watch<SemesterProvider>().currentSemesterId;
 
     dashboardProvider.updateActiveSemester(semId);
-
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: StreamBuilder<List<StudentSubjectModel>>(
-        stream: dashboardProvider.myEnrolledClassesStream,
-        builder: (context, classSnapshot) {
-          if (classSnapshot.connectionState == ConnectionState.waiting) {
+      // FIXED: Listens to the single master enrollment query snapshot directly
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('enrollments')
+            .where('studentId', isEqualTo: uid)
+            .where('semester', isEqualTo: semId ?? '')
+            .snapshots(),
+        builder: (context, enrollmentSnapshot) {
+          if (enrollmentSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.californiaBlue),
             );
           }
 
-          final enrolledCourses = classSnapshot.data ?? [];
+          int totalCompletedTasks = 0;
+          int totalPendingTasks = 0;
+          double accumulatedBurnout = 0.0;
+          int enrolledClassesCount = 0;
 
-          var enrollmentQuery = FirebaseFirestore.instance
-              .collection('enrollments')
-              .where('studentId', isEqualTo: uid);
-
-          if (semId != null && semId.isNotEmpty) {
-            enrollmentQuery = enrollmentQuery.where('semester', isEqualTo: semId);
+          if (enrollmentSnapshot.hasData &&
+              enrollmentSnapshot.data!.docs.isNotEmpty) {
+            enrolledClassesCount = enrollmentSnapshot.data!.docs.length;
+            for (var doc in enrollmentSnapshot.data!.docs) {
+              final dataMap = doc.data() as Map<String, dynamic>;
+              totalCompletedTasks += (dataMap['completedTasks'] as num? ?? 0)
+                  .toInt();
+              totalPendingTasks += (dataMap['pendingTasks'] as num? ?? 0)
+                  .toInt();
+              accumulatedBurnout += (dataMap['burnoutIndex'] as num? ?? 0.0)
+                  .toDouble();
+            }
           }
 
-          return StreamBuilder<QuerySnapshot>(
-            stream: enrollmentQuery.snapshots(),
-            builder: (context, enrollmentSnapshot) {
-              int totalCompletedTasks = 0;
-              int totalPendingTasks = 0;
-              double accumulatedBurnout = 0.0;
+          int totalTasksCount = totalCompletedTasks + totalPendingTasks;
+          double overallProgress = totalTasksCount > 0
+              ? (totalCompletedTasks / totalTasksCount)
+              : 0.0;
+          double meanBurnoutValue = enrolledClassesCount > 0
+              ? (accumulatedBurnout / enrolledClassesCount)
+              : 0.0;
 
-              if (enrollmentSnapshot.hasData) {
-                for (var doc in enrollmentSnapshot.data!.docs) {
-                  final dataMap = doc.data() as Map<String, dynamic>;
-                  totalCompletedTasks += (dataMap['completedTasks'] as num? ?? 0).toInt();
-                  totalPendingTasks += (dataMap['pendingTasks'] as num? ?? 0).toInt();
-                  accumulatedBurnout += (dataMap['burnoutIndex'] as num? ?? 0.0).toDouble();
-                }
-              }
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const DashboardGreeting(),
+                const SizedBox(height: 16),
 
-              int totalTasksCount = totalCompletedTasks + totalPendingTasks;
-              double overallProgress = totalTasksCount > 0 ? (totalCompletedTasks / totalTasksCount) : 0.0;
-              double meanBurnoutValue = enrolledCourses.isNotEmpty ? (accumulatedBurnout / enrolledCourses.length) : 0.0;
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const DashboardGreeting(),
-                    const SizedBox(height: 16),
-                    WorkloadMonitor(
-                      pendingTasksCount: totalPendingTasks,
-                      completionProgress: overallProgress,
-                      burnoutRatio: meanBurnoutValue,
-                    ),
-                    const SizedBox(height: 16),
-                    const TaskStatisticsSection(),
-                    const TodaysPlan(),
-                    const SizedBox(height: 16),
-                    const TaskToday(),
-                  ],
+                const DashboardGreeting(),
+                const SizedBox(height: 16),
+                WorkloadMonitor(
+                  pendingTasksCount: totalPendingTasks,
+                  completionProgress: overallProgress,
+                  burnoutRatio: meanBurnoutValue,
                 ),
-              );
-            },
+                const SizedBox(height: 16),
+                const TaskStatisticsSection(),
+                const CurrentTaskPopup(),
+                const TodaysPlan(),
+                const SizedBox(height: 16),
+
+                // Displays the underlying TaskToday layout block matching todayTasksStream properties
+                const TaskToday(),
+              ],
+            ),
           );
         },
       ),

@@ -58,7 +58,7 @@ class ClassesProvider with ChangeNotifier {
   Stream<List<ClassStudentModel>> getStudents(String classCode) {
     return _db
         .collection('enrollments')
-        .where('subjectCode', isEqualTo: classCode)
+        .where('subjectCode', isEqualTo: classCode.trim())
         .snapshots()
         .asyncMap((enrollmentSnapshot) async {
 
@@ -109,7 +109,6 @@ class ClassesProvider with ChangeNotifier {
         .map((snapshot) => ClassModel.fromFirestore(snapshot));
   }
 
-  /// METHOD: Distributes a task blueprint to a class and pushes it to all enrolled students
   Future<void> assignTaskToClass({
     required String classId,
     required String subjectCode,
@@ -119,35 +118,34 @@ class ClassesProvider with ChangeNotifier {
     required DateTime dueDate,
   }) async {
     try {
-      final String generatedTaskId = _db.collection('classes').doc().id;
-
-      final Map<String, dynamic> taskMap = {
-        'id': generatedTaskId,
+      final todayString = DateTime.now().toIso8601String().split('T').first;
+      // Build a comprehensive, safe map containing properties required by both My Tasks and Today's Tasks
+      final taskMap = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'title': taskTitle,
         'description': description,
-        'estimated_hours': 1.0,
-        'status': 'toDo',
-        'due_date': dueDate.toIso8601String(),
+        'subjectCode': subjectCode,
+        'dueDate': dueDate.toIso8601String().split('T').first,
+        'scheduledDate': todayString,
+        'status': 'pending',
+        'isCompleted': false,
+        'createdAt': DateTime.now().toIso8601String(),
       };
-
-      // 1. Add task directly into the core class curriculum matrix template
+      // 1. Add task to master class template
       await _db.collection('classes').doc(classId).update({
-        'initialTasks': FieldValue.arrayUnion([taskMap]),
+        'initialTasks': FieldValue.arrayUnion([taskMap])
       });
 
-      // 2. Query all student records tracking this specific course subject code
-      final QuerySnapshot targetEnrollments = await _db
+// 2. Query all student records tracking this specific course subject code
+      final QuerySnapshot enrollmentsSnap = await _db
           .collection('enrollments')
           .where('subjectCode', isEqualTo: subjectCode.toUpperCase())
           .where('semester', isEqualTo: semester)
           .get();
 
-      if (targetEnrollments.docs.isEmpty) return;
-
       final WriteBatch taskWriteBatch = _db.batch();
 
-      // 3. Append task to each matching enrollment doc (TasksProvider reads tasksList from here)
-      for (var doc in targetEnrollments.docs) {
+      for (var doc in enrollmentsSnap.docs) {
         final DocumentReference enrollmentDocRef = _db.collection('enrollments').doc(doc.id);
         final existingData = doc.data() as Map<String, dynamic>;
 
@@ -170,7 +168,68 @@ class ClassesProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint("Failed to distribute assigned tasks across enrollments collection: $e");
+      debugPrint("Failed to distribute assigned tasks: $e");
+      rethrow;
+    }
+  }
+
+  /// NEW METHOD: Modifies an existing task's description and due date, then atomatically forces changes to all enrolled students
+  Future<void> updateClassTask({
+    required String classId,
+    required String taskId,
+    required String updatedTitle,
+    required String updatedDescription,
+    required String updatedDueDate,
+  }) async {
+    try {
+      // 1. Fetch and modify master class task array template
+      final classDocRef = _db.collection('classes').doc(classId);
+      final classSnap = await classDocRef.get();
+      if (!classSnap.exists) throw Exception('Class template not found');
+
+      final classData = classSnap.data() as Map<String, dynamic>;
+      final String subjectCode = classData['subjectCode'] ?? '';
+      final List<dynamic> masterTasks = List.from(classData['initialTasks'] ?? []);
+
+      final masterIdx = masterTasks.indexWhere((t) => t['id']?.toString() == taskId);
+      if (masterIdx != -1) {
+        masterTasks[masterIdx]['title'] = updatedTitle;
+        masterTasks[masterIdx]['description'] = updatedDescription;
+        masterTasks[masterIdx]['dueDate'] = updatedDueDate;
+        masterTasks[masterIdx]['scheduledDate'] = updatedDueDate; // Keep dashboard feed tracking aligned
+
+        await classDocRef.update({'initialTasks': masterTasks});
+      }
+
+      // 2. Query all student enrollments under this subject to update their lists via batch write
+      final enrollmentsSnap = await _db
+          .collection('enrollments')
+          .where('subjectCode', isEqualTo: subjectCode.trim())
+          .where('source', isEqualTo: 'class')
+          .get();
+
+      final WriteBatch updateBatch = _db.batch();
+
+      for (var doc in enrollmentsSnap.docs) {
+        final List<dynamic> studentTasks = List.from(doc.data()['tasksList'] ?? []);
+        final studentTaskIdx = studentTasks.indexWhere((t) => t['id']?.toString() == taskId);
+
+        if (studentTaskIdx != -1) {
+          studentTasks[studentTaskIdx]['title'] = updatedTitle;
+          studentTasks[studentTaskIdx]['description'] = updatedDescription;
+          studentTasks[studentTaskIdx]['dueDate'] = updatedDueDate;
+          studentTasks[studentTaskIdx]['scheduledDate'] = updatedDueDate;
+
+          updateBatch.update(_db.collection('enrollments').doc(doc.id), {
+            'tasksList': studentTasks,
+          });
+        }
+      }
+
+      await updateBatch.commit();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Failed to update class task: $e");
       rethrow;
     }
   }
@@ -182,7 +241,7 @@ class ClassesProvider with ChangeNotifier {
     try {
       await _db.collection('classes').doc(newClass.id).set({
         'name': newClass.name,
-        'subjectCode': newClass.subjectCode.toUpperCase(),
+        'subjectCode': newClass.subjectCode.toUpperCase().trim(),
         'classCode': newClass.classCode,
         'semester': newClass.semester,
         'lecturerId': user.uid,
@@ -204,6 +263,122 @@ class ClassesProvider with ChangeNotifier {
     } catch (e) {
       debugPrint("Aborted class structural destruction mapping sequence: $e");
       rethrow;
+    }
+  }
+
+  /// METHOD: Manually enrolls a targeted student by creating an authoritative document inside the enrollments collection
+  Future<bool> manuallyEnrollStudent({
+    required String studentUid,
+    required String className,
+    required String subjectCode,
+  }) async {
+    if (studentUid.isEmpty || className.isEmpty) return false;
+
+    try {
+      final safeClassId = className
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+          .replaceAll(RegExp(r'[\s-]'), '_');
+      final enrollmentId = '${studentUid}_$safeClassId';
+
+      final DocumentSnapshot duplicateCheck =
+      await _db.collection('enrollments').doc(enrollmentId).get();
+
+      if (duplicateCheck.exists) return false;
+
+      // CRITICAL FIX: Fetch the student's actual active academic semester ID (e.g. sem_1_yr1)
+      final studentUserDoc = await _db.collection('users').doc(studentUid).get();
+      final String actualStudentSemester = studentUserDoc.data()?['currentSemesterId']?.toString() ?? 'sem_1_yr1';
+
+      List initialTasks = [];
+      final QuerySnapshot classSnap = await _db
+          .collection('classes')
+          .where('subjectCode', isEqualTo: subjectCode.trim())
+          .limit(1)
+          .get();
+
+      if (classSnap.docs.isNotEmpty) {
+        final rawTasks = (classSnap.docs.first.data() as Map<String, dynamic>)['initialTasks'] as List? ?? [];
+        final String todayString = DateTime.now().toIso8601String().split('T').first;
+
+        initialTasks = rawTasks.map((task) {
+          final taskMap = Map<String, dynamic>.from(task as Map);
+          taskMap['dueDate'] = taskMap['dueDate'] ?? todayString;
+          taskMap['scheduledDate'] = taskMap['scheduledDate'] ?? todayString;
+
+          // ENSURE PARSING FLAGS ARE PRESENT:
+          taskMap['status'] = 'pending';
+          taskMap['isCompleted'] = false;
+          taskMap['createdAt'] = taskMap['createdAt'] ?? DateTime.now().toIso8601String();
+          return taskMap;
+        }).toList();
+      }
+
+      await _db.collection('enrollments').doc(enrollmentId).set({
+        'studentId': studentUid,
+        'classId': className,
+        'subjectCode': subjectCode.trim(),
+        'source': 'class',
+        'colorHex': '#60A5FA',
+        'completedTasks': 0,
+        'pendingTasks': initialTasks.length,
+        'burnoutIndex': 0.0,
+        'tasksList': initialTasks,
+        'joinedAt': FieldValue.serverTimestamp(),
+        'semester': actualStudentSemester, // Passes structural requirement validation check
+      });
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('manuallyEnrollStudent error: $e');
+      return false;
+    }
+  }
+
+  /// NEW METHOD: Completely terminates a student enrollment record and updates registration counters
+  Future<bool> removeStudentFromClass({
+    required String studentUid,
+    required String className,
+  }) async {
+    if (studentUid.isEmpty || className.isEmpty) return false;
+
+    try {
+      final safeClassId = className
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\s-]'), '')
+          .replaceAll(RegExp(r'[\s-]'), '_');
+      final enrollmentId = '${studentUid}_$safeClassId';
+
+      final docRef = _db.collection('enrollments').doc(enrollmentId);
+      final docSnap = await docRef.get();
+
+      if (!docSnap.exists) return false;
+
+      final enrollmentData = docSnap.data() as Map<String, dynamic>;
+      final String subjectCode = enrollmentData['subjectCode'] ?? '';
+
+      // 1. Clear out the target enrollment entry completely
+      await docRef.delete();
+
+      // 2. Decrement student counter inside parent class schema reference template
+      final classQuery = await _db
+          .collection('classes')
+          .where('subjectCode', isEqualTo: subjectCode.trim())
+          .limit(1)
+          .get();
+
+      if (classQuery.docs.isNotEmpty) {
+        await classQuery.docs.first.reference.update({
+          'studentCount': FieldValue.increment(-1),
+        });
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('removeStudentFromClass error: $e');
+      return false;
     }
   }
 

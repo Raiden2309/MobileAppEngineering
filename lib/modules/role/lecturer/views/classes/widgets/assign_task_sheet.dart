@@ -178,13 +178,17 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 side: const BorderSide(color: Colors.white12, width: 1),
               ),
-              onPressed: () {
+              // FIXED: Added async modifier to the button closure signature
+              onPressed: () async {
                 final title = _titleController.text.trim();
                 if (title.isEmpty) return;
 
-                // UNCONSTRAINED UNINTERRUPTED EXECUTION ROUTE: Dismiss sheet instantly
-                // while the async write transactions process efficiently in the background background
-                context.read<ClassesProvider>().assignTaskToClass(
+                final String targetDateString = _selectedDueDate != null
+                    ? DateFormat('yyyy-MM-dd').format(_selectedDueDate!)
+                    : DateTime.now().toIso8601String().split('T').first;
+
+                // while the async write transactions process efficiently in the background
+                await context.read<ClassesProvider>().assignTaskToClass(
                   classId: widget.classId,
                   subjectCode: widget.subjectCode,
                   semester: widget.semester,
@@ -193,7 +197,9 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                   dueDate: _selectedDueDate ?? DateTime.now().add(const Duration(days: 7)),
                 );
 
-                Navigator.pop(context); // CLOSES INSTANTLY
+                if (context.mounted) {
+                  Navigator.pop(context); // CLOSES INSTANTLY
+                }
               },
               child: const Text(
                 'Publish Task to Students',

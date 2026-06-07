@@ -13,8 +13,8 @@ class StudentDashboardProvider with ChangeNotifier {
   final FirebaseAuth _auth;
 
   StudentDashboardProvider({FirebaseFirestore? db, FirebaseAuth? auth})
-    : _db = db ?? FirebaseFirestore.instance,
-      _auth = auth ?? FirebaseAuth.instance;
+      : _db = db ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   LocalCacheService? _cacheEngine;
 
@@ -112,73 +112,73 @@ class StudentDashboardProvider with ChangeNotifier {
         .where('studentId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
-          final docs = snapshot.docs.where((doc) {
-            final sem =
-                doc.data()['semester']?.toString() ??
+      final docs = snapshot.docs.where((doc) {
+        final sem =
+            doc.data()['semester']?.toString() ??
                 doc.data()['semester_id']?.toString();
-            if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
-              return sem == _currentSemesterId;
-            }
-            return true;
-          });
+        if (_currentSemesterId != null && _currentSemesterId!.isNotEmpty) {
+          return sem == _currentSemesterId;
+        }
+        return true;
+      });
 
-          return docs.map((doc) {
-            final mapData = doc.data();
+      return docs.map((doc) {
+        final mapData = doc.data();
 
-            final int id = mapData['id'] is int
-                ? mapData['id'] as int
-                : int.tryParse(mapData['id']?.toString() ?? '') ??
-                      doc.id.hashCode.abs();
+        final int id = mapData['id'] is int
+            ? mapData['id'] as int
+            : int.tryParse(mapData['id']?.toString() ?? '') ??
+            doc.id.hashCode.abs();
 
-            final int studentId = mapData['student_id'] is int
-                ? mapData['student_id'] as int
-                : int.tryParse(mapData['studentId']?.toString() ?? '') ?? 0;
+        final int studentId = mapData['student_id'] is int
+            ? mapData['student_id'] as int
+            : int.tryParse(mapData['studentId']?.toString() ?? '') ?? 0;
 
-            final int semesterId = mapData['semester_id'] is int
-                ? mapData['semester_id'] as int
-                : int.tryParse(
-                        mapData['semester']?.toString() ??
-                            mapData['semesterId']?.toString() ??
-                            '',
-                      ) ??
-                      0;
+        final int semesterId = mapData['semester_id'] is int
+            ? mapData['semester_id'] as int
+            : int.tryParse(
+          mapData['semester']?.toString() ??
+              mapData['semesterId']?.toString() ??
+              '',
+        ) ??
+            0;
 
-            final int subjectId = mapData['subject_id'] is int
-                ? mapData['subject_id'] as int
-                : int.tryParse(
-                        mapData['subjectId']?.toString() ??
-                            mapData['classId']?.toString() ??
-                            '',
-                      ) ??
-                      0;
+        final int subjectId = mapData['subject_id'] is int
+            ? mapData['subject_id'] as int
+            : int.tryParse(
+          mapData['subjectId']?.toString() ??
+              mapData['classId']?.toString() ??
+              '',
+        ) ??
+            0;
 
-            final String name =
-                mapData['name']?.toString() ??
+        final String name =
+            mapData['name']?.toString() ??
                 mapData['subjectName']?.toString() ??
                 mapData['className']?.toString() ??
                 'Unknown Subject';
 
-            final String code =
-                mapData['code']?.toString() ??
+        final String code =
+            mapData['code']?.toString() ??
                 mapData['subjectCode']?.toString() ??
                 'N/A';
 
-            final String colorHex =
-                mapData['color_hex']?.toString() ??
+        final String colorHex =
+            mapData['color_hex']?.toString() ??
                 mapData['colorHex']?.toString() ??
                 '#FFFFFF';
 
-            return StudentSubjectModel(
-              id: id,
-              studentId: studentId,
-              semesterId: semesterId,
-              subjectId: subjectId,
-              name: name,
-              code: code,
-              colorHex: colorHex,
-            );
-          }).toList();
-        });
+        return StudentSubjectModel(
+          id: id,
+          studentId: studentId,
+          semesterId: semesterId,
+          subjectId: subjectId,
+          name: name,
+          code: code,
+          colorHex: colorHex,
+        );
+      }).toList();
+    });
   }
 
   void listenToLiveDashboardStats() {
@@ -202,98 +202,98 @@ class StudentDashboardProvider with ChangeNotifier {
         .snapshots()
         .listen(
           (snapshot) {
-            int tasksCompleted = 0;
-            int tasksTotal = 0;
-            int tasksDueSoon = 0;
-            int tasksOverdue = 0;
+        int tasksCompleted = 0;
+        int tasksTotal = 0;
+        int tasksDueSoon = 0;
+        int tasksOverdue = 0;
 
-            final now = DateTime.now();
+        final now = DateTime.now();
 
-            final validDocs = snapshot.docs.where((doc) {
-              final sem =
-                  doc.data()['semester']?.toString() ??
+        final validDocs = snapshot.docs.where((doc) {
+          final sem =
+              doc.data()['semester']?.toString() ??
                   doc.data()['semester_id']?.toString();
-              if (_currentSemesterId != null &&
-                  _currentSemesterId!.isNotEmpty) {
-                return sem == _currentSemesterId;
-              }
-              return true;
-            }).toList();
+          if (_currentSemesterId != null &&
+              _currentSemesterId!.isNotEmpty) {
+            return sem == _currentSemesterId;
+          }
+          return true;
+        }).toList();
 
-            for (var doc in validDocs) {
-              final docMap = doc.data();
-              final List<dynamic> rawTasks = docMap['tasksList'] ?? [];
-              tasksTotal += rawTasks.length;
+        for (var doc in validDocs) {
+          final docMap = doc.data();
+          final List<dynamic> rawTasks = docMap['tasksList'] ?? [];
+          tasksTotal += rawTasks.length;
 
-              for (var t in rawTasks) {
-                final String statusStr = t['status']?.toString() ?? 'toDo';
+          for (var t in rawTasks) {
+            final String statusStr = t['status']?.toString() ?? 'toDo';
 
-                if (statusStr == 'completed' || statusStr == 'done') {
-                  tasksCompleted++;
-                } else if (statusStr == 'overdue') {
-                  tasksOverdue++;
-                } else {
-                  final String? dueDateRaw =
-                      t['dueDate']?.toString() ?? t['due_date']?.toString();
-                  if (dueDateRaw != null) {
-                    final dueDate = DateTime.tryParse(dueDateRaw);
-                    if (dueDate != null) {
-                      final taskDay = DateTime(
-                        dueDate.year,
-                        dueDate.month,
-                        dueDate.day,
-                      );
-                      final today = DateTime(now.year, now.month, now.day);
-                      if (taskDay.isBefore(today)) {
-                        tasksOverdue++;
-                      } else if (taskDay.difference(today).inDays <= 3) {
-                        tasksDueSoon++;
-                      }
-                    }
-                  } else {
-                    if (statusStr == 'dueSoon' || statusStr == 'due_soon')
-                      tasksDueSoon++;
-                    if (statusStr == 'overdue') tasksOverdue++;
+            if (statusStr == 'completed' || statusStr == 'done') {
+              tasksCompleted++;
+            } else if (statusStr == 'overdue') {
+              tasksOverdue++;
+            } else {
+              final String? dueDateRaw =
+                  t['dueDate']?.toString() ?? t['due_date']?.toString();
+              if (dueDateRaw != null) {
+                final dueDate = DateTime.tryParse(dueDateRaw);
+                if (dueDate != null) {
+                  final taskDay = DateTime(
+                    dueDate.year,
+                    dueDate.month,
+                    dueDate.day,
+                  );
+                  final today = DateTime(now.year, now.month, now.day);
+                  if (taskDay.isBefore(today)) {
+                    tasksOverdue++;
+                  } else if (taskDay.difference(today).inDays <= 3) {
+                    tasksDueSoon++;
                   }
                 }
+              } else {
+                if (statusStr == 'dueSoon' || statusStr == 'due_soon')
+                  tasksDueSoon++;
+                if (statusStr == 'overdue') tasksOverdue++;
               }
             }
+          }
+        }
 
-            data = DashboardModel(
-              summary: DashboardSummary(
-                userName: _auth.currentUser?.displayName ?? 'Student',
-                taskCountToday: tasksTotal - tasksCompleted - tasksOverdue,
-                date: DateTime.now(),
-              ),
-              stats: DashboardStats(
-                tasksDone: tasksCompleted,
-                totalTasks: tasksTotal,
-                dueSoon: tasksDueSoon,
-                dueSoonDays: 3,
-                overdue: tasksOverdue,
-                currentWeek: data?.stats.currentWeek ?? 8,
-                totalWeeks: data?.stats.totalWeeks ?? 14,
-              ),
-              currentTask: data?.currentTask,
-              workloadPlan:
-                  data?.workloadPlan ??
-                  const WorkloadPlan(planLabel: 'Study blocks', tasks: []),
-              todayTasks: data?.todayTasks ?? [],
-            );
-
-            isLoading = false;
-            isOffline = false;
-            _saveToCache();
-            notifyListeners();
-          },
-          onError: (e) {
-            isLoading = false;
-            _loadFromCache().then((hasCached) {
-              isOffline = hasCached;
-              notifyListeners();
-            });
-          },
+        data = DashboardModel(
+          summary: DashboardSummary(
+            userName: _auth.currentUser?.displayName ?? 'Student',
+            taskCountToday: tasksTotal - tasksCompleted - tasksOverdue,
+            date: DateTime.now(),
+          ),
+          stats: DashboardStats(
+            tasksDone: tasksCompleted,
+            totalTasks: tasksTotal,
+            dueSoon: tasksDueSoon,
+            dueSoonDays: 3,
+            overdue: tasksOverdue,
+            currentWeek: data?.stats.currentWeek ?? 8,
+            totalWeeks: data?.stats.totalWeeks ?? 14,
+          ),
+          currentTask: data?.currentTask,
+          workloadPlan:
+          data?.workloadPlan ??
+              const WorkloadPlan(planLabel: 'Study blocks', tasks: []),
+          todayTasks: data?.todayTasks ?? [],
         );
+
+        isLoading = false;
+        isOffline = false;
+        _saveToCache();
+        notifyListeners();
+      },
+      onError: (e) {
+        isLoading = false;
+        _loadFromCache().then((hasCached) {
+          isOffline = hasCached;
+          notifyListeners();
+        });
+      },
+    );
   }
 
   void startScheduleAutoTracker(List<dynamic> dailyStudyBlocks) {
@@ -362,108 +362,100 @@ class StudentDashboardProvider with ChangeNotifier {
         .where('studentId', isEqualTo: uid)
         .snapshots()
         .map((snapshot) {
-          final List<TaskItem> result = [];
-          final now = DateTime.now();
-          final todayDate = DateTime(now.year, now.month, now.day);
-          final todayStr =
-              "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final List<TaskItem> result = [];
+      final now = DateTime.now();
+      final todayDate = DateTime(now.year, now.month, now.day);
 
-          for (var doc in snapshot.docs) {
-            final d = doc.data();
-            final String? docSemester =
-                d['semester']?.toString() ?? d['semester_id']?.toString();
-            if (_currentSemesterId != null &&
-                _currentSemesterId!.isNotEmpty &&
-                docSemester != _currentSemesterId) {
-              continue;
-            }
+      for (var doc in snapshot.docs) {
+        final d = doc.data();
+        final String? docSemester =
+            d['semester']?.toString() ?? d['semester_id']?.toString();
+        if (_currentSemesterId != null &&
+            _currentSemesterId!.isNotEmpty &&
+            docSemester != _currentSemesterId) {
+          continue;
+        }
 
-            final String className =
-                d['name']?.toString() ??
-                d['subjectName']?.toString() ??
-                d['classId']?.toString() ??
-                'General';
-            final List<dynamic> tasks = d['tasksList'] as List? ?? [];
+        final String className = d['classId']?.toString() ?? d['name']?.toString() ?? d['subjectName']?.toString() ?? 'General';
+        final String subjectCode = d['subjectCode']?.toString() ?? d['code']?.toString() ?? '';
+        final String displayLabel = subjectCode.isNotEmpty ? subjectCode : className;
 
-            for (var t in tasks) {
-              final String statusStr = t['status']?.toString() ?? 'toDo';
+        final List<dynamic> tasks = d['tasksList'] as List? ?? [];
 
-              // 1. Completely skip items marked completed or done
-              if (statusStr == 'completed' || statusStr == 'done') continue;
+        for (var t in tasks) {
+          final String statusStr = (t['status'] ?? 'toDo').toString();
 
-              final String? dueDateStr =
-                  t['dueDate']?.toString() ?? t['due_date']?.toString();
-              final String? estHours =
-                  (t['estimated_hours'] ?? t['estimatedHours'] ?? '0')
-                      .toString();
+          if (statusStr == 'completed' || statusStr == 'done') continue;
 
-              final bool isTodayString =
-                  dueDateStr != null && dueDateStr.startsWith(todayStr);
-              final bool isInProgress =
-                  statusStr == 'inProgress' || statusStr == 'in_progress';
+          final String? dueDateStr = t['dueDate']?.toString() ?? t['due_date']?.toString();
+          final String? scheduledDateStr = t['scheduledDate']?.toString() ?? t['scheduled_date']?.toString();
+          final String? estHours = (t['estimated_hours'] ?? t['estimatedHours'] ?? '1.0').toString();
 
-              bool isToday = isTodayString;
-              bool isOverdue = false;
-              bool isCalendarDueSoon = false;
+          bool isToday = false;
+          bool isOverdue = false;
+          bool isCalendarDueSoon = false;
 
-              if (dueDateStr != null) {
-                final parsedDate = DateTime.tryParse(dueDateStr);
-                if (parsedDate != null) {
-                  final taskDate = DateTime(
-                    parsedDate.year,
-                    parsedDate.month,
-                    parsedDate.day,
-                  );
+          final String? targetDateParsingSource = scheduledDateStr ?? dueDateStr;
 
-                  isToday = taskDate.isAtSameMomentAs(todayDate);
-                  isOverdue = taskDate.isBefore(todayDate);
+          if (targetDateParsingSource != null) {
+            final cleanDateSegment = targetDateParsingSource.split('T').first;
+            final parsedDate = DateTime.tryParse(cleanDateSegment);
 
-                  final daysDifference = taskDate.difference(todayDate).inDays;
-                  if (daysDifference > 0 && daysDifference <= 3) {
-                    isCalendarDueSoon = true;
-                  }
-                }
-              }
+            if (parsedDate != null) {
+              final taskDate = DateTime(parsedDate.year, parsedDate.month, parsedDate.day);
 
-              if (isToday ||
-                  isOverdue ||
-                  isCalendarDueSoon ||
-                  isInProgress ||
-                  statusStr == 'toDo' ||
-                  statusStr == 'todo' ||
-                  statusStr == 'pending' ||
-                  statusStr == 'dueSoon' ||
-                  statusStr == 'due_soon') {
-                TaskStatus assignedStatus;
+              isToday = taskDate.isAtSameMomentAs(todayDate);
+              isOverdue = taskDate.isBefore(todayDate);
 
-                if (isInProgress) {
-                  assignedStatus = TaskStatus.inProgress;
-                } else if (isOverdue) {
-                  assignedStatus = TaskStatus.overdue;
-                } else if (isToday) {
-                  assignedStatus = TaskStatus.dueToday;
-                } else if (isCalendarDueSoon ||
-                    statusStr == 'dueSoon' ||
-                    statusStr == 'due_soon') {
-                  assignedStatus = TaskStatus.dueSoon;
-                } else {
-                  assignedStatus = TaskStatus.toDo;
-                }
-
-                result.add(
-                  TaskItem(
-                    title: t['title']?.toString() ?? 'Task',
-                    subtitle: '$className · ${estHours}h',
-                    status: assignedStatus,
-                    classId: doc.id,
-                    taskId: t['id']?.toString() ?? '',
-                  ),
-                );
+              final daysDifference = taskDate.difference(todayDate).inDays;
+              if (daysDifference > 0 && daysDifference <= 3) {
+                isCalendarDueSoon = true;
               }
             }
           }
-          return result;
-        });
+
+          final bool isInProgress = statusStr == 'inProgress' || statusStr == 'in_progress';
+
+          // FIXED: Extracted logic fallback to capture status tracking strings explicitly even if date objects are null
+          final bool isDashboardTarget = isToday ||
+              isOverdue ||
+              isCalendarDueSoon ||
+              isInProgress ||
+              statusStr == 'toDo' ||
+              statusStr == 'todo' ||
+              statusStr == 'pending' ||
+              statusStr == 'dueSoon' ||
+              statusStr == 'due_soon';
+
+          if (isDashboardTarget) {
+            TaskStatus assignedStatus;
+
+            if (isInProgress) {
+              assignedStatus = TaskStatus.inProgress;
+            } else if (isOverdue) {
+              assignedStatus = TaskStatus.overdue;
+            } else if (isToday) {
+              assignedStatus = TaskStatus.dueToday;
+            } else if (isCalendarDueSoon || statusStr == 'dueSoon' || statusStr == 'due_soon') {
+              assignedStatus = TaskStatus.dueSoon;
+            } else {
+              assignedStatus = TaskStatus.toDo;
+            }
+
+            result.add(
+              TaskItem(
+                title: t['title']?.toString() ?? 'Task',
+                subtitle: '${displayLabel.trim()} · ${estHours}h',
+                status: assignedStatus,
+                classId: doc.id,
+                taskId: t['id']?.toString() ?? '',
+              ),
+            );
+          }
+        }
+      }
+      return result;
+    });
   }
 
   final Set<String> _completingTasks = {};

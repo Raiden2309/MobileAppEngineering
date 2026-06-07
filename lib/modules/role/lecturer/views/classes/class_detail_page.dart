@@ -6,6 +6,8 @@ import '../../models/class_model.dart';
 import '../../models/class_student_model.dart';
 import '../../providers/classes_provider.dart';
 import 'widgets/assign_task_sheet.dart';
+import 'widgets/add_student_sheet.dart';
+import 'widgets/edit_task_sheet.dart';
 
 class ClassDetailPage extends StatelessWidget {
   final ClassModel classModel;
@@ -52,14 +54,12 @@ class ClassDetailPage extends StatelessWidget {
             children: [
               _buildBackNav(context, classModel),
               Expanded(
-                // STREAM 1: Listens to the master class document for real-time task additions
                 child: StreamBuilder<ClassModel>(
                   stream: classesProvider.streamClassDetails(classModel.id),
                   initialData: classModel,
                   builder: (context, classSnapshot) {
                     final dynamicClassModel = classSnapshot.data ?? classModel;
 
-                    // STREAM 2: Listens to student enrollments for progress computations
                     return StreamBuilder<List<ClassStudentModel>>(
                       stream: classesProvider.getStudents(classCode),
                       builder: (context, studentSnapshot) {
@@ -102,20 +102,9 @@ class ClassDetailPage extends StatelessWidget {
                               const SizedBox(height: 16),
                               _buildWorkloadMonitor(totalStudents, lowCount, medCount, highCount),
                               const SizedBox(height: 16),
-
-                              // LIVE UPDATING: Uses dynamic stream payload data safely
-                              _buildAssignedTasksTracker(dynamicClassModel, students),
+                              _buildAssignedTasksTracker(context, dynamicClassModel, students),
                               const SizedBox(height: 16),
-
-                              if (students.isEmpty)
-                                const Center(
-                                  child: Text(
-                                    "No students enrolled in this class.",
-                                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                                  ),
-                                )
-                              else
-                                _buildStudentList(students),
+                              _buildStudentList(context, students, dynamicClassModel.name),
                             ],
                           ),
                         );
@@ -363,7 +352,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAssignedTasksTracker(ClassModel c, List<ClassStudentModel> students) {
+  Widget _buildAssignedTasksTracker(BuildContext context, ClassModel c, List<ClassStudentModel> students) {
     final List<dynamic> taskBlueprints = c.initialTasks;
 
     return Column(
@@ -391,8 +380,9 @@ class ClassDetailPage extends StatelessWidget {
                 )
               else
                 ...taskBlueprints.map((task) {
-                  final String taskTitle = task['title']?.toString() ?? 'Untitled Task';
-                  final String description = task['description']?.toString() ?? '';
+                  final Map<String, dynamic> taskMap = Map<String, dynamic>.from(task as Map);
+                  final String taskTitle = taskMap['title']?.toString() ?? 'Untitled Task';
+                  final String description = taskMap['description']?.toString() ?? '';
 
                   int activeCount = 0;
                   for (var s in students) {
@@ -435,6 +425,12 @@ class ClassDetailPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.black54),
+                            onPressed: () {
+                              EditTaskSheet.show(context, c.id, taskMap);
+                            },
+                          ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
@@ -458,7 +454,7 @@ class ClassDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStudentList(List<ClassStudentModel> students) {
+  Widget _buildStudentList(BuildContext context, List<ClassStudentModel> students, String className) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -466,48 +462,112 @@ class ClassDetailPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Students', style: TextStyle(fontSize: FontStyles.titleMedium, fontWeight: FontStyles.weightHeavy, color: AppColors.black)),
-            const Text('+ Add', style: TextStyle(fontSize: FontStyles.titleSmall, color: AppColors.californiaBlue, fontWeight: FontStyles.weightMedium)),
+            GestureDetector(
+              onTap: () {
+                AddStudentBottomSheet.show(
+                  context,
+                  className: classModel.name,
+                  subjectCode: classModel.subjectCode,
+                );
+              },
+              child: const Text(
+                '+ Add',
+                style: TextStyle(
+                  fontSize: FontStyles.titleSmall,
+                  color: AppColors.californiaBlue,
+                  fontWeight: FontStyles.weightMedium,
+                ),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 10),
-        ...students.map((s) => Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-            decoration: _whiteCard(),
-            child: Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: s.chipColor.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Center(
-                    child: Text(s.initials, style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: s.chipColor)),
-                  ),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s.name, style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontStyles.weightMedium, color: AppColors.black), overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 1),
-                      Text(s.meta, style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5))),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: s.chipColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-                  child: Text(s.chip, style: TextStyle(fontSize: 11, fontWeight: FontStyles.weightMedium, color: s.chipColor)),
-                ),
-              ],
+        if (students.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                "No students enrolled in this class.",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
             ),
-          ),
-        )),
+          )
+        else
+          ...students.map((s) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+              decoration: _whiteCard(),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: s.chipColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(s.initials, style: TextStyle(fontSize: 12, fontWeight: FontStyles.weightHeavy, color: s.chipColor)),
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.name, style: const TextStyle(fontSize: FontStyles.titleSmall, fontWeight: FontWeight.w500, color: AppColors.black), overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 1),
+                        Text(s.meta, style: TextStyle(fontSize: 11, color: AppColors.black.withValues(alpha: 0.5))),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: s.chipColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
+                    child: Text(s.chip, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: s.chipColor)),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.person_remove_rounded, color: Colors.redAccent, size: 18),
+                    onPressed: () async {
+                      final bool? confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          backgroundColor: const Color(0xFF1E2330),
+                          title: const Text('Remove Student', style: TextStyle(color: AppColors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                          content: Text('Are you sure you want to remove ${s.name} from this class?', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Cancel', style: TextStyle(color: Colors.white38)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Remove', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true && context.mounted) {
+                        final bool success = await context.read<ClassesProvider>().removeStudentFromClass(
+                          studentUid: s.studentId,
+                          className: className,
+                        );
+
+                        if (success && context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${s.name} has been removed from the class.')),
+                          );
+                        }
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          )),
       ],
     );
   }
