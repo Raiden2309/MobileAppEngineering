@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/shared/not_used/current_task_popup.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/dashboard_greeting.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_statistics.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_today.dart';
@@ -8,8 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../../../shared/styles/app_colors.dart';
-import '../../models/student_subject_model.dart';
-import '../../models/dashboard_models.dart'; // Ensure this model import path is correct
 import '../../providers/dashboard_provider.dart';
 import '../../providers/semester_progress_provider.dart';
 import 'widgets/workload_monitor.dart';
@@ -29,6 +26,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
       if (mounted) {
         final semId = context.read<SemesterProvider>().currentSemesterId;
         context.read<StudentDashboardProvider>().updateActiveSemester(semId);
+        final semProv = context.read<SemesterProvider>();
+        context.read<StudentDashboardProvider>().updateSemesterDates(semProv.semStart, semProv.semEnd);
         context.read<StudentDashboardProvider>().listenToLiveDashboardStats();
       }
     });
@@ -40,11 +39,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
     final semId = context.watch<SemesterProvider>().currentSemesterId;
 
     dashboardProvider.updateActiveSemester(semId);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final semProv = context.read<SemesterProvider>();
+      dashboardProvider.updateSemesterDates(semProv.semStart, semProv.semEnd);
+    });
     final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      // FIXED: Listens to the single master enrollment query snapshot directly
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('enrollments')
@@ -92,9 +94,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
               children: [
                 const DashboardGreeting(),
                 const SizedBox(height: 16),
-
-                const DashboardGreeting(),
-                const SizedBox(height: 16),
                 WorkloadMonitor(
                   pendingTasksCount: totalPendingTasks,
                   completionProgress: overallProgress,
@@ -102,7 +101,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 ),
                 const SizedBox(height: 16),
                 const TaskStatisticsSection(),
-                const CurrentTaskPopup(),
                 const TodaysPlan(),
                 const SizedBox(height: 16),
 

@@ -272,7 +272,9 @@ class StudentDashboardProvider with ChangeNotifier {
             dueSoonDays: 3,
             overdue: tasksOverdue,
             currentWeek: data?.stats.currentWeek ?? 8,
-            totalWeeks: data?.stats.totalWeeks ?? 14,
+            totalWeeks: _semesterEnd != null && _semesterStart != null
+                ? (_semesterEnd!.difference(_semesterStart!).inDays / 7).ceil()
+                : 14,
           ),
           currentTask: data?.currentTask,
           workloadPlan:
@@ -505,6 +507,46 @@ class StudentDashboardProvider with ChangeNotifier {
       _completingTasks.remove(taskId);
       notifyListeners();
     }
+  }
+
+  DateTime? _semesterStart;
+  DateTime? _semesterEnd;
+
+  void updateSemesterDates(DateTime? start, DateTime? end) {
+    if (_semesterStart == start && _semesterEnd == end) return;
+    _semesterStart = start;
+    _semesterEnd = end;
+    if (data != null) {
+      data = DashboardModel(
+        summary: data!.summary,
+        stats: DashboardStats(
+          tasksDone: data!.stats.tasksDone,
+          totalTasks: data!.stats.totalTasks,
+          dueSoon: data!.stats.dueSoon,
+          dueSoonDays: data!.stats.dueSoonDays,
+          overdue: data!.stats.overdue,
+          currentWeek: _computeCurrentWeek(),
+          totalWeeks: _computeTotalWeeks(),
+        ),
+        currentTask: data!.currentTask,
+        workloadPlan: data!.workloadPlan,
+        todayTasks: data!.todayTasks,
+      );
+      notifyListeners();
+    }
+  }
+
+  int _computeTotalWeeks() {
+    if (_semesterStart == null || _semesterEnd == null) return 14;
+    final days = _semesterEnd!.difference(_semesterStart!).inDays;
+    return (days / 7).ceil();
+  }
+
+  int _computeCurrentWeek() {
+    if (_semesterStart == null) return data?.stats.currentWeek ?? 1;
+    final elapsed = DateTime.now().difference(_semesterStart!).inDays;
+    if (elapsed < 0) return 1;
+    return (elapsed / 7).floor() + 1;
   }
 
   @override

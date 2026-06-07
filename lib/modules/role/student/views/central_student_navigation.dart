@@ -37,6 +37,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
   late final List<Widget> pages;
 
   String? _lastSyncedSemId;
+  late final StudentSettingsProvider _settingsProvider;
 
   @override
   void initState() {
@@ -55,11 +56,11 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<BurnoutAlertProvider>().loadMock();
-      final settings = context.read<StudentSettingsProvider>();
-      settings.loadMock();
+      _settingsProvider = context.read<StudentSettingsProvider>();
+      _settingsProvider.loadMock();
 
       _syncSemester();
-      settings.addListener(_syncSemester);
+      _settingsProvider.addListener(_syncSemester);
 
       context.read<StudyPlanProvider>().loadMock();
     });
@@ -67,7 +68,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
 
   void _syncSemester() {
     if (!mounted) return;
-    final settings = context.read<StudentSettingsProvider>();
+    final settings = _settingsProvider;
 
     final current = settings.semesters.firstWhere(
           (s) => s['isCurrent'] == 'true',
@@ -95,9 +96,7 @@ class CentralStudentNavigationState extends State<CentralStudentNavigation> {
 
   @override
   void dispose() {
-    if (mounted) {
-      context.read<StudentSettingsProvider>().removeListener(_syncSemester);
-    }
+    _settingsProvider.removeListener(_syncSemester);
     _taskController.dispose();
     _studyPlanController.dispose();
     super.dispose();

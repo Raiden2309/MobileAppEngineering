@@ -32,6 +32,8 @@ class SemesterProvider with ChangeNotifier {
   DateTime? _semStart;
   DateTime? _semEnd;
   String? get currentSemesterId => _currentSemesterId;
+  DateTime? get semStart => _semStart;
+  DateTime? get semEnd => _semEnd;
 
   String get semesterLabel {
     final parts = <String>[];
