@@ -204,6 +204,7 @@ class ProfileHeader extends StatefulWidget {
 
 class _ProfileHeaderState extends State<ProfileHeader> {
   bool _editingName = false;
+  bool _uploading = false;
   late final TextEditingController _nameController;
   final ImagePicker _picker = ImagePicker();
 
@@ -228,7 +229,9 @@ class _ProfileHeaderState extends State<ProfileHeader> {
     );
     if (image == null) return;
     if (!mounted) return;
+    setState(() => _uploading = true);
     await context.read<StudentSettingsProvider>().updateAvatar(image);
+    if (mounted) setState(() => _uploading = false);
   }
 
   @override
@@ -262,7 +265,9 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                       height: 72,
                       decoration: AppColors.glassCard(borderRadius: 36),
                       clipBehavior: Clip.antiAlias,
-                      child: provider.avatarUrl != null
+                      child: _uploading
+                          ? const Center(child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 2))
+                          : provider.avatarUrl != null
                           ? Image.network(
                         provider.avatarUrl!,
                         fit: BoxFit.cover,

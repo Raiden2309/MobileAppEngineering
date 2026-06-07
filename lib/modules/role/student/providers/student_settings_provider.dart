@@ -437,16 +437,21 @@ class StudentSettingsProvider with ChangeNotifier {
 
     if (_uid != null && semId != null) {
       try {
+        final semNum = int.tryParse(updated['semesterNum'] ?? '') ?? 1;
+        final semYear = int.tryParse(updated['yearNum'] ?? '') ?? 1;
         await _db
             .collection('users')
             .doc(_uid)
             .collection('semesters')
             .doc(semId)
             .update({
-              'semStart': updated['start'] ?? '',
-              'semEnd': updated['end'] ?? '',
-              'examDate': updated['examDate'] ?? '',
-            });
+          'semester': semNum,
+          'year': semYear,
+          'semStart': updated['start'] ?? '',
+          'semEnd': updated['end'] ?? '',
+          'examDate': updated['examDate'] ?? '',
+        });
+        await _loadAllSemesters(_uid!);
       } catch (e) {
         debugPrint('editSemester error: $e');
       }
@@ -632,8 +637,11 @@ class StudentSettingsProvider with ChangeNotifier {
       await _db.collection('enrollments').doc(safeDocId).set({
         'studentId': _uid,
         'classId': className,
+        'name': className,
         'subjectCode': subjectCode,
+        'semester': currentSemesterId,
         'source': 'class',
+        'colorKey': 'blue',
         'colorHex': '#60A5FA',
         'completedTasks': 0,
         'pendingTasks': 0,
@@ -675,18 +683,21 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   Future<void> updateAvatar(XFile file) async {
-    if (_uid == null) return;
+    if (_uid == null) { debugPrint('updateAvatar: uid is null'); return; }
     try {
-      final ref = _fbStorage?.ref().child('avatars/students/$_uid.jpg');
-      if (ref == null) return;
+      final storage = _fbStorage ?? FirebaseStorage.instance;
+      final ref = storage.ref().child('avatars/students/$_uid.jpg');
+      debugPrint('updateAvatar: uploading to ${ref.fullPath}');
       await ref.putFile(File(file.path));
       final url = await ref.getDownloadURL();
+      debugPrint('updateAvatar: got url $url');
       avatarUrl = url;
       _rebuildDataModel();
       await _storage.write(key: _keyAvatarUrl, value: url);
       _tryFirestorePatch({'avatar_url': url});
       notifyListeners();
     } catch (e) {
+      debugPrint('updateAvatar error: $e');
       setError('Failed to upload avatar');
     }
   }

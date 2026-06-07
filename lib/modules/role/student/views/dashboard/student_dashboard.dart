@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/current_task_popup.dart';
+import 'package:mae_assignment_frontend/shared/not_used/current_task_popup.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/dashboard_greeting.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_statistics.dart';
 import 'package:mae_assignment_frontend/modules/role/student/views/dashboard/widgets/task_today.dart';
@@ -97,7 +97,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
                     ),
                     const SizedBox(height: 16),
                     const TaskStatisticsSection(),
-                    const CurrentTaskPopup(),
                     const TodaysPlan(),
                     const SizedBox(height: 16),
                     const TaskToday(),

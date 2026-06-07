@@ -113,6 +113,7 @@ class ClassesProvider with ChangeNotifier {
   Future<void> assignTaskToClass({
     required String classId,
     required String subjectCode,
+    required String semester,
     required String taskTitle,
     required String description,
     required DateTime dueDate,
@@ -138,23 +139,35 @@ class ClassesProvider with ChangeNotifier {
       final QuerySnapshot targetEnrollments = await _db
           .collection('enrollments')
           .where('subjectCode', isEqualTo: subjectCode.toUpperCase())
+          .where('semester', isEqualTo: semester)
           .get();
 
       if (targetEnrollments.docs.isEmpty) return;
 
       final WriteBatch taskWriteBatch = _db.batch();
 
-      // 3. Increment pending tasks and append task records to every matching student profile
+      // 3. Append task to each matching enrollment doc (TasksProvider reads tasksList from here)
       for (var doc in targetEnrollments.docs) {
         final DocumentReference enrollmentDocRef = _db.collection('enrollments').doc(doc.id);
+        final existingData = doc.data() as Map<String, dynamic>;
 
         taskWriteBatch.update(enrollmentDocRef, {
-          'tasksList': FieldValue.arrayUnion([taskMap]),
+          'tasksList':    FieldValue.arrayUnion([taskMap]),
           'pendingTasks': FieldValue.increment(1),
+          // Stamp display fields if missing so TasksProvider can render the subject group
+          if (!existingData.containsKey('name') || existingData['name'] == null)
+            'name':     subjectCode,
+          if (!existingData.containsKey('classId') || existingData['classId'] == null)
+            'classId':  subjectCode,
+          if (!existingData.containsKey('colorKey') || existingData['colorKey'] == null)
+            'colorKey': 'blue',
+          if (!existingData.containsKey('semester') || existingData['semester'] == null)
+            'semester': semester,
         });
       }
 
       await taskWriteBatch.commit();
+
       notifyListeners();
     } catch (e) {
       debugPrint("Failed to distribute assigned tasks across enrollments collection: $e");

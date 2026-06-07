@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
-import '../../../providers/dashboard_provider.dart';
+import '../styles/app_colors.dart';
+import '../styles/font_styles.dart';
+import '../../modules/role/student/providers/dashboard_provider.dart';
 
 class CurrentTaskPopup extends StatelessWidget {
   const CurrentTaskPopup({super.key});

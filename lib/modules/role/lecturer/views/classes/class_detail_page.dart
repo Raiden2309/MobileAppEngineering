@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
-import '../../controllers/classes_controller.dart';
 import '../../models/class_model.dart';
 import '../../models/class_student_model.dart';
 import '../../providers/classes_provider.dart';
@@ -35,6 +34,7 @@ class ClassDetailPage extends StatelessWidget {
             context,
             classModel.id,
             classModel.subjectCode,
+            classModel.semester,
           );
         },
       ),

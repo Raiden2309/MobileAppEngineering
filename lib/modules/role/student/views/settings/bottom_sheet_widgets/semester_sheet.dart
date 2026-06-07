@@ -22,7 +22,8 @@ class SemesterSheet extends StatefulWidget {
 }
 
 class _SemesterSheetState extends State<SemesterSheet> {
-  late final TextEditingController _nameController;
+  late final TextEditingController _semNumController;
+  late final TextEditingController _yearNumController;
   DateTime? _startDate;
   DateTime? _endDate;
   String? _error;
@@ -32,7 +33,22 @@ class _SemesterSheetState extends State<SemesterSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.existing?['name'] ?? '');
+    debugPrint('SemesterSheet existing: ${widget.existing}');
+    final existingSem = widget.existing?['semesterNum']?.trim() ?? '';
+    final existingYear = widget.existing?['yearNum']?.trim() ?? '';
+
+    String resolvedSem = existingSem;
+    String resolvedYear = existingYear;
+    if ((resolvedSem.isEmpty || resolvedYear.isEmpty) && widget.existing?['name'] != null) {
+      final name = widget.existing!['name']!;
+      final semMatch = RegExp(r'Semester\s+(\d+)').firstMatch(name);
+      final yearMatch = RegExp(r'Year\s+(\d+)', caseSensitive: false).firstMatch(name);
+      if (resolvedSem.isEmpty && semMatch != null) resolvedSem = semMatch.group(1)!;
+      if (resolvedYear.isEmpty && yearMatch != null) resolvedYear = yearMatch.group(1)!;
+    }
+
+    _semNumController = TextEditingController(text: resolvedSem);
+    _yearNumController = TextEditingController(text: resolvedYear);
 
     // Parse existing dates if editing
     if (widget.existing?['start'] != null) {
@@ -110,9 +126,10 @@ class _SemesterSheetState extends State<SemesterSheet> {
   }
 
   Future<void> _save() async {
-    final name = _nameController.text.trim();
+    final semNum  = _semNumController.text.trim();
+    final yearNum = _yearNumController.text.trim();
 
-    if (name.isEmpty || _startDate == null || _endDate == null) {
+    if (semNum.isEmpty || yearNum.isEmpty || _startDate == null || _endDate == null) {
       setState(() => _error = 'Please fill in all fields');
       return;
     }
@@ -123,8 +140,11 @@ class _SemesterSheetState extends State<SemesterSheet> {
     }
 
     final provider = context.read<StudentSettingsProvider>();
+    final auto = 'Semester $semNum · Year $yearNum';
     final updated = {
-      'name':            name,
+      'name':            auto,
+      'semesterNum':     semNum,
+      'yearNum':         yearNum,
       'start':           _formatDate(_startDate!),
       'end':             _formatDate(_endDate!),
       'studyHoursStart': '',
@@ -169,6 +189,13 @@ class _SemesterSheetState extends State<SemesterSheet> {
       await context.read<StudentSettingsProvider>().deleteSemester(widget.existing!['name']!);
       if (context.mounted) Navigator.pop(context);
     }
+  }
+
+  @override
+  void dispose() {
+    _semNumController.dispose();
+    _yearNumController.dispose();
+    super.dispose();
   }
 
   @override
@@ -220,8 +247,33 @@ class _SemesterSheetState extends State<SemesterSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Semester Name
-            _Field(label: 'Semester Name', hint: 'e.g. Semester 5', controller: _nameController),
+            Row(
+              children: [
+                Expanded(
+                  child: _DropdownField(
+                    label: 'Semester',
+                    value: List.generate(6, (i) => '${i + 1}').contains(_semNumController.text)
+                        ? _semNumController.text
+                        : null,
+                    items: List.generate(6, (i) => '${i + 1}'),
+                    displayLabel: (v) => 'Semester $v',
+                    onChanged: (v) => setState(() => _semNumController.text = v ?? ''),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _DropdownField(
+                    label: 'Year',
+                    value: List.generate(4, (i) => '${i + 1}').contains(_yearNumController.text)
+                        ? _yearNumController.text
+                        : null,
+                    items: List.generate(4, (i) => '${i + 1}'),
+                    displayLabel: (v) => 'Year $v',
+                    onChanged: (v) => setState(() => _yearNumController.text = v ?? ''),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
 
             // Start Date picker
@@ -269,12 +321,20 @@ class _SemesterSheetState extends State<SemesterSheet> {
   }
 }
 
-class _Field extends StatelessWidget {
+class _DropdownField extends StatelessWidget {
   final String label;
-  final String hint;
-  final TextEditingController controller;
+  final String? value;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+  final String Function(String)? displayLabel;
 
-  const _Field({required this.label, required this.hint, required this.controller});
+  const _DropdownField({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    this.displayLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -283,17 +343,23 @@ class _Field extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white)),
         const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          style: const TextStyle(color: AppColors.white, fontSize: 13),
-          cursorColor: AppColors.white,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-            filled: true,
-            fillColor: AppColors.black,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: AppColors.black,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              hint: const Text('Select', style: TextStyle(color: Colors.white38, fontSize: 13)),
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1E2330),
+              iconEnabledColor: Colors.white38,
+              style: const TextStyle(color: AppColors.white, fontSize: 13),
+              items: items.map((v) => DropdownMenuItem(value: v, child: Text(displayLabel != null ? displayLabel!(v) : v))).toList(),
+              onChanged: onChanged,
+            ),
           ),
         ),
       ],

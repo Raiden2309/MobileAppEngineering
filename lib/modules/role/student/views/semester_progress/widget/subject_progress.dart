@@ -103,7 +103,7 @@ class SubjectProgressCard extends StatelessWidget {
               const SizedBox(width: 8),
               StatChip(
                 value: subject.dueSoon,
-                label: 'Due soon',
+                label: 'Overdue',
                 valueColor: subject.dueSoon > 0
                     ? AppColors.redDark
                     : AppColors.black,

@@ -4,6 +4,7 @@ import '../../../../../../shared/styles/font_styles.dart';
 
 const _filters = [
   ('all',        'All'),
+  ('upcoming',        'Upcoming'),
   ('inProgress', 'In Progress'),
   ('toDo',       'To Do'),
   ('completed',  'Completed'),

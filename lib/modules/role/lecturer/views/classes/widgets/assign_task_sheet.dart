@@ -8,19 +8,21 @@ import 'package:mae_assignment_frontend/modules/role/lecturer/providers/classes_
 class AssignTaskSheet extends StatefulWidget {
   final String classId;
   final String subjectCode;
+  final String semester;
 
   const AssignTaskSheet({
     super.key,
     required this.classId,
     required this.subjectCode,
+    required this.semester,
   });
 
-  static void show(BuildContext context, String classId, String subjectCode) {
+  static void show(BuildContext context, String classId, String subjectCode, String semester) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AssignTaskSheet(classId: classId, subjectCode: subjectCode),
+      builder: (context) => AssignTaskSheet(classId: classId, subjectCode: subjectCode, semester: semester),
     );
   }
 
@@ -185,6 +187,7 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                 context.read<ClassesProvider>().assignTaskToClass(
                   classId: widget.classId,
                   subjectCode: widget.subjectCode,
+                  semester: widget.semester,
                   taskTitle: title,
                   description: _descController.text.trim(),
                   dueDate: _selectedDueDate ?? DateTime.now().add(const Duration(days: 7)),

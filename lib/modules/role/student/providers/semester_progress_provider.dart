@@ -171,13 +171,29 @@ class SemesterProvider with ChangeNotifier {
         aggregatedCompleted += comp;
         aggregatedTotal     += tot;
 
+        final List<dynamic> tasksList = item['tasksList'] ?? [];
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        int dueSoon = 0;
+        for (final t in tasksList) {
+          final status = t['status']?.toString() ?? '';
+          if (status == 'completed') continue;
+          final dueDateRaw = t['due_date']?.toString() ?? '';
+          if (dueDateRaw.isEmpty) continue;
+          final dueDate = DateTime.tryParse(dueDateRaw);
+          if (dueDate == null) continue;
+          final taskDay = DateTime(dueDate.year, dueDate.month, dueDate.day);
+          final diff = taskDay.difference(today).inDays;
+          if (diff < 0) dueSoon++;
+        }
+
         return SubjectProgress(
-          name:      item['classId'] ?? 'Unknown Subject',
+          name:      item['classId'] ?? item['name'] ?? 'Unknown Subject',
           code:      item['subjectCode'] ?? '',
           progress:  tot > 0 ? (comp / tot) : 0.0,
           completed: comp,
           remaining: pend,
-          dueSoon:   0,
+          dueSoon:   dueSoon,
         );
       }).toList();
 

@@ -304,8 +304,21 @@ class TasksProvider with ChangeNotifier {
       final idx = raw.indexWhere((t) => t['id'] == updatedTask.id);
       if (idx == -1) return;
 
+      final oldStatus = (raw[idx] as Map)['status']?.toString() ?? '';
+      final newStatus = updatedTask.status.name;
+
       raw[idx] = updatedTask.toJson();
-      await docRef.update({'tasksList': raw});
+
+      final Map<String, dynamic> counters = {'tasksList': raw};
+      if (oldStatus != 'completed' && newStatus == 'completed') {
+        counters['completedTasks'] = FieldValue.increment(1);
+        counters['pendingTasks']   = FieldValue.increment(-1);
+      } else if (oldStatus == 'completed' && newStatus != 'completed') {
+        counters['completedTasks'] = FieldValue.increment(-1);
+        counters['pendingTasks']   = FieldValue.increment(1);
+      }
+
+      await docRef.update(counters);
     } catch (e) {
       error = e.toString();
       notifyListeners();
