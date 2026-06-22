@@ -1,4 +1,6 @@
 
+---
+
 # Academic Workload & Burnout Monitoring Application
 
 This repository contains the cross-platform frontend application built using **Flutter** and **Firebase**. The system is designed to bridge the gap between students managing academic stress and lecturers tracking classroom engagement, featuring built-in **AI-driven workload analysis** to detect and prevent student burnout.
@@ -72,44 +74,29 @@ lib/
 
 1. Clone the repository:
 ```bash
-
-```
-
-
-
 git clone 
-
 ```
-2. Navigate into the project directory:
-   ```bash
-   cd MobileAppEngineering-01283203caec7cb46939f7bb40df7b545896cabd
 
+2. Navigate into the project directory:
+ ```bash
+cd MobileAppEngineering-01283203caec7cb46939f7bb40df7b545896cabd
 ```
 
 3. Fetch the required dependencies:
 ```bash
-flutter pub get
-
+ flutter pub get
 ```
 
-
-
-```
 4. Run the application on your desired platform:
-   ```bash
+```bash
 flutter run
-
 ```
 
 ### Running Tests
 
-The project contains unit and state provider testing directories mimicking both user roles:
+The project contains unit and state provider testing directories mimicking both user roles:   
 
 ```bash
 flutter test
 
 ```
-
----
-
-Would you like me to expand on any specific feature details, or do you need assistance configuring the Firebase installation commands for the backend function folder?****
