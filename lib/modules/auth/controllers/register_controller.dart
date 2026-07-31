@@ -10,8 +10,8 @@ import '../../new_user_setup/views/role_setup.dart';
 import '../services/google_sign_in_stub.dart';
 
 class RegisterController {
-  final emailController           = TextEditingController();
-  final passwordController        = TextEditingController();
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
 
   String? emailError;
@@ -20,26 +20,31 @@ class RegisterController {
 
   // Make sure selectedRole is passed in from your UI
   Future<void> register(
-      BuildContext context, {
-        required int selectedRole,
-        required VoidCallback onError,
-      }) async {
-    final email           = emailController.text.trim();
-    final password        = passwordController.text.trim();
+    BuildContext context, {
+    required int selectedRole,
+    required VoidCallback onError,
+  }) async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
     final confirmPassword = confirmPasswordController.text.trim();
 
-    emailError           = null;
-    passwordError        = null;
+    emailError = null;
+    passwordError = null;
     confirmPasswordError = null;
-
 
     if (email.isEmpty) emailError = 'Email is required';
     if (password.isEmpty) passwordError = 'Password is required';
-    if (confirmPassword.isEmpty) confirmPasswordError = 'Please confirm your password';
-    if (password.isNotEmpty && confirmPassword.isNotEmpty && password != confirmPassword) {
+    if (confirmPassword.isEmpty) {
+      confirmPasswordError = 'Please confirm your password';
+    }
+    if (password.isNotEmpty &&
+        confirmPassword.isNotEmpty &&
+        password != confirmPassword) {
       confirmPasswordError = 'Passwords do not match';
     }
-    if (emailError != null || passwordError != null || confirmPasswordError != null) {
+    if (emailError != null ||
+        passwordError != null ||
+        confirmPasswordError != null) {
       onError();
       return;
     }
@@ -47,10 +52,7 @@ class RegisterController {
     try {
       // 1. Create the user in Firebase Auth
       final UserCredential userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       final String uid = userCredential.user!.uid;
 
@@ -68,7 +70,6 @@ class RegisterController {
       final auth = context.read<AuthProvider>();
       await auth.login(selectedRole);
 
-
       if (!context.mounted) return;
 
       // 4. Send them to the next screen
@@ -76,12 +77,12 @@ class RegisterController {
         context,
         MaterialPageRoute(builder: (_) => const RoleSetupPage()),
       );
-
     } on FirebaseAuthException catch (firebaseError) {
       if (firebaseError.code == 'email-already-in-use') {
         emailError = 'This email is already registered.';
       } else if (firebaseError.code == 'weak-password') {
-        passwordError = 'The password provided is too weak. At least 6 characters.';
+        passwordError =
+            'The password provided is too weak. At least 6 characters.';
       } else {
         emailError = firebaseError.message ?? 'Registration failed.';
       }
@@ -92,13 +93,19 @@ class RegisterController {
     }
   }
 
-  Future<void> registerWithGoogle(BuildContext context, {required VoidCallback onError}) async {
+  Future<void> registerWithGoogle(
+    BuildContext context, {
+    required VoidCallback onError,
+  }) async {
     try {
       // Handshake calls the correct runtime file directly (Web popup vs Mobile credential)
-      final UserCredential userCredential = await GoogleSignInService.authenticate();
+      final UserCredential userCredential =
+          await GoogleSignInService.authenticate();
       final User? firebaseUser = userCredential.user;
 
-      if (firebaseUser == null) throw Exception("Failed to acquire Google profile properties.");
+      if (firebaseUser == null) {
+        throw Exception("Failed to acquire Google profile properties.");
+      }
 
       if (!context.mounted) return;
 
@@ -108,17 +115,21 @@ class RegisterController {
           .doc(firebaseUser.uid)
           .get();
 
+      if (!context.mounted) return;
       final auth = context.read<AuthProvider>();
 
       if (!userDoc.exists) {
         // First-time signup registration entry point creation logic
-        await FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).set({
-          'uid': firebaseUser.uid,
-          'name': firebaseUser.displayName ?? 'New User',
-          'email': firebaseUser.email ?? '',
-          'role': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .set({
+              'uid': firebaseUser.uid,
+              'name': firebaseUser.displayName ?? 'New User',
+              'email': firebaseUser.email ?? '',
+              'role': 0,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
 
         await auth.login(0);
 
@@ -130,7 +141,9 @@ class RegisterController {
       } else {
         // Account exists — fetch profile data and skip selection layout
         final rawRole = userDoc.get('role');
-        final int role = rawRole is int ? rawRole : int.tryParse(rawRole.toString()) ?? 0;
+        final int role = rawRole is int
+            ? rawRole
+            : int.tryParse(rawRole.toString()) ?? 0;
 
         await auth.login(role);
 

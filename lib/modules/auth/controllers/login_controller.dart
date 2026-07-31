@@ -11,20 +11,23 @@ import '../services/auth_service.dart';
 import '../services/google_sign_in_stub.dart';
 
 class LoginController {
-  final emailController    = TextEditingController();
+  final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
   String? emailError;
   String? passwordError;
 
-  Future<void> login(BuildContext context, {required VoidCallback onError}) async {
-    final email    = emailController.text.trim();
+  Future<void> login(
+    BuildContext context, {
+    required VoidCallback onError,
+  }) async {
+    final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
-    emailError    = null;
+    emailError = null;
     passwordError = null;
 
-    emailError    = ValidationService.validateEmail(email);
+    emailError = ValidationService.validateEmail(email);
     passwordError = ValidationService.validatePassword(password);
     if (emailError != null || passwordError != null) {
       onError();
@@ -89,7 +92,6 @@ class LoginController {
           MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()),
         );
       }
-
     } on FirebaseAuthException catch (firebaseError) {
       debugPrint('Firebase code: ${firebaseError.code}');
       debugPrint('Firebase message: ${firebaseError.message}');
@@ -104,7 +106,7 @@ class LoginController {
       };
 
       if (invalidCodes.contains(firebaseError.code)) {
-        emailError    = 'Invalid email or password.';
+        emailError = 'Invalid email or password.';
         passwordError = 'Invalid email or password.';
       } else {
         emailError = firebaseError.message ?? 'Authentication failed.';
@@ -119,13 +121,19 @@ class LoginController {
   }
 
   // ── Multi-Platform Google Sign-In Flow ────────────────────
-  Future<void> signInWithGoogle(BuildContext context, {required VoidCallback onError}) async {
+  Future<void> signInWithGoogle(
+    BuildContext context, {
+    required VoidCallback onError,
+  }) async {
     try {
       // Direct call to the multi-platform utility layer
-      final UserCredential userCredential = await GoogleSignInService.authenticate();
+      final UserCredential userCredential =
+          await GoogleSignInService.authenticate();
 
       final User? firebaseUser = userCredential.user;
-      if (firebaseUser == null) throw Exception("Failed to acquire Google user details.");
+      if (firebaseUser == null) {
+        throw Exception("Failed to acquire Google user details.");
+      }
 
       if (!context.mounted) return;
 
@@ -135,17 +143,21 @@ class LoginController {
           .doc(firebaseUser.uid)
           .get();
 
+      if (!context.mounted) return;
       final auth = context.read<AuthProvider>();
 
       if (!userDoc.exists) {
         // New user setup collection record initialization
-        await FirebaseFirestore.instance.collection('users').doc(firebaseUser.uid).set({
-          'uid': firebaseUser.uid,
-          'name': firebaseUser.displayName ?? 'New User',
-          'email': firebaseUser.email ?? '',
-          'role': 0,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .set({
+              'uid': firebaseUser.uid,
+              'name': firebaseUser.displayName ?? 'New User',
+              'email': firebaseUser.email ?? '',
+              'role': 0,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
 
         await auth.login(0);
 
@@ -157,7 +169,9 @@ class LoginController {
       } else {
         // Existing user verification dashboard navigation redirection
         final rawRole = userDoc.get('role');
-        final int role = rawRole is int ? rawRole : int.tryParse(rawRole.toString()) ?? 0;
+        final int role = rawRole is int
+            ? rawRole
+            : int.tryParse(rawRole.toString()) ?? 0;
 
         await auth.login(role);
 
@@ -168,11 +182,22 @@ class LoginController {
         passwordController.clear();
 
         if (role == 0) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const RoleSetupPage()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const RoleSetupPage()),
+          );
         } else if (role == 1) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CentralStudentNavigation()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const CentralStudentNavigation()),
+          );
         } else if (role == 2) {
-          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()));
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const CentralLecturerNavigation(),
+            ),
+          );
         }
       }
     } catch (e) {

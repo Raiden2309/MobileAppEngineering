@@ -266,22 +266,27 @@ class _ProfileHeaderState extends State<ProfileHeader> {
                       decoration: AppColors.glassCard(borderRadius: 36),
                       clipBehavior: Clip.antiAlias,
                       child: _uploading
-                          ? const Center(child: CircularProgressIndicator(color: AppColors.white, strokeWidth: 2))
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : provider.avatarUrl != null
                           ? Image.network(
-                        provider.avatarUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person_rounded,
-                          size: 36,
-                          color: AppColors.white,
-                        ),
-                      )
+                              provider.avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.person_rounded,
+                                size: 36,
+                                color: AppColors.white,
+                              ),
+                            )
                           : const Icon(
-                        Icons.person_rounded,
-                        size: 36,
-                        color: AppColors.white,
-                      ),
+                              Icons.person_rounded,
+                              size: 36,
+                              color: AppColors.white,
+                            ),
                     ),
                     Positioned(
                       bottom: 0,
@@ -310,111 +315,111 @@ class _ProfileHeaderState extends State<ProfileHeader> {
               const SizedBox(height: 12),
               _editingName
                   ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 160,
-                    height: 36,
-                    child: TextField(
-                      controller: _nameController,
-                      autofocus: true,
-                      textAlign: TextAlign.center,
-                      cursorColor: AppColors.white,
-                      cursorHeight: 20,
-                      style: const TextStyle(
-                        fontSize: FontStyles.titleLarge,
-                        fontWeight: FontStyles.titleWeight,
-                        color: AppColors.white,
-                        height: 1.0,
-                      ),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 10,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: AppColors.white.withValues(alpha: 0.4),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 160,
+                          height: 36,
+                          child: TextField(
+                            controller: _nameController,
+                            autofocus: true,
+                            textAlign: TextAlign.center,
+                            cursorColor: AppColors.white,
+                            cursorHeight: 20,
+                            style: const TextStyle(
+                              fontSize: FontStyles.titleLarge,
+                              fontWeight: FontStyles.titleWeight,
+                              color: AppColors.white,
+                              height: 1.0,
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 10,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: AppColors.white.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppColors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.white,
-                            width: 1.5,
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () {
+                            context
+                                .read<StudentSettingsProvider>()
+                                .updateUserName(_nameController.text.trim());
+                            setState(() => _editingName = false);
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AppColors.lime.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () {
-                      context.read<StudentSettingsProvider>().updateUserName(
-                        _nameController.text.trim(),
-                      );
-                      setState(() => _editingName = false);
-                    },
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.lime.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () {
-                      _nameController.text = widget.data.userName;
-                      setState(() => _editingName = false);
-                    },
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.red.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              )
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () {
+                            _nameController.text = widget.data.userName;
+                            setState(() => _editingName = false);
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AppColors.red.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
                   : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.data.userName,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleLarge,
-                      fontWeight: FontStyles.titleWeight,
-                      color: AppColors.white,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.data.userName,
+                          style: const TextStyle(
+                            fontSize: FontStyles.titleLarge,
+                            fontWeight: FontStyles.titleWeight,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () => setState(() => _editingName = true),
+                          child: Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: AppColors.white.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () => setState(() => _editingName = true),
-                    child: Icon(
-                      Icons.edit_rounded,
-                      size: 14,
-                      color: AppColors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 4),
               Text(
                 'Semester ${widget.data.semester} · Year ${widget.data.year} · ${widget.data.subjectCount} subjects',
@@ -462,17 +467,17 @@ class SettingsGroup extends StatelessWidget {
                 .entries
                 .map(
                   (e) => Column(
-                children: [
-                  e.value,
-                  if (e.key < children.length - 1)
-                    Divider(
-                      height: 1,
-                      color: AppColors.glassDivider,
-                      indent: 52,
-                    ),
-                ],
-              ),
-            )
+                    children: [
+                      e.value,
+                      if (e.key < children.length - 1)
+                        Divider(
+                          height: 1,
+                          color: AppColors.glassDivider,
+                          indent: 52,
+                        ),
+                    ],
+                  ),
+                )
                 .toList(),
           ),
         ),
@@ -512,7 +517,9 @@ class SettingsRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                borderRadius: BorderRadius.circular(
+                  AppColors.glassIconBorderRadius,
+                ),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -577,7 +584,9 @@ class ToggleRow extends StatelessWidget {
               height: 32,
               decoration: BoxDecoration(
                 color: iconBg,
-                borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                borderRadius: BorderRadius.circular(
+                  AppColors.glassIconBorderRadius,
+                ),
               ),
               child: Icon(icon, size: 16, color: AppColors.white),
             ),
@@ -637,10 +646,13 @@ class NewSemesterCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ...semesters.map(
-                    (semester) => Column(
+                (semester) => Column(
                   children: [
                     GestureDetector(
-                      onTap: () => StudentSettingsController.selectSemester(context, semester.name),
+                      onTap: () => StudentSettingsController.selectSemester(
+                        context,
+                        semester.name,
+                      ),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -654,7 +666,9 @@ class NewSemesterCard extends StatelessWidget {
                               height: 32,
                               decoration: BoxDecoration(
                                 color: semester.isCurrent
-                                    ? AppColors.greenSheenDark.withValues(alpha: 0.9)
+                                    ? AppColors.greenSheenDark.withValues(
+                                        alpha: 0.9,
+                                      )
                                     : AppColors.white.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(
                                   AppColors.glassIconBorderRadius,
@@ -685,7 +699,8 @@ class NewSemesterCard extends StatelessWidget {
                                     [
                                       '${semester.subjectCount} subjects',
                                       '${semester.studyHoursStart} – ${semester.studyHoursEnd}',
-                                      if (semester.examDate.isNotEmpty) 'Exam: ${semester.examDate}',
+                                      if (semester.examDate.isNotEmpty)
+                                        'Exam: ${semester.examDate}',
                                     ].join(' · '),
                                     style: TextStyle(
                                       fontSize: FontStyles.titleTiny,
@@ -709,7 +724,9 @@ class NewSemesterCard extends StatelessWidget {
                                   'Current',
                                   style: TextStyle(
                                     fontSize: FontStyles.titleTiny,
-                                    color: AppColors.greenSheenDark.withValues(alpha: 0.9),
+                                    color: AppColors.greenSheenDark.withValues(
+                                      alpha: 0.9,
+                                    ),
                                     fontWeight: FontStyles.weightMedium,
                                   ),
                                 ),
@@ -719,17 +736,21 @@ class NewSemesterCard extends StatelessWidget {
                               onTap: () => SemesterSheet.show(
                                 context,
                                 existing: {
-                                  'name':  semester.name,
+                                  'name': semester.name,
                                   'start': semester.start,
-                                  'end':   semester.end,
+                                  'end': semester.end,
                                 },
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
                                 child: Icon(
                                   Icons.edit_outlined,
                                   size: 16,
-                                  color: AppColors.black.withValues(alpha: 0.45),
+                                  color: AppColors.black.withValues(
+                                    alpha: 0.45,
+                                  ),
                                 ),
                               ),
                             ),
@@ -747,15 +768,15 @@ class NewSemesterCard extends StatelessWidget {
                               ),
                               child: semester.isCurrent
                                   ? Center(
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              )
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: AppColors.white,
+                                        ),
+                                      ),
+                                    )
                                   : null,
                             ),
                           ],
@@ -769,7 +790,10 @@ class NewSemesterCard extends StatelessWidget {
               GestureDetector(
                 onTap: () => SemesterSheet.show(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: AppColors.glassTile(),
                   child: Row(
                     children: [
@@ -777,10 +801,18 @@ class NewSemesterCard extends StatelessWidget {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.californiaBlue.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(AppColors.glassIconBorderRadius),
+                          color: AppColors.californiaBlue.withValues(
+                            alpha: 0.2,
+                          ),
+                          borderRadius: BorderRadius.circular(
+                            AppColors.glassIconBorderRadius,
+                          ),
                         ),
-                        child: const Icon(Icons.add_rounded, size: 16, color: AppColors.white),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          size: 16,
+                          color: AppColors.white,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(

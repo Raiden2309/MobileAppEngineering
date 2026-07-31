@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mae_assignment_frontend/shared/services/local_cache_service.dart';
-import 'package:mae_assignment_frontend/shared/services/notification_service.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -42,15 +40,6 @@ void main() async {
   // Initialize the background messaging handler as early as possible
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  const storage = FlutterSecureStorage();
-
-  await storage.write(key: 'auth_token', value: 'test_token_abc123');
-  await storage.write(key: 'user_role', value: 'student');
-  await storage.write(key: 'is_setup_complete', value: 'true');
-
-  final authProvider = AuthProvider();
-  await authProvider.loadFromStorage();
-
   runApp(
     MultiProvider(
       providers: [
@@ -75,10 +64,9 @@ void main() async {
             // 1. Inject the cache engine
             semesterProvider!.updateCacheEngine(cache);
 
-            // 2. Wire up the immediate offline refresh handler
-            settingsProvider.onSubjectsUpdated = () {
-              semesterProvider.reloadSubjectsFromCache();
-            };
+            // 2. Register the immediate offline refresh handler once (stable
+            //    hook instance prevents unbounded callback re-wrapping).
+            semesterProvider.registerSubjectsRefreshHook(settingsProvider);
 
             return semesterProvider;
           },
@@ -99,22 +87,13 @@ void main() async {
           TasksProvider
         >(
           create: (_) => TasksProvider(),
-          update: (_, cache, settingsProvider, dashboardProvider, tasksProvider) {
-            tasksProvider!.updateCacheEngine(cache);
-            tasksProvider.updateDashboardProvider(dashboardProvider);
-
-            final previousCallback = settingsProvider.onSubjectsUpdated;
-            settingsProvider.onSubjectsUpdated = () {
-              previousCallback?.call();
-              if (settingsProvider.currentSemesterId != null) {
-                tasksProvider.listenToLiveTasks(
-                  semester: settingsProvider.currentSemesterId!,
-                );
-              }
-            };
-
-            return tasksProvider;
-          },
+          update:
+              (_, cache, settingsProvider, dashboardProvider, tasksProvider) {
+                tasksProvider!.updateCacheEngine(cache);
+                tasksProvider.updateDashboardProvider(dashboardProvider);
+                tasksProvider.registerSubjectsRefreshHook(settingsProvider);
+                return tasksProvider;
+              },
         ),
 
         ChangeNotifierProxyProvider2<
@@ -160,10 +139,47 @@ void main() async {
         ChangeNotifierProvider(create: (_) => EngagementProvider()),
         ChangeNotifierProvider(create: (_) => LecturerSettingsProvider()),
       ],
-      child: const MyApp(),
+      child: const ResetHooksScope(child: MyApp()),
     ),
   );
-  await NotificationService().setupNotificationTokenPipeline();
+}
+
+/// Registers each user-scoped provider's reset() on AuthProvider once, so a
+/// logout clears in-memory state and cancels the previous account's live
+/// Firestore listeners before the next session starts.
+class ResetHooksScope extends StatefulWidget {
+  const ResetHooksScope({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<ResetHooksScope> createState() => _ResetHooksScopeState();
+}
+
+class _ResetHooksScopeState extends State<ResetHooksScope> {
+  bool _wired = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_wired) {
+      _wired = true;
+      final auth = context.read<AuthProvider>();
+      auth.addResetHook(context.read<StudentSettingsProvider>().reset);
+      auth.addResetHook(context.read<SemesterProvider>().reset);
+      auth.addResetHook(context.read<StudentDashboardProvider>().reset);
+      auth.addResetHook(context.read<TasksProvider>().reset);
+      auth.addResetHook(context.read<BurnoutAlertProvider>().reset);
+      auth.addResetHook(context.read<StudyPlanProvider>().reset);
+      auth.addResetHook(context.read<StudentProvider>().reset);
+      auth.addResetHook(context.read<NavigationProvider>().reset);
+      auth.addResetHook(context.read<ClassesProvider>().reset);
+      auth.addResetHook(context.read<AlertProvider>().reset);
+      auth.addResetHook(context.read<LecturerDashboardProvider>().reset);
+      auth.addResetHook(context.read<EngagementProvider>().reset);
+      auth.addResetHook(context.read<LecturerSettingsProvider>().reset);
+    }
+    return widget.child;
+  }
 }
 
 class MyApp extends StatelessWidget {

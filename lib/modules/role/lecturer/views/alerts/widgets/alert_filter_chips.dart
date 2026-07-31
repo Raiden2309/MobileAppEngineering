@@ -9,10 +9,10 @@ class AlertFilterChips extends StatelessWidget {
   const AlertFilterChips({super.key});
 
   static const List<Map<String, String>> _filters = [
-    {'key': 'all',     'label': 'All'},
+    {'key': 'all', 'label': 'All'},
     {'key': 'burnout', 'label': 'Burnout'},
-    {'key': 'behind',  'label': 'Falling Behind'},
-    {'key': 'read',    'label': 'Read'},
+    {'key': 'behind', 'label': 'Falling Behind'},
+    {'key': 'read', 'label': 'Read'},
   ];
 
   @override
@@ -29,16 +29,19 @@ class AlertFilterChips extends StatelessWidget {
             child: GestureDetector(
               onTap: () => AlertController.selectFilter(context, f['key']!),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Colors.white.withOpacity(0.25)
-                      : Colors.white.withOpacity(0.10),
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isActive
-                        ? Colors.white.withOpacity(0.5)
-                        : Colors.white.withOpacity(0.2),
+                        ? Colors.white.withValues(alpha: 0.5)
+                        : Colors.white.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Text(
@@ -48,7 +51,9 @@ class AlertFilterChips extends StatelessWidget {
                     fontWeight: isActive
                         ? FontStyles.weightHeavy
                         : FontStyles.weightMedium,
-                    color: isActive ? AppColors.white : AppColors.black.withOpacity(0.6),
+                    color: isActive
+                        ? AppColors.white
+                        : AppColors.black.withValues(alpha: 0.6),
                   ),
                 ),
               ),

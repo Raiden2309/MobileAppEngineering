@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
-import '../../controllers/classes_controller.dart';
 import '../../providers/classes_provider.dart';
 import 'widgets/class_card.dart';
 import 'widgets/create_class_sheet.dart';
@@ -37,7 +34,11 @@ class LecturerClassesSection extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 28),
+                  icon: const Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                   onPressed: () => CreateClassSheet.show(context),
                 ),
               ],
@@ -79,11 +80,13 @@ class LecturerClassesSection extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ClassDetailPage(classModel: currentClass),
+                              builder: (context) =>
+                                  ClassDetailPage(classModel: currentClass),
                             ),
                           );
                         },
-                        onDelete: () => classesProvider.deleteClass(currentClass.id),
+                        onDelete: () =>
+                            classesProvider.deleteClass(currentClass.id),
                       ),
                     );
                   },

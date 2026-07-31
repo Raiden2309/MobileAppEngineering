@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
-import '../../../models/dashboard_models.dart';
 import '../../../models/study_plan_model.dart';
 
 class TimeGapIndicator extends StatelessWidget {
@@ -19,10 +18,20 @@ class TimeGapIndicator extends StatelessWidget {
       final endParts = fromBlock.endTime.split(':');
       final startParts = toBlock.startTime.split(':');
       final now = DateTime.now();
-      final end = DateTime(now.year, now.month, now.day,
-          int.parse(endParts[0]), int.parse(endParts[1]));
-      final start = DateTime(now.year, now.month, now.day,
-          int.parse(startParts[0]), int.parse(startParts[1]));
+      final end = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        int.parse(endParts[0]),
+        int.parse(endParts[1]),
+      );
+      final start = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        int.parse(startParts[0]),
+        int.parse(startParts[1]),
+      );
       return start.difference(end).inMinutes;
     } catch (_) {
       return 0;

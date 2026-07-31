@@ -13,21 +13,21 @@ import '../models/lecturer_settings_model.dart';
 
 class LecturerSettingsProvider extends ChangeNotifier {
   final FirebaseFirestore _db;
-  final FirebaseAuth      _auth;
-  final FirebaseStorage   _storage;
-  static const _secureStorage      = FlutterSecureStorage();
+  final FirebaseAuth _auth;
+  final FirebaseStorage _storage;
+  static const _secureStorage = FlutterSecureStorage();
 
-  static const _keyBurnoutAlerts      = 'lec_burnout_alerts';
-  static const _keyFallingBehindAlerts= 'lec_falling_behind_alerts';
-  static const _keyWeeklyEngagement   = 'lec_weekly_engagement_report';
-  static const _keyAvatarUrl          = 'lec_avatar_url';
+  static const _keyBurnoutAlerts = 'lec_burnout_alerts';
+  static const _keyFallingBehindAlerts = 'lec_falling_behind_alerts';
+  static const _keyWeeklyEngagement = 'lec_weekly_engagement_report';
+  static const _keyAvatarUrl = 'lec_avatar_url';
 
   LecturerSettingsModel? data;
-  bool    burnoutAlerts          = false;
-  bool    fallingBehindAlerts    = false;
-  bool    weeklyEngagementReport = false;
+  bool burnoutAlerts = false;
+  bool fallingBehindAlerts = false;
+  bool weeklyEngagementReport = false;
   String? avatarUrl;
-  bool    loading = false;
+  bool loading = false;
   String? error;
 
   StreamSubscription? _userSubscription;
@@ -36,11 +36,15 @@ class LecturerSettingsProvider extends ChangeNotifier {
 
   final bool _testMode;
 
-  LecturerSettingsProvider({FirebaseFirestore? db, FirebaseAuth? auth, FirebaseStorage? storage, bool testMode = false})
-      : _db        = db      ?? FirebaseFirestore.instance,
-        _auth      = auth    ?? FirebaseAuth.instance,
-        _storage   = storage ?? FirebaseStorage.instance,
-        _testMode  = testMode {
+  LecturerSettingsProvider({
+    FirebaseFirestore? db,
+    FirebaseAuth? auth,
+    FirebaseStorage? storage,
+    bool testMode = false,
+  }) : _db = db ?? FirebaseFirestore.instance,
+       _auth = auth ?? FirebaseAuth.instance,
+       _storage = storage ?? FirebaseStorage.instance,
+       _testMode = testMode {
     if (!_testMode) initLiveListeners();
   }
 
@@ -60,35 +64,42 @@ class LecturerSettingsProvider extends ChangeNotifier {
         .collection('users')
         .doc(uid)
         .snapshots()
-        .listen((userSnapshot) {
+        .listen(
+          (userSnapshot) {
+            if (userSnapshot.exists && userSnapshot.data() != null) {
+              final userData = userSnapshot.data()!;
+              final String liveProfileName =
+                  userData['name']?.toString() ?? 'Lecturer Account';
+              final String dept =
+                  userData['programme']?.toString() ??
+                  userData['department']?.toString() ??
+                  'Faculty Portal';
 
-      if (userSnapshot.exists && userSnapshot.data() != null) {
-        final userData = userSnapshot.data()!;
-        final String liveProfileName = userData['name']?.toString() ?? 'Lecturer Account';
-        final String dept = userData['programme']?.toString() ?? userData['department']?.toString() ?? 'Faculty Portal';
+              // Rebuild settings model leveraging database values explicitly over layout mocks
+              data = LecturerSettingsModel(
+                userId: uid.hashCode.abs(),
+                userName:
+                    liveProfileName, // Captures authentic name cleanly from Firebase mapping pipelines
+                department: dept,
+                activeClassesCount: 3,
+                burnoutAlerts: burnoutAlerts,
+                fallingBehindAlerts: fallingBehindAlerts,
+                weeklyEngagementReport: weeklyEngagementReport,
+                appVersion: 'v1.0',
+                avatarUrl: avatarUrl,
+              );
 
-        // Rebuild settings model leveraging database values explicitly over layout mocks
-        data = LecturerSettingsModel(
-          userId: uid.hashCode.abs(),
-          userName: liveProfileName, // Captures authentic name cleanly from Firebase mapping pipelines
-          department: dept,
-          activeClassesCount: 3,
-          burnoutAlerts: burnoutAlerts,
-          fallingBehindAlerts: fallingBehindAlerts,
-          weeklyEngagementReport: weeklyEngagementReport,
-          appVersion: 'v1.0',
-          avatarUrl: avatarUrl,
+              loading = false;
+              error = null;
+              notifyListeners();
+            }
+          },
+          onError: (e) {
+            error = e.toString();
+            loading = false;
+            notifyListeners();
+          },
         );
-
-        loading = false;
-        error = null;
-        notifyListeners();
-      }
-    }, onError: (e) {
-      error = e.toString();
-      loading = false;
-      notifyListeners();
-    });
   }
 
   Future<void> load() async {
@@ -99,30 +110,39 @@ class LecturerSettingsProvider extends ChangeNotifier {
     initLiveListeners(); // Bypasses mockData assignment models entirely to block static records
   }
 
-  void _applyFromJson(Map<String, dynamic> json) {
-    data                   = LecturerSettingsModel.fromJson(json);
-    avatarUrl              = data!.avatarUrl;
-    burnoutAlerts          = data!.burnoutAlerts;
-    fallingBehindAlerts    = data!.fallingBehindAlerts;
-    weeklyEngagementReport = data!.weeklyEngagementReport;
-  }
-
   Future<void> _loadFromCache() async {
-    final burnoutRaw          = await _secureStorage.read(key: _keyBurnoutAlerts);
-    final fallingBehindRaw    = await _secureStorage.read(key: _keyFallingBehindAlerts);
-    final weeklyEngagementRaw = await _secureStorage.read(key: _keyWeeklyEngagement);
-    final avatarRaw           = await _secureStorage.read(key: _keyAvatarUrl);
+    final burnoutRaw = await _secureStorage.read(key: _keyBurnoutAlerts);
+    final fallingBehindRaw = await _secureStorage.read(
+      key: _keyFallingBehindAlerts,
+    );
+    final weeklyEngagementRaw = await _secureStorage.read(
+      key: _keyWeeklyEngagement,
+    );
+    final avatarRaw = await _secureStorage.read(key: _keyAvatarUrl);
 
-    if (avatarRaw           != null) avatarUrl              = avatarRaw;
-    if (burnoutRaw          != null) burnoutAlerts          = burnoutRaw          == 'true';
-    if (fallingBehindRaw    != null) fallingBehindAlerts    = fallingBehindRaw    == 'true';
-    if (weeklyEngagementRaw != null) weeklyEngagementReport = weeklyEngagementRaw == 'true';
+    if (avatarRaw != null) avatarUrl = avatarRaw;
+    if (burnoutRaw != null) burnoutAlerts = burnoutRaw == 'true';
+    if (fallingBehindRaw != null) {
+      fallingBehindAlerts = fallingBehindRaw == 'true';
+    }
+    if (weeklyEngagementRaw != null) {
+      weeklyEngagementReport = weeklyEngagementRaw == 'true';
+    }
   }
 
   Future<void> _saveToCache() async {
-    await _secureStorage.write(key: _keyBurnoutAlerts,       value: burnoutAlerts.toString());
-    await _secureStorage.write(key: _keyFallingBehindAlerts, value: fallingBehindAlerts.toString());
-    await _secureStorage.write(key: _keyWeeklyEngagement,    value: weeklyEngagementReport.toString());
+    await _secureStorage.write(
+      key: _keyBurnoutAlerts,
+      value: burnoutAlerts.toString(),
+    );
+    await _secureStorage.write(
+      key: _keyFallingBehindAlerts,
+      value: fallingBehindAlerts.toString(),
+    );
+    await _secureStorage.write(
+      key: _keyWeeklyEngagement,
+      value: weeklyEngagementReport.toString(),
+    );
     if (avatarUrl != null) {
       await _secureStorage.write(key: _keyAvatarUrl, value: avatarUrl!);
     }
@@ -168,7 +188,7 @@ class LecturerSettingsProvider extends ChangeNotifier {
       final url = await ref.getDownloadURL();
 
       avatarUrl = url;
-      data      = data?.copyWith(avatarUrl: url);
+      data = data?.copyWith(avatarUrl: url);
       await _secureStorage.write(key: _keyAvatarUrl, value: url);
       _tryFirestorePatch({'avatar_url': url});
       notifyListeners();
@@ -183,16 +203,16 @@ class LecturerSettingsProvider extends ChangeNotifier {
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const LoginPage()),
-          (route) => false,
+      (route) => false,
     );
   }
 
   void setData(LecturerSettingsModel model) {
-    data                   = model;
-    burnoutAlerts          = model.burnoutAlerts;
-    fallingBehindAlerts    = model.fallingBehindAlerts;
+    data = model;
+    burnoutAlerts = model.burnoutAlerts;
+    fallingBehindAlerts = model.fallingBehindAlerts;
     weeklyEngagementReport = model.weeklyEngagementReport;
-    avatarUrl              = model.avatarUrl;
+    avatarUrl = model.avatarUrl;
     notifyListeners();
   }
 
@@ -202,19 +222,19 @@ class LecturerSettingsProvider extends ChangeNotifier {
   }
 
   void setError(String message) {
-    error   = message;
+    error = message;
     loading = false;
     notifyListeners();
   }
 
   void clear() {
-    data                   = null;
-    burnoutAlerts          = false;
-    fallingBehindAlerts    = false;
+    data = null;
+    burnoutAlerts = false;
+    fallingBehindAlerts = false;
     weeklyEngagementReport = false;
-    avatarUrl              = null;
-    loading                = false;
-    error                  = null;
+    avatarUrl = null;
+    loading = false;
+    error = null;
     notifyListeners();
   }
 
@@ -223,6 +243,12 @@ class LecturerSettingsProvider extends ChangeNotifier {
     try {
       await _db.collection('users').doc(_uid).update(fields);
     } catch (_) {}
+  }
+
+  void reset() {
+    _userSubscription?.cancel();
+    _userSubscription = null;
+    clear();
   }
 
   @override

@@ -37,6 +37,7 @@ exports.notifyLecturerOnBurnout = functions.firestore
                         const destinationToken = lecturerProfileSnapshot.data().fcmToken;
 
                         const messagePayload = {
+                            token: destinationToken,
                             notification: {
                                 title: `🔥 Critical Burnout Alert — ${studentNameStringValue}`,
                                 body: `${studentNameStringValue} has hit a critical academic strain index of ${(afterData.burnoutIndex * 100).toFixed(0)}% in ${targetClassName}.`,
@@ -48,7 +49,7 @@ exports.notifyLecturerOnBurnout = functions.firestore
                         };
 
                         // Push the notification tray block directly to the lecturer's phone or browser window
-                        await admin.messaging().sendToDevice(destinationToken, messagePayload);
+                        await admin.messaging().send(messagePayload);
                         console.log(`Successfully pushed burnout alert routing to Lecturer UID: ${assignedLecturerUid}`);
                     }
                 }
@@ -77,6 +78,7 @@ exports.notifyStudentOnSelfBurnout = functions.firestore
                     const studentDeviceToken = profileSnapshot.data().fcmToken;
 
                     const messagePayload = {
+                        token: studentDeviceToken,
                         notification: {
                             title: '⚠️ Workload Warning Threshold Met',
                             body: `Your tracking matrix shows exhaustion parameters at ${(afterData.burnoutIndex * 100).toFixed(0)}%. Consider managing your task schedule boundaries.`,
@@ -86,7 +88,7 @@ exports.notifyStudentOnSelfBurnout = functions.firestore
                         }
                     };
 
-                    await admin.messaging().sendToDevice(studentDeviceToken, messagePayload);
+                    await admin.messaging().send(messagePayload);
                 }
             } catch (error) {
                 console.error("Failed to process self student burnout warning token packet:", error);
@@ -130,6 +132,7 @@ exports.notifyStudentsOnTaskAssignment = functions.firestore
                     // 3. Multicast send messaging vectors simultaneously to all target student phones
                     if (targetedDeviceTokensList.length > 0) {
                         const messagePayload = {
+                            tokens: targetedDeviceTokensList,
                             notification: {
                                 title: `📚 New Task Assigned: ${moduleName}`,
                                 body: `A new tracking assignment requirement has been published: "${displayTitleStringValue}"`,
@@ -139,7 +142,7 @@ exports.notifyStudentsOnTaskAssignment = functions.firestore
                             }
                         };
 
-                        await admin.messaging().sendToDevice(targetedDeviceTokensList, messagePayload);
+                        await admin.messaging().sendEachForMulticast(messagePayload);
                         console.log(`Dispatched course assignment notices across ${targetedDeviceTokensList.length} device tokens.`);
                     }
                 }

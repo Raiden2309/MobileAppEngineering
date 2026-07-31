@@ -10,7 +10,10 @@ void main() {
 
   setUp(() {
     fakeFirestore = FakeFirebaseFirestore();
-    fakeAuth = MockFirebaseAuth(signedIn: true, mockUser: MockUser(uid: 'lecturer_uid'));
+    fakeAuth = MockFirebaseAuth(
+      signedIn: true,
+      mockUser: MockUser(uid: 'lecturer_uid'),
+    );
     provider = ClassesProvider(db: fakeFirestore, auth: fakeAuth);
   });
 
@@ -40,7 +43,10 @@ void main() {
         'initialTasks': [],
       });
 
-      final doc = await fakeFirestore.collection('classes').doc('class_001').get();
+      final doc = await fakeFirestore
+          .collection('classes')
+          .doc('class_001')
+          .get();
       expect(doc.exists, isTrue);
       expect(doc.data()?['name'], 'Data Structures');
       expect(doc.data()?['subjectCode'], 'COMP201');
@@ -52,7 +58,10 @@ void main() {
         'lecturerId': 'lecturer_uid',
       });
 
-      final doc = await fakeFirestore.collection('classes').doc('class_002').get();
+      final doc = await fakeFirestore
+          .collection('classes')
+          .doc('class_002')
+          .get();
       expect(doc.data()?['subjectCode'], 'COMP301');
     });
 
@@ -64,7 +73,10 @@ void main() {
         'initialTasks': [],
       });
 
-      final doc = await fakeFirestore.collection('classes').doc('class_003').get();
+      final doc = await fakeFirestore
+          .collection('classes')
+          .doc('class_003')
+          .get();
       expect(doc.data()?['initialTasks'], isEmpty);
     });
   });
@@ -78,7 +90,10 @@ void main() {
       });
 
       await fakeFirestore.collection('classes').doc('class_del').delete();
-      final doc = await fakeFirestore.collection('classes').doc('class_del').get();
+      final doc = await fakeFirestore
+          .collection('classes')
+          .doc('class_del')
+          .get();
       expect(doc.exists, isFalse);
     });
   });
@@ -118,20 +133,22 @@ void main() {
   // -------------------------------------------------------------------------
   group('ClassesProvider — student name fallback', () {
     test('returns name when Firestore provides a non-empty value', () {
-      final String? raw = 'Alice Tan';
-      final String resolved = raw?.isNotEmpty == true ? raw! : 'Enrolled Student';
+      final String raw = 'Alice Tan';
+      final String resolved = raw.isNotEmpty == true ? raw : 'Enrolled Student';
       expect(resolved, 'Alice Tan');
     });
 
     test('returns fallback when name is null', () {
       final String? raw = null;
-      final String resolved = raw?.isNotEmpty == true ? raw! : 'Enrolled Student';
+      final String resolved = raw?.isNotEmpty == true
+          ? raw!
+          : 'Enrolled Student';
       expect(resolved, 'Enrolled Student');
     });
 
     test('returns fallback when name is empty string', () {
-      final String? raw = '';
-      final String resolved = raw?.isNotEmpty == true ? raw! : 'Enrolled Student';
+      final String raw = '';
+      final String resolved = raw.isNotEmpty == true ? raw : 'Enrolled Student';
       expect(resolved, 'Enrolled Student');
     });
   });

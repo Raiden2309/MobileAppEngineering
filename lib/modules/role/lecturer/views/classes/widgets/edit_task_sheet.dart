@@ -8,13 +8,13 @@ class EditTaskSheet extends StatefulWidget {
   final String classId;
   final Map<String, dynamic> task;
 
-  const EditTaskSheet({
-    super.key,
-    required this.classId,
-    required this.task,
-  });
+  const EditTaskSheet({super.key, required this.classId, required this.task});
 
-  static void show(BuildContext context, String classId, Map<String, dynamic> task) {
+  static void show(
+    BuildContext context,
+    String classId,
+    Map<String, dynamic> task,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -38,7 +38,9 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
     _titleController.text = widget.task['title']?.toString() ?? '';
     _descController.text = widget.task['description']?.toString() ?? '';
 
-    final String? rawDate = widget.task['dueDate']?.toString() ?? widget.task['due_date']?.toString();
+    final String? rawDate =
+        widget.task['dueDate']?.toString() ??
+        widget.task['due_date']?.toString();
     if (rawDate != null) {
       _selectedDueDate = DateTime.tryParse(rawDate.split('T').first);
     }
@@ -67,7 +69,9 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
               surface: Color(0xFF1E2330),
               onSurface: AppColors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF1E2330),
+            dialogTheme: DialogThemeData(
+              backgroundColor: const Color(0xFF1E2330),
+            ),
           ),
           child: child!,
         );
@@ -111,7 +115,11 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
             children: [
               const Text(
                 'Edit Class Task',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: AppColors.white),
@@ -120,31 +128,55 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
             ],
           ),
           const SizedBox(height: 20),
-          const Text('Task Title', style: TextStyle(fontSize: 12, color: AppColors.white)),
+          const Text(
+            'Task Title',
+            style: TextStyle(fontSize: 12, color: AppColors.white),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _titleController,
             style: const TextStyle(color: AppColors.white),
-            decoration: InputDecoration(filled: true, fillColor: AppColors.black, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.black,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          const Text('Task Description', style: TextStyle(fontSize: 12, color: AppColors.white)),
+          const Text(
+            'Task Description',
+            style: TextStyle(fontSize: 12, color: AppColors.white),
+          ),
           const SizedBox(height: 6),
           TextField(
             controller: _descController,
             maxLines: 3,
             style: const TextStyle(color: AppColors.white),
-            decoration: InputDecoration(filled: true, fillColor: AppColors.black, border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: AppColors.black,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
-          const Text('Due Date Deadline', style: TextStyle(fontSize: 12, color: AppColors.white)),
+          const Text(
+            'Due Date Deadline',
+            style: TextStyle(fontSize: 12, color: AppColors.white),
+          ),
           const SizedBox(height: 6),
           GestureDetector(
             onTap: _pickDueDate,
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppColors.black, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: AppColors.black,
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Text(
                 DateFormat('yyyy-MM-dd').format(_selectedDueDate!),
                 style: const TextStyle(color: AppColors.white),
@@ -155,12 +187,17 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.black, padding: const EdgeInsets.symmetric(vertical: 14)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.black,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
               onPressed: () async {
                 final title = _titleController.text.trim();
                 if (title.isEmpty) return;
 
-                final dateString = DateFormat('yyyy-MM-dd').format(_selectedDueDate!);
+                final dateString = DateFormat(
+                  'yyyy-MM-dd',
+                ).format(_selectedDueDate!);
 
                 await context.read<ClassesProvider>().updateClassTask(
                   classId: widget.classId,
@@ -174,7 +211,10 @@ class _EditTaskSheetState extends State<EditTaskSheet> {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Save Changes', style: TextStyle(color: AppColors.californiaBlue)),
+              child: const Text(
+                'Save Changes',
+                style: TextStyle(color: AppColors.californiaBlue),
+              ),
             ),
           ),
         ],

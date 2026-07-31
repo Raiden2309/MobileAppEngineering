@@ -35,8 +35,6 @@ class Task {
         return 'Due Today';
       case TaskStatus.upcoming:
         return 'Upcoming';
-      default:
-        return '';
     }
   }
 
@@ -47,15 +45,14 @@ class Task {
     TaskStatus? status,
     DateTime? startedAt,
     DateTime? dueDate,
-  }) =>
-      Task(
-        id: id ?? this.id,
-        title: title ?? this.title,
-        estimatedHours: estimatedHours ?? this.estimatedHours,
-        status: status ?? this.status,
-        startedAt: startedAt ?? this.startedAt,
-        dueDate: dueDate ?? this.dueDate,
-      );
+  }) => Task(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    estimatedHours: estimatedHours ?? this.estimatedHours,
+    status: status ?? this.status,
+    startedAt: startedAt ?? this.startedAt,
+    dueDate: dueDate ?? this.dueDate,
+  );
 
   factory Task.fromJson(Map<String, dynamic> json) {
     // 1. Safe status conversion that handles both camelCase and snake_case backend strings
@@ -68,8 +65,7 @@ class Task {
       mappedStatus = TaskStatus.dueSoon;
     } else if (statusStr == 'dueToday') {
       mappedStatus = TaskStatus.dueToday;
-    }
-    else if (statusStr == 'overdue') {
+    } else if (statusStr == 'overdue') {
       mappedStatus = TaskStatus.overdue;
     } else if (statusStr == 'completed') {
       mappedStatus = TaskStatus.completed;
@@ -81,8 +77,9 @@ class Task {
 
     // 2. Fallback safeguards for snake_case vs camelCase field maps
     final rawHours = json['estimated_hours'] ?? json['estimatedHours'] ?? 0.0;
-    final double hours = (rawHours is num) ? rawHours.toDouble() : double
-        .tryParse(rawHours.toString()) ?? 0.0;
+    final double hours = (rawHours is num)
+        ? rawHours.toDouble()
+        : double.tryParse(rawHours.toString()) ?? 0.0;
 
     final rawDueDate = json['due_date'] ?? json['dueDate'];
     final rawStartedAt = json['started_at'] ?? json['startedAt'];
@@ -92,23 +89,23 @@ class Task {
       title: (json['title'] ?? 'Task').toString(),
       estimatedHours: hours,
       status: mappedStatus,
-      startedAt: rawStartedAt != null ? DateTime.tryParse(
-          rawStartedAt.toString()) : null,
+      startedAt: rawStartedAt != null
+          ? DateTime.tryParse(rawStartedAt.toString())
+          : null,
       dueDate: rawDueDate != null
           ? DateTime.tryParse(rawDueDate.toString())
           : null,
     );
   }
 
-  Map<String, dynamic> toJson() =>
-      {
-        'id': id,
-        'title': title,
-        'estimated_hours': estimatedHours,
-        'status': status.name,
-        'started_at': startedAt?.toIso8601String(),
-        'due_date': dueDate?.toIso8601String(),
-      };
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'estimated_hours': estimatedHours,
+    'status': status.name,
+    'started_at': startedAt?.toIso8601String(),
+    'due_date': dueDate?.toIso8601String(),
+  };
 }
 
 class SubjectGroup {
@@ -130,7 +127,10 @@ class SubjectGroup {
 
     return SubjectGroup(
       id: json['id']?.toString() ?? '',
-      name: json['name'] ?? json['subjectName'] ?? json['classId'] ??
+      name:
+          json['name'] ??
+          json['subjectName'] ??
+          json['classId'] ??
           'Unknown Subject',
       colorKey: json['colorKey']?.toString() ?? 'blue',
       tasks: rawTasks
@@ -139,31 +139,27 @@ class SubjectGroup {
     );
   }
 
-  Map<String, dynamic> toJson() =>
-      {
-        'id': id,
-        'name': name,
-        'colorKey': colorKey,
-        'tasks': tasks.map((t) => t.toJson()).toList(),
-      };
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'colorKey': colorKey,
+    'tasks': tasks.map((t) => t.toJson()).toList(),
+  };
 
   int get totalTasks => tasks.length;
 
   int get completedTasks =>
-      tasks
-          .where((t) => t.status == TaskStatus.completed)
-          .length;
+      tasks.where((t) => t.status == TaskStatus.completed).length;
 
   SubjectGroup copyWith({
     String? id,
     String? name,
     String? colorKey,
     List<Task>? tasks,
-  }) =>
-      SubjectGroup(
-        id: id ?? this.id,
-        name: name ?? this.name,
-        colorKey: colorKey ?? this.colorKey,
-        tasks: tasks ?? this.tasks,
-      );
+  }) => SubjectGroup(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    colorKey: colorKey ?? this.colorKey,
+    tasks: tasks ?? this.tasks,
+  );
 }

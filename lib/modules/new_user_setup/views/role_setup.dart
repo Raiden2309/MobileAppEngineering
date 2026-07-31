@@ -88,7 +88,7 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.black.withOpacity(0.1),
+                                  color: AppColors.black.withValues(alpha: 0.1),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
@@ -109,14 +109,14 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                                       fit: BoxFit.contain,
                                       errorBuilder:
                                           (context, error, stackTrace) =>
-                                          Container(
-                                            color: AppColors.white,
-                                            child: const Icon(
-                                              Icons.person,
-                                              size: 48,
-                                              color: AppColors.black,
-                                            ),
-                                          ),
+                                              Container(
+                                                color: AppColors.white,
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  size: 48,
+                                                  color: AppColors.black,
+                                                ),
+                                              ),
                                     ),
                                   ),
                                 ),
@@ -128,9 +128,9 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                                     ),
                                     child: Column(
                                       crossAxisAlignment:
-                                      CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start,
                                       mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                          MainAxisAlignment.center,
                                       children: [
                                         Text(
                                           roles[index]['label']!,
@@ -208,34 +208,36 @@ class RoleSetupPageState extends State<RoleSetupPage> {
                             onPressed: !isRoleSelected
                                 ? null
                                 : () async {
-                              if (selectedIndex == 0) {
-                                await AuthService.saveRole(1);
-                                await FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(AuthService.getCurrentUserId())
-                                    .update({'role': 1});
-                                if (!context.mounted) return;
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const StudentSetupPage(),
-                                  ),
-                                );
-                              } else if (selectedIndex == 1) {
-                                await AuthService.saveRole(2);
-                                await FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(AuthService.getCurrentUserId())
-                                    .update({'role': 2});
-                                if (!context.mounted) return;
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LecturerSetupPage(),
-                                  ),
-                                );
-                              }
-                            },
+                                    if (selectedIndex == 0) {
+                                      await AuthService.saveRole(1);
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(AuthService.getCurrentUserId())
+                                          .update({'role': 1});
+                                      if (!context.mounted) return;
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const StudentSetupPage(),
+                                        ),
+                                      );
+                                    } else if (selectedIndex == 1) {
+                                      await AuthService.saveRole(2);
+                                      await FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(AuthService.getCurrentUserId())
+                                          .update({'role': 2});
+                                      if (!context.mounted) return;
+                                      Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const LecturerSetupPage(),
+                                        ),
+                                      );
+                                    }
+                                  },
                             child: const Text(
                               'Continue',
                               style: TextStyle(

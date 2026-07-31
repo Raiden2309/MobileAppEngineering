@@ -45,8 +45,9 @@ class StudentSemesterState extends State<StudentSemester> {
       }
     });
 
-    if (!programmeValid || _semStartError != null || _semEndError != null)
+    if (!programmeValid || _semStartError != null || _semEndError != null) {
       return;
+    }
 
     widget.onNext();
   }
@@ -75,21 +76,6 @@ class StudentSemesterState extends State<StudentSemester> {
         }
       });
     }
-  }
-
-  Future<void> _pickExamDate(int index) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(primary: AppColors.black),
-        ),
-        child: child!,
-      ),
-    );
   }
 
   String formatDate(DateTime? d) =>

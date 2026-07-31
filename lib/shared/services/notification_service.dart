@@ -1,4 +1,3 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -10,11 +9,17 @@ class NotificationService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  static bool _pipelineStarted = false;
+
   // Local notification channel engine for active foreground banners
-  final FlutterLocalNotificationsPlugin _localNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
   /// Initial setup configuration to request permissions and capture incoming data payloads
   Future<void> setupNotificationTokenPipeline() async {
+    if (_pipelineStarted) return;
+    _pipelineStarted = true;
+
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -57,7 +62,9 @@ class NotificationService {
 
     // 5. Handle Foreground Messaging Events
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('Received a foreground notification message: ${message.notification?.title}');
+      debugPrint(
+        'Received a foreground notification message: ${message.notification?.title}',
+      );
 
       RemoteNotification? notification = message.notification;
 
@@ -86,15 +93,17 @@ class NotificationService {
   /// Configures local utility channels to bypass background restrictions when the app is active
   Future<void> _initLocalNotificationBanners() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/ic_launcher');
 
     // FIXED: Swapped CupertinoInitializationSettings for DarwinInitializationSettings
-    const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings();
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings();
 
-    const InitializationSettings initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          iOS: initializationSettingsIOS,
+        );
 
     await _localNotificationsPlugin.initialize(initializationSettings);
   }

@@ -33,7 +33,7 @@ class SetupScaffold extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
                 child: Column(
                   children: [
-                    Container(
+                    SizedBox(
                       width: 64,
                       height: 64,
                       child: ClipRRect(
@@ -229,10 +229,7 @@ class SetupInput extends StatelessWidget {
         filled: true,
         fillColor: AppColors.white,
         errorText: errorText,
-        errorStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
+        errorStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 11,

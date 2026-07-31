@@ -62,13 +62,21 @@ class StudentGenerateProfileState extends State<StudentGenerateProfile> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/images/transparent_logo.png', width: 72, height: 72),
+              Image.asset(
+                'assets/images/transparent_logo.png',
+                width: 72,
+                height: 72,
+              ),
               const SizedBox(height: 24),
               const StepDots(total: 5, current: 4),
               const SizedBox(height: 20),
               const Text(
                 'Building Your Plan…',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.black),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.black,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
@@ -80,7 +88,12 @@ class StudentGenerateProfileState extends State<StudentGenerateProfile> {
                 child: Text(
                   _messages[_messageIndex],
                   key: ValueKey(_messageIndex),
-                  style: const TextStyle(fontSize: 13, color: AppColors.black, height: 1.65, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.black,
+                    height: 1.65,
+                    fontWeight: FontWeight.w500,
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -92,7 +105,7 @@ class StudentGenerateProfileState extends State<StudentGenerateProfile> {
                 width: 200,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.2),
+                  color: AppColors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: TweenAnimationBuilder<double>(

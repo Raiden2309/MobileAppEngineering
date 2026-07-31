@@ -2,10 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:provider/provider.dart';
 import '../../../../modules/auth/services/auth_service.dart';
 import '../../role/lecturer/views/central_lecturer_navigation.dart';
-import '../provider/lecturer_provider.dart';
 
 class LecturerSetupController with ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -30,9 +28,13 @@ class LecturerSetupController with ChangeNotifier {
 
   /// Generates and assigns a clean 6-character uppercase class code
   String generateRandomClassCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excludes lookalikes (1, I, 0, O)
+    const chars =
+        'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excludes lookalikes (1, I, 0, O)
     final rand = Random.secure();
-    _generatedJoinCode = List.generate(6, (index) => chars[rand.nextInt(chars.length)]).join();
+    _generatedJoinCode = List.generate(
+      6,
+      (index) => chars[rand.nextInt(chars.length)],
+    ).join();
     notifyListeners();
     return _generatedJoinCode!;
   }
@@ -57,7 +59,8 @@ class LecturerSetupController with ChangeNotifier {
 
     try {
       final String classDocId = _db.collection('classes').doc().id;
-      final String finalClassCode = _generatedJoinCode ?? generateRandomClassCode();
+      final String finalClassCode =
+          _generatedJoinCode ?? generateRandomClassCode();
 
       // 1. Unified account reference sync across user profiles
       await _db.collection('users').doc(uid).set({
@@ -75,7 +78,11 @@ class LecturerSetupController with ChangeNotifier {
         'id': classDocId,
         'name': subjectNameController.text.trim(),
         'section': 'Section 1',
-        'subjectCode': subjectNameController.text.trim().split(' ').first.toUpperCase(),
+        'subjectCode': subjectNameController.text
+            .trim()
+            .split(' ')
+            .first
+            .toUpperCase(),
         'classCode': finalClassCode,
         'semester': 'Semester 1',
         'lecturerId': uid,
@@ -93,7 +100,7 @@ class LecturerSetupController with ChangeNotifier {
 
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const CentralLecturerNavigation()),
-            (route) => false,
+        (route) => false,
       );
     } catch (e) {
       debugPrint("Aborted setup database write sequence operation: $e");

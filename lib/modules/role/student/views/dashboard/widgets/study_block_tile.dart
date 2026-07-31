@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../../../../shared/styles/font_styles.dart';
 import '../../../models/app_enums.dart';
-import '../../../models/dashboard_models.dart';
 import '../../../models/study_plan_model.dart';
 
 class StudyBlockTile extends StatelessWidget {
@@ -26,7 +24,8 @@ class StudyBlockTile extends StatelessWidget {
     if (block.type == BlockType.blocked) return AppColors.red;
     if (block.type == BlockType.breakSlot) return AppColors.black;
     final key = block.subject ?? block.title;
-    return _subjectAccentColors[key.hashCode.abs() % _subjectAccentColors.length];
+    return _subjectAccentColors[key.hashCode.abs() %
+        _subjectAccentColors.length];
   }
 
   @override

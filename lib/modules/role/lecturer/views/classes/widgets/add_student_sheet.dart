@@ -15,18 +15,16 @@ class AddStudentBottomSheet extends StatefulWidget {
   });
 
   static Future<void> show(
-      BuildContext context, {
-        required String className,
-        required String subjectCode,
-      }) {
+    BuildContext context, {
+    required String className,
+    required String subjectCode,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => AddStudentBottomSheet(
-        className: className,
-        subjectCode: subjectCode,
-      ),
+      builder: (_) =>
+          AddStudentBottomSheet(className: className, subjectCode: subjectCode),
     );
   }
 
@@ -79,7 +77,11 @@ class _AddStudentBottomSheetState extends State<AddStudentBottomSheet> {
             children: [
               const Text(
                 'Add Student',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: AppColors.white),
@@ -100,7 +102,11 @@ class _AddStudentBottomSheetState extends State<AddStudentBottomSheet> {
 
           const Text(
             'Student Search Name',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.white,
+            ),
           ),
           const SizedBox(height: 6),
 
@@ -116,7 +122,11 @@ class _AddStudentBottomSheetState extends State<AddStudentBottomSheet> {
             decoration: InputDecoration(
               hintText: 'Type standard profile name...',
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-              prefixIcon: const Icon(Icons.search_rounded, color: Colors.white38, size: 18),
+              prefixIcon: const Icon(
+                Icons.search_rounded,
+                color: Colors.white38,
+                size: 18,
+              ),
               filled: true,
               fillColor: AppColors.black,
               border: OutlineInputBorder(
@@ -131,14 +141,21 @@ class _AddStudentBottomSheetState extends State<AddStudentBottomSheet> {
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 11,
+              ),
             ),
           ),
           const SizedBox(height: 16),
 
           const Text(
             'Available Registered Student Records',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.white,
+            ),
           ),
           const SizedBox(height: 6),
 
@@ -155,25 +172,44 @@ class _AddStudentBottomSheetState extends State<AddStudentBottomSheet> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white)),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    ),
                   );
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: Text('No registered student profiles found.', style: TextStyle(color: Colors.white38, fontSize: 13))),
+                    child: Center(
+                      child: Text(
+                        'No registered student profiles found.',
+                        style: TextStyle(color: Colors.white38, fontSize: 13),
+                      ),
+                    ),
                   );
                 }
 
                 final filteredList = snapshot.data!.docs.where((doc) {
-                  final name = (doc.data() as Map<String, dynamic>)['name']?.toString().toLowerCase() ?? '';
+                  final name =
+                      (doc.data() as Map<String, dynamic>)['name']
+                          ?.toString()
+                          .toLowerCase() ??
+                      '';
                   return name.contains(_searchQuery);
                 }).toList();
 
                 if (filteredList.isEmpty) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: Text('No matching students found.', style: TextStyle(color: Colors.white38, fontSize: 13))),
+                    child: Center(
+                      child: Text(
+                        'No matching students found.',
+                        style: TextStyle(color: Colors.white38, fontSize: 13),
+                      ),
+                    ),
                   );
                 }
 
@@ -181,63 +217,99 @@ class _AddStudentBottomSheetState extends State<AddStudentBottomSheet> {
                   shrinkWrap: true,
                   padding: EdgeInsets.zero,
                   itemCount: filteredList.length,
-                  separatorBuilder: (_, __) => Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                  separatorBuilder: (_, _) => Divider(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    height: 1,
+                  ),
                   itemBuilder: (context, index) {
                     final studentDoc = filteredList[index];
-                    final studentData = studentDoc.data() as Map<String, dynamic>;
+                    final studentData =
+                        studentDoc.data() as Map<String, dynamic>;
                     final studentUid = studentDoc.id;
-                    final studentName = studentData['name'] ?? 'Unknown Student';
+                    final studentName =
+                        studentData['name'] ?? 'Unknown Student';
                     final studentEmail = studentData['email'] ?? '';
 
-                    final initials = studentName.isNotEmpty ? studentName[0].toUpperCase() : 'S';
+                    final initials = studentName.isNotEmpty
+                        ? studentName[0].toUpperCase()
+                        : 'S';
 
                     return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
                       leading: CircleAvatar(
                         backgroundColor: AppColors.black,
                         radius: 18,
                         child: Text(
                           initials,
-                          style: const TextStyle(color: AppColors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       title: Text(
                         studentName,
-                        style: const TextStyle(color: AppColors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       subtitle: Text(
                         studentEmail,
-                        style: const TextStyle(color: Colors.white38, fontSize: 11),
+                        style: const TextStyle(
+                          color: Colors.white38,
+                          fontSize: 11,
+                        ),
                       ),
                       trailing: _saving
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.white))
-                          : IconButton(
-                        icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.white, size: 20),
-                        onPressed: () async {
-                          setState(() => _saving = true);
-
-                          final success = await classesProvider.manuallyEnrollStudent(
-                            studentUid: studentUid,
-                            className: widget.className,
-                            subjectCode: widget.subjectCode,
-                          );
-
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: const Color(0xFF1E2330),
-                                content: Text(
-                                  success
-                                      ? '$studentName has been enrolled successfully!'
-                                      : '$studentName is already enrolled inside this class.',
-                                  style: const TextStyle(color: AppColors.white, fontSize: 13),
-                                ),
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 1.5,
+                                color: AppColors.white,
                               ),
-                            );
-                          }
-                        },
-                      ),
+                            )
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.add_circle_outline_rounded,
+                                color: AppColors.white,
+                                size: 20,
+                              ),
+                              onPressed: () async {
+                                setState(() => _saving = true);
+
+                                final success = await classesProvider
+                                    .manuallyEnrollStudent(
+                                      studentUid: studentUid,
+                                      className: widget.className,
+                                      subjectCode: widget.subjectCode,
+                                    );
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: const Color(0xFF1E2330),
+                                      content: Text(
+                                        success
+                                            ? '$studentName has been enrolled successfully!'
+                                            : '$studentName is already enrolled inside this class.',
+                                        style: const TextStyle(
+                                          color: AppColors.white,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
                     );
                   },
                 );

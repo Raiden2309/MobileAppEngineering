@@ -35,14 +35,23 @@ class ClassCard extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               onDelete?.call();
             },
-            child: Text('Delete', style: TextStyle(color: AppColors.red, fontWeight: FontWeight.w700)),
+            child: Text(
+              'Delete',
+              style: TextStyle(
+                color: AppColors.red,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -76,7 +85,11 @@ class ClassCard extends StatelessWidget {
                     color: c.accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(Icons.menu_book_rounded, size: 18, color: c.accentColor),
+                  child: Icon(
+                    Icons.menu_book_rounded,
+                    size: 18,
+                    color: c.accentColor,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -116,7 +129,11 @@ class ClassCard extends StatelessWidget {
                         color: AppColors.red.withValues(alpha: 0.12),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.delete_outline_rounded, size: 14, color: AppColors.red),
+                      child: Icon(
+                        Icons.delete_outline_rounded,
+                        size: 14,
+                        color: AppColors.red,
+                      ),
                     ),
                   ),
               ],
@@ -144,7 +161,10 @@ class ClassCard extends StatelessWidget {
                   if (c.classCode.isNotEmpty)
                     GestureDetector(
                       onTap: () {
-                        Clipboard.setData(ClipboardData(text: c.classCode)).then((_) {
+                        Clipboard.setData(
+                          ClipboardData(text: c.classCode),
+                        ).then((_) {
+                          if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Join Code for ${c.name} copied!'),
@@ -157,7 +177,11 @@ class ClassCard extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.copy_rounded, size: 14, color: c.accentColor),
+                          Icon(
+                            Icons.copy_rounded,
+                            size: 14,
+                            color: c.accentColor,
+                          ),
                           const SizedBox(width: 2),
                           Text(
                             'Copy',
@@ -178,11 +202,29 @@ class ClassCard extends StatelessWidget {
             IntrinsicHeight(
               child: Row(
                 children: [
-                  Expanded(child: StatBox(value: ClassesController.studentsLabel(c), label: 'Students', valueColor: AppColors.californiaBlue)),
+                  Expanded(
+                    child: StatBox(
+                      value: ClassesController.studentsLabel(c),
+                      label: 'Students',
+                      valueColor: AppColors.californiaBlue,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  Expanded(child: StatBox(value: ClassesController.avgDoneLabel(c),  label: 'Avg Done', valueColor: AppColors.mikadoYellow)),
+                  Expanded(
+                    child: StatBox(
+                      value: ClassesController.avgDoneLabel(c),
+                      label: 'Avg Done',
+                      valueColor: AppColors.mikadoYellow,
+                    ),
+                  ),
                   const SizedBox(width: 6),
-                  Expanded(child: StatBox(value: ClassesController.atRiskLabel(c),   label: 'At Risk',  valueColor: ClassesController.atRiskColor(c))),
+                  Expanded(
+                    child: StatBox(
+                      value: ClassesController.atRiskLabel(c),
+                      label: 'At Risk',
+                      valueColor: ClassesController.atRiskColor(c),
+                    ),
+                  ),
                 ],
               ),
             ),

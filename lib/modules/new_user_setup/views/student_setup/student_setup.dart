@@ -55,34 +55,36 @@ class StudentSetupPageState extends State<StudentSetupPage> {
     try {
       final List<Map<String, String>> safeSubjects = controller.subjects
           .whereType<Map>()
-          .map((item) => {
-        'name':  item['name']?.toString()  ?? 'Unknown',
-        'color': item['color']?.toString() ?? '60A5FA',
-      })
+          .map(
+            (item) => {
+              'name': item['name']?.toString() ?? 'Unknown',
+              'color': item['color']?.toString() ?? '60A5FA',
+            },
+          )
           .toList();
 
       // Global student document (no semester-specific fields)
       final studentModel = StudentModel(
-        id:           uid,
-        name:         controller.nameController.text.trim().isNotEmpty
+        id: uid,
+        name: controller.nameController.text.trim().isNotEmpty
             ? controller.nameController.text.trim()
             : 'Student',
-        email:        FirebaseAuth.instance.currentUser?.email ?? '',
-        programme:    controller.programmeController.text.trim(),
-        dayStart:     controller.dayStart,
-        dayEnd:       controller.dayEnd,
+        email: FirebaseAuth.instance.currentUser?.email ?? '',
+        programme: controller.programmeController.text.trim(),
+        dayStart: controller.dayStart,
+        dayEnd: controller.dayEnd,
         blockedSlots: controller.blockedSlots.toList(),
       );
 
       // Semester document (subjects live here)
       final semesterModel = SemesterModel(
-        id:       'sem_${controller.semester}_yr${controller.year}',
+        id: 'sem_${controller.semester}_yr${controller.year}',
         semester: controller.semester,
-        year:     controller.year,
+        year: controller.year,
         semStart: controller.semStart,
-        semEnd:   controller.semEnd,
+        semEnd: controller.semEnd,
         examDates: controller.examDates,
-        subjects:  safeSubjects,
+        subjects: safeSubjects,
       );
 
       await context.read<StudentProvider>().save(studentModel, semesterModel);
@@ -91,7 +93,7 @@ class StudentSetupPageState extends State<StudentSetupPage> {
       // Create class documents for each subject
       final firestore = FirebaseFirestore.instance;
       for (var subject in safeSubjects) {
-        final subjectName     = subject['name']  ?? 'Unknown';
+        final subjectName = subject['name'] ?? 'Unknown';
         final subjectColorStr = subject['color'] ?? '60A5FA';
         final safeClassId = subjectName
             .toLowerCase()
@@ -99,25 +101,29 @@ class StudentSetupPageState extends State<StudentSetupPage> {
             .replaceAll(RegExp(r'[\s-]'), '_');
 
         await firestore.collection('classes').doc(safeClassId).set({
-          'id':               safeClassId,
-          'name':             subjectName,
-          'code':             safeClassId.toUpperCase().padRight(6, 'X').substring(0, 6),
-          'semester':         'Semester ${semesterModel.semester}',
-          'accentColorValue': int.tryParse('0xFF$subjectColorStr') ?? 0xFF60A5FA,
-          'createdAt':        FieldValue.serverTimestamp(),
+          'id': safeClassId,
+          'name': subjectName,
+          'code': safeClassId.toUpperCase().padRight(6, 'X').substring(0, 6),
+          'semester': 'Semester ${semesterModel.semester}',
+          'accentColorValue':
+              int.tryParse('0xFF$subjectColorStr') ?? 0xFF60A5FA,
+          'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
 
-        await firestore.collection('enrollments').doc('${uid}_$safeClassId').set({
-          'studentId':        uid,
-          'classId':          safeClassId,
-          'semester':         semesterModel.id,
-          'qstudentName':     studentModel.name,
-          'joinedAt':         FieldValue.serverTimestamp(),
-          'weeklyStudyHours': 0.0,
-          'completedTasks':   0,
-          'pendingTasks':     0,
-          'burnoutIndex':     0.0,
-        });
+        await firestore
+            .collection('enrollments')
+            .doc('${uid}_$safeClassId')
+            .set({
+              'studentId': uid,
+              'classId': safeClassId,
+              'semester': semesterModel.id,
+              'qstudentName': studentModel.name,
+              'joinedAt': FieldValue.serverTimestamp(),
+              'weeklyStudyHours': 0.0,
+              'completedTasks': 0,
+              'pendingTasks': 0,
+              'burnoutIndex': 0.0,
+            });
       }
 
       if (!context.mounted) return;
@@ -126,8 +132,8 @@ class StudentSetupPageState extends State<StudentSetupPage> {
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, __, ___) => const CentralStudentNavigation(),
-          transitionsBuilder: (_, animation, __, child) => ScaleTransition(
+          pageBuilder: (_, _, _) => const CentralStudentNavigation(),
+          transitionsBuilder: (_, animation, _, child) => ScaleTransition(
             scale: Tween<double>(begin: 1.1, end: 1.0).animate(
               CurvedAnimation(parent: animation, curve: Curves.easeOutCubic),
             ),
@@ -142,14 +148,20 @@ class StudentSetupPageState extends State<StudentSetupPage> {
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: const Color(0xFF1E1E1E),
-            title: const Text('Setup Failed', style: TextStyle(color: Colors.white)),
+            title: const Text(
+              'Setup Failed',
+              style: TextStyle(color: Colors.white),
+            ),
             content: SingleChildScrollView(
               child: Text('$e', style: const TextStyle(color: Colors.white70)),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Dismiss', style: TextStyle(color: AppColors.californiaBlue)),
+                child: const Text(
+                  'Dismiss',
+                  style: TextStyle(color: AppColors.californiaBlue),
+                ),
               ),
             ],
           ),
@@ -160,12 +172,30 @@ class StudentSetupPageState extends State<StudentSetupPage> {
 
   Widget buildStep(BuildContext context) {
     switch (currentStep) {
-      case 0: return StudentProfile(controller: controller, onNext: nextStep);
-      case 1: return StudentSchedule(controller: controller, onNext: nextStep, onBack: prevStep);
-      case 2: return StudentSemester(controller: controller, onNext: nextStep, onBack: prevStep);
-      case 3: return StudentSubjects(controller: controller, onNext: nextStep, onBack: prevStep);
-      case 4: return StudentGenerateProfile(onDone: () => onSetupDone(context));
-      default: return const SizedBox.shrink();
+      case 0:
+        return StudentProfile(controller: controller, onNext: nextStep);
+      case 1:
+        return StudentSchedule(
+          controller: controller,
+          onNext: nextStep,
+          onBack: prevStep,
+        );
+      case 2:
+        return StudentSemester(
+          controller: controller,
+          onNext: nextStep,
+          onBack: prevStep,
+        );
+      case 3:
+        return StudentSubjects(
+          controller: controller,
+          onNext: nextStep,
+          onBack: prevStep,
+        );
+      case 4:
+        return StudentGenerateProfile(onDone: () => onSetupDone(context));
+      default:
+        return const SizedBox.shrink();
     }
   }
 

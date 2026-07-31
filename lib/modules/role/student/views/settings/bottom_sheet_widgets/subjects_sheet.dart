@@ -45,11 +45,8 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
   void initState() {
     super.initState();
     _subjects = List<Map<String, String>>.from(
-      context
-          .read<StudentSettingsProvider>()
-          .subjects
-          .map(
-            (e) => Map<String, String>.from(e),
+      context.read<StudentSettingsProvider>().subjects.map(
+        (e) => Map<String, String>.from(e),
       ),
     );
   }
@@ -85,10 +82,7 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(
-        bottom: MediaQuery
-            .of(context)
-            .viewInsets
-            .bottom,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
       child: Container(
         decoration: const BoxDecoration(
@@ -148,7 +142,7 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                       decoration: BoxDecoration(
                         color: AppColors.black,
                         border: Border.all(
-                          color: AppColors.white.withOpacity(0.07),
+                          color: AppColors.white.withValues(alpha: 0.07),
                         ),
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -236,7 +230,7 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                     decoration: BoxDecoration(
                       color: AppColors.black,
                       border: Border.all(
-                        color: AppColors.white.withOpacity(0.07),
+                        color: AppColors.white.withValues(alpha: 0.07),
                       ),
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -265,20 +259,20 @@ class _SubjectsSheetState extends State<SubjectsSheet> {
                   ),
                 ),
                 onPressed: () async {
-                  final settings  = context.read<StudentSettingsProvider>();
-                  final tasks     = context.read<TasksProvider>();
+                  final settings = context.read<StudentSettingsProvider>();
+                  final tasks = context.read<TasksProvider>();
                   final studyPlan = context.read<StudyPlanProvider>();
-                  final semester  = context.read<SemesterProvider>();
+                  final semester = context.read<SemesterProvider>();
                   final dashboard = context.read<StudentDashboardProvider>();
-                  final burnout   = context.read<BurnoutAlertProvider>();
+                  final burnout = context.read<BurnoutAlertProvider>();
 
                   await settings.saveSubjects(
                     _subjects,
-                    tasks:            tasks,
-                    studyPlan:        studyPlan,
+                    tasks: tasks,
+                    studyPlan: studyPlan,
                     semesterProgress: semester,
-                    dashboard:        dashboard,
-                    burnout:          burnout,
+                    dashboard: dashboard,
+                    burnout: burnout,
                   );
 
                   if (context.mounted) Navigator.pop(context);

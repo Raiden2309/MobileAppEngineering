@@ -53,7 +53,10 @@ class LecturerSettingsPage extends StatelessWidget {
                           icon: Icons.lock_rounded,
                           iconBg: AppColors.mikadoYellow.withValues(alpha: 0.2),
                           label: 'Change Password',
-                          onTap: () => LecturerSettingsController.openChangePassword(context),
+                          onTap: () =>
+                              LecturerSettingsController.openChangePassword(
+                                context,
+                              ),
                         ),
                       ],
                     ),
@@ -67,21 +70,30 @@ class LecturerSettingsPage extends StatelessWidget {
                           iconBg: AppColors.red.withValues(alpha: 0.2),
                           label: 'Burnout Alerts',
                           value: data.burnoutAlerts,
-                          onToggle: () => LecturerSettingsController.toggleBurnoutAlerts(context),
+                          onToggle: () =>
+                              LecturerSettingsController.toggleBurnoutAlerts(
+                                context,
+                              ),
                         ),
                         ToggleRow(
                           icon: Icons.warning_amber_rounded,
                           iconBg: AppColors.mikadoYellow.withValues(alpha: 0.2),
                           label: 'Falling Behind Alerts',
                           value: data.fallingBehindAlerts,
-                          onToggle: () => LecturerSettingsController.toggleFallingBehindAlerts(context),
+                          onToggle: () =>
+                              LecturerSettingsController.toggleFallingBehindAlerts(
+                                context,
+                              ),
                         ),
                         ToggleRow(
                           icon: Icons.bar_chart_rounded,
                           iconBg: AppColors.softPurple.withValues(alpha: 0.2),
                           label: 'Weekly Engagement Report',
                           value: data.weeklyEngagementReport,
-                          onToggle: () => LecturerSettingsController.toggleWeeklyEngagementReport(context),
+                          onToggle: () =>
+                              LecturerSettingsController.toggleWeeklyEngagementReport(
+                                context,
+                              ),
                         ),
                       ],
                     ),
@@ -103,7 +115,8 @@ class LecturerSettingsPage extends StatelessWidget {
                           iconBg: AppColors.red.withValues(alpha: 0.2),
                           label: 'Sign Out',
                           labelColor: AppColors.red,
-                          onTap: () => LecturerSettingsController.signOut(context),
+                          onTap: () =>
+                              LecturerSettingsController.signOut(context),
                         ),
                       ],
                     ),
@@ -122,10 +135,12 @@ class DeployedLecturerProfileHeader extends StatefulWidget {
   const DeployedLecturerProfileHeader({super.key});
 
   @override
-  State<DeployedLecturerProfileHeader> createState() => _DeployedLecturerProfileHeaderState();
+  State<DeployedLecturerProfileHeader> createState() =>
+      _DeployedLecturerProfileHeaderState();
 }
 
-class _DeployedLecturerProfileHeaderState extends State<DeployedLecturerProfileHeader> {
+class _DeployedLecturerProfileHeaderState
+    extends State<DeployedLecturerProfileHeader> {
   bool _editingModeActive = false;
   late final TextEditingController _nameEditingFieldController;
   final ImagePicker _avatarImagePickerEngine = ImagePicker();
@@ -133,8 +148,11 @@ class _DeployedLecturerProfileHeaderState extends State<DeployedLecturerProfileH
   @override
   void initState() {
     super.initState();
-    final String initialProfileNameStringValue = context.read<LecturerSettingsProvider>().data?.userName ?? '';
-    _nameEditingFieldController = TextEditingController(text: initialProfileNameStringValue);
+    final String initialProfileNameStringValue =
+        context.read<LecturerSettingsProvider>().data?.userName ?? '';
+    _nameEditingFieldController = TextEditingController(
+      text: initialProfileNameStringValue,
+    );
   }
 
   @override
@@ -144,20 +162,25 @@ class _DeployedLecturerProfileHeaderState extends State<DeployedLecturerProfileH
   }
 
   Future<void> _triggerAvatarImageSelectionPipeline() async {
-    final XFile? selectedImageFileReference = await _avatarImagePickerEngine.pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 512,
-      maxHeight: 512,
-      imageQuality: 85,
-    );
+    final XFile? selectedImageFileReference = await _avatarImagePickerEngine
+        .pickImage(
+          source: ImageSource.gallery,
+          maxWidth: 512,
+          maxHeight: 512,
+          imageQuality: 85,
+        );
     if (selectedImageFileReference == null) return;
     if (!mounted) return;
-    await LecturerSettingsController.updateAvatar(context, selectedImageFileReference);
+    await LecturerSettingsController.updateAvatar(
+      context,
+      selectedImageFileReference,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentProviderInstanceRef = context.watch<LecturerSettingsProvider>();
+    final currentProviderInstanceRef = context
+        .watch<LecturerSettingsProvider>();
     final settingsModelPayloadData = currentProviderInstanceRef.data!;
 
     // FIXED: Wrapped with an absolute left alignment stack matching student formatting constraints
@@ -193,19 +216,19 @@ class _DeployedLecturerProfileHeaderState extends State<DeployedLecturerProfileH
                       clipBehavior: Clip.antiAlias,
                       child: currentProviderInstanceRef.avatarUrl != null
                           ? Image.network(
-                        currentProviderInstanceRef.avatarUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.person_rounded,
-                          size: 36,
-                          color: AppColors.white,
-                        ),
-                      )
+                              currentProviderInstanceRef.avatarUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => const Icon(
+                                Icons.person_rounded,
+                                size: 36,
+                                color: AppColors.white,
+                              ),
+                            )
                           : const Icon(
-                        Icons.person_rounded,
-                        size: 36,
-                        color: AppColors.white,
-                      ),
+                              Icons.person_rounded,
+                              size: 36,
+                              color: AppColors.white,
+                            ),
                     ),
                     Positioned(
                       bottom: 0,
@@ -234,112 +257,114 @@ class _DeployedLecturerProfileHeaderState extends State<DeployedLecturerProfileH
               const SizedBox(height: 12),
               _editingModeActive
                   ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 160,
-                    height: 36,
-                    child: TextField(
-                      controller: _nameEditingFieldController,
-                      autofocus: true,
-                      textAlign: TextAlign.center,
-                      cursorColor: AppColors.white,
-                      cursorHeight: 20,
-                      style: const TextStyle(
-                        fontSize: FontStyles.titleLarge,
-                        fontWeight: FontStyles.titleWeight,
-                        color: AppColors.white,
-                        height: 1.0,
-                      ),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 10,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: AppColors.white.withValues(alpha: 0.4),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 160,
+                          height: 36,
+                          child: TextField(
+                            controller: _nameEditingFieldController,
+                            autofocus: true,
+                            textAlign: TextAlign.center,
+                            cursorColor: AppColors.white,
+                            cursorHeight: 20,
+                            style: const TextStyle(
+                              fontSize: FontStyles.titleLarge,
+                              fontWeight: FontStyles.titleWeight,
+                              color: AppColors.white,
+                              height: 1.0,
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 10,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: AppColors.white.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppColors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.white,
-                            width: 1.5,
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () {
+                            LecturerSettingsController.updateUserName(
+                              context,
+                              _nameEditingFieldController.text.trim(),
+                            );
+                            setState(() => _editingModeActive = false);
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () {
-                      LecturerSettingsController.updateUserName(
-                        context,
-                        _nameEditingFieldController.text.trim(),
-                      );
-                      setState(() => _editingModeActive = false);
-                    },
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () {
-                      _nameEditingFieldController.text = settingsModelPayloadData.userName;
-                      setState(() => _editingModeActive = false);
-                    },
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.red.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: AppColors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              )
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () {
+                            _nameEditingFieldController.text =
+                                settingsModelPayloadData.userName;
+                            setState(() => _editingModeActive = false);
+                          },
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: AppColors.red.withValues(alpha: 0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              size: 16,
+                              color: AppColors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
                   : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    settingsModelPayloadData.userName,
-                    style: const TextStyle(
-                      fontSize: FontStyles.titleLarge,
-                      fontWeight: FontStyles.titleWeight,
-                      color: AppColors.white,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          settingsModelPayloadData.userName,
+                          style: const TextStyle(
+                            fontSize: FontStyles.titleLarge,
+                            fontWeight: FontStyles.titleWeight,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        GestureDetector(
+                          onTap: () =>
+                              setState(() => _editingModeActive = true),
+                          child: Icon(
+                            Icons.edit_rounded,
+                            size: 14,
+                            color: AppColors.white.withValues(alpha: 0.5),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: () => setState(() => _editingModeActive = true),
-                    child: Icon(
-                      Icons.edit_rounded,
-                      size: 14,
-                      color: AppColors.white.withValues(alpha: 0.5),
-                    ),
-                  ),
-                ],
-              ),
               const SizedBox(height: 4),
               Text(
                 '${settingsModelPayloadData.department} · Faculty Portal',

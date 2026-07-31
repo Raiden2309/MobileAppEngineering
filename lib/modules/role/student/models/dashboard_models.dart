@@ -1,5 +1,4 @@
 import 'app_enums.dart';
-import 'study_plan_model.dart';
 
 class DashboardModel {
   final DashboardSummary summary;
@@ -18,13 +17,13 @@ class DashboardModel {
 
   factory DashboardModel.fromJson(Map<String, dynamic> json) {
     return DashboardModel(
-      summary:      DashboardSummary.fromJson(json['summary']),
-      stats:        DashboardStats.fromJson(json['stats']),
-      currentTask:  json['current_task'] != null
+      summary: DashboardSummary.fromJson(json['summary']),
+      stats: DashboardStats.fromJson(json['stats']),
+      currentTask: json['current_task'] != null
           ? CurrentTask.fromJson(json['current_task'])
           : null,
       workloadPlan: WorkloadPlan.fromJson(json['workload_plan']),
-      todayTasks:   (json['today_tasks'] as List<dynamic>)
+      todayTasks: (json['today_tasks'] as List<dynamic>)
           .map((t) => TaskItem.fromJson(t))
           .toList(),
     );
@@ -44,9 +43,9 @@ class DashboardSummary {
 
   factory DashboardSummary.fromJson(Map<String, dynamic> json) {
     return DashboardSummary(
-      userName:       json['user_name'] as String,
+      userName: json['user_name'] as String,
       taskCountToday: json['task_count_today'] as int,
-      date:           DateTime.parse(json['date'] as String),
+      date: DateTime.parse(json['date'] as String),
     );
   }
 }
@@ -72,13 +71,13 @@ class DashboardStats {
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
     return DashboardStats(
-      tasksDone:   json['tasks_done'] as int,
-      totalTasks:  json['total_tasks'] as int,
-      dueSoon:     json['due_soon'] as int,
+      tasksDone: json['tasks_done'] as int,
+      totalTasks: json['total_tasks'] as int,
+      dueSoon: json['due_soon'] as int,
       dueSoonDays: json['due_soon_days'] as int,
-      overdue:     json['overdue'] as int,
+      overdue: json['overdue'] as int,
       currentWeek: json['current_week'] as int,
-      totalWeeks:  json['total_weeks'] as int,
+      totalWeeks: json['total_weeks'] as int,
     );
   }
 }
@@ -98,10 +97,10 @@ class CurrentTask {
 
   factory CurrentTask.fromJson(Map<String, dynamic> json) {
     return CurrentTask(
-      title:    json['title'] as String,
+      title: json['title'] as String,
       subtitle: json['subtitle'] as String,
-      status:   TaskStatus.values.byName(json['status'] as String),
-      dueAt:    json['due_at'] != null
+      status: TaskStatus.values.byName(json['status'] as String),
+      dueAt: json['due_at'] != null
           ? DateTime.parse(json['due_at'] as String)
           : null,
     );
@@ -145,19 +144,19 @@ class TaskItem {
 
   factory TaskItem.fromJson(Map<String, dynamic> json) {
     return TaskItem(
-      title:    json['title'] as String,
+      title: json['title'] as String,
       subtitle: json['subtitle'] as String,
-      status:   TaskStatus.values.byName(json['status'] as String),
-      checked:  json['checked'] as bool? ?? false,
+      status: TaskStatus.values.byName(json['status'] as String),
+      checked: json['checked'] as bool? ?? false,
     );
   }
 
   TaskItem copyWith({bool? checked}) {
     return TaskItem(
-      title:    title,
+      title: title,
       subtitle: subtitle,
-      status:   status,
-      checked:  checked ?? this.checked,
+      status: status,
+      checked: checked ?? this.checked,
       classId: classId,
       taskId: taskId,
     );

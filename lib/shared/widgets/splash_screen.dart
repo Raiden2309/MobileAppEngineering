@@ -114,7 +114,7 @@ class SplashScreenState extends State<SplashScreen>
 
     await Future.delayed(const Duration(milliseconds: 800));
 
-    final bool loggedIn  = await AuthService.isLoggedIn();
+    final bool loggedIn = await AuthService.isLoggedIn();
     final bool setupDone = await AuthService.isSetupComplete();
 
     if (!mounted) return;
@@ -144,10 +144,12 @@ class SplashScreenState extends State<SplashScreen>
       }
     }
 
+    if (!mounted) return;
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => destination,
-        transitionsBuilder: (_, animation, __, child) =>
+        pageBuilder: (_, _, _) => destination,
+        transitionsBuilder: (_, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),

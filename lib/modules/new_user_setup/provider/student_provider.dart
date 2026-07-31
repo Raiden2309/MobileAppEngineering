@@ -4,7 +4,8 @@ import '../models/student_model.dart';
 
 class StudentProvider extends ChangeNotifier {
   final FirebaseFirestore _db;
-  StudentProvider({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
+  StudentProvider({FirebaseFirestore? db})
+    : _db = db ?? FirebaseFirestore.instance;
 
   StudentModel? student;
   SemesterModel? currentSemester;
@@ -102,6 +103,14 @@ class StudentProvider extends ChangeNotifier {
     student = null;
     currentSemester = null;
     error = null;
+    notifyListeners();
+  }
+
+  void reset() {
+    student = null;
+    currentSemester = null;
+    error = null;
+    loading = false;
     notifyListeners();
   }
 }

@@ -7,8 +7,14 @@ import '../services/auth_service.dart';
 
 class AuthProvider with ChangeNotifier {
   String? uid;
-  int?    role;
-  User?   user;
+  int? role;
+  User? user;
+
+  final List<VoidCallback> _resetHooks = [];
+
+  void addResetHook(VoidCallback hook) {
+    if (!_resetHooks.contains(hook)) _resetHooks.add(hook);
+  }
 
   bool get isLoggedIn => FirebaseAuth.instance.currentUser != null;
 
@@ -17,7 +23,7 @@ class AuthProvider with ChangeNotifier {
     final firebaseUser = FirebaseAuth.instance.currentUser;
     if (firebaseUser == null) return;
 
-    uid  = firebaseUser.uid;
+    uid = firebaseUser.uid;
     role = await AuthService.getRole();
 
     await loadUser();
@@ -26,7 +32,7 @@ class AuthProvider with ChangeNotifier {
 
   // ── Call this immediately after a successful login or registration ──
   Future<void> login(int newRole) async {
-    uid  = FirebaseAuth.instance.currentUser?.uid;
+    uid = FirebaseAuth.instance.currentUser?.uid;
     role = newRole;
     await AuthService.saveRole(newRole);
     await loadUser();
@@ -78,12 +84,18 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Reset user-scoped providers (clear in-memory data and cancel live
+    // Firestore listeners) so no stale data survives to the next session.
+    for (final hook in List.of(_resetHooks)) {
+      hook();
+    }
+
     await AuthService.clearAll();
 
     const storage = FlutterSecureStorage();
     await storage.deleteAll();
 
-    uid  = null;
+    uid = null;
     role = null;
     user = null;
 

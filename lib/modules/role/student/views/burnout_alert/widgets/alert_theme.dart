@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../../../shared/styles/app_colors.dart';
 import '../../../models/app_enums.dart';
-import '../../../models/burnout_alert_model.dart';
 
 class AlertTheme {
   final List<Color> progressGradient;

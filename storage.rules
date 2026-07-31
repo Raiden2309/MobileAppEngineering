@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Avatar files are per-user; only the owner may upload/overwrite,
+    // any signed-in user may view them.
+    match /avatars/students/{studentUid}.jpg {
+      allow read: if isAuthenticated();
+      allow write: if request.auth.uid == studentUid;
+    }
+
+    match /avatars/lecturers/{lecturerUid}.jpg {
+      allow read: if isAuthenticated();
+      allow write: if request.auth.uid == lecturerUid;
+    }
+
+    // Everything else stays locked down by default.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

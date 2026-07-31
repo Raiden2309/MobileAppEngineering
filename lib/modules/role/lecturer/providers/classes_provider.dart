@@ -18,8 +18,8 @@ class ClassesProvider with ChangeNotifier {
   StreamSubscription? _classesSubscription;
 
   ClassesProvider({FirebaseFirestore? db, FirebaseAuth? auth})
-      : _db = db ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance {
+    : _db = db ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance {
     _auth.authStateChanges().listen((user) {
       if (user != null) startLiveClassesListener();
     });
@@ -38,20 +38,22 @@ class ClassesProvider with ChangeNotifier {
         .collection('classes')
         .where('lecturerId', isEqualTo: user.uid)
         .snapshots()
-        .listen((snapshot) {
+        .listen(
+          (snapshot) {
+            _classes = snapshot.docs.map((doc) {
+              return ClassModel.fromFirestore(doc);
+            }).toList();
 
-      _classes = snapshot.docs.map((doc) {
-        return ClassModel.fromFirestore(doc);
-      }).toList();
-
-      isLoading = false;
-      error = null;
-      notifyListeners();
-    }, onError: (e) {
-      error = e.toString();
-      isLoading = false;
-      notifyListeners();
-    });
+            isLoading = false;
+            error = null;
+            notifyListeners();
+          },
+          onError: (e) {
+            error = e.toString();
+            isLoading = false;
+            notifyListeners();
+          },
+        );
   }
 
   /// STREAM: Fetches all enrollment records for a subject and dynamically joins user data to retrieve actual student names
@@ -61,43 +63,52 @@ class ClassesProvider with ChangeNotifier {
         .where('subjectCode', isEqualTo: classCode.trim())
         .snapshots()
         .asyncMap((enrollmentSnapshot) async {
+          final List<ClassStudentModel> populatedStudentsList = [];
 
-      final List<ClassStudentModel> populatedStudentsList = [];
+          for (var doc in enrollmentSnapshot.docs) {
+            final enrollmentData = doc.data();
+            final String studentUid =
+                enrollmentData['studentId']?.toString() ?? '';
 
-      for (var doc in enrollmentSnapshot.docs) {
-        final enrollmentData = doc.data();
-        final String studentUid = enrollmentData['studentId']?.toString() ?? '';
+            String actualStudentName = 'Enrolled Student';
 
-        String actualStudentName = 'Enrolled Student';
+            if (studentUid.isNotEmpty) {
+              try {
+                // LOOKUP: Query the master user profile document matching this ID
+                final DocumentSnapshot userProfileSnapshot = await _db
+                    .collection('users')
+                    .doc(studentUid)
+                    .get();
 
-        if (studentUid.isNotEmpty) {
-          try {
-            // LOOKUP: Query the master user profile document matching this ID
-            final DocumentSnapshot userProfileSnapshot =
-            await _db.collection('users').doc(studentUid).get();
-
-            if (userProfileSnapshot.exists) {
-              final userData = userProfileSnapshot.data() as Map<String, dynamic>? ?? {};
-              // Target the exact "name" field visible in your Firestore console image
-              actualStudentName = userData['name']?.toString() ?? 'Enrolled Student';
+                if (userProfileSnapshot.exists) {
+                  final userData =
+                      userProfileSnapshot.data() as Map<String, dynamic>? ?? {};
+                  // Target the exact "name" field visible in your Firestore console image
+                  actualStudentName =
+                      userData['name']?.toString() ?? 'Enrolled Student';
+                }
+              } catch (e) {
+                debugPrint(
+                  "Failed to load real-time student profile name payload: $e",
+                );
+              }
             }
-          } catch (e) {
-            debugPrint("Failed to load real-time student profile name payload: $e");
+
+            populatedStudentsList.add(
+              ClassStudentModel(
+                studentId: studentUid,
+                name: actualStudentName,
+                weeklyStudyHours:
+                    (enrollmentData['weeklyStudyHours'] as num? ?? 0.0)
+                        .toDouble(),
+                burnoutIndex: (enrollmentData['burnoutIndex'] as num? ?? 0.0)
+                    .toDouble(),
+              ),
+            );
           }
-        }
 
-        populatedStudentsList.add(
-          ClassStudentModel(
-            studentId: studentUid,
-            name: actualStudentName,
-            weeklyStudyHours: (enrollmentData['weeklyStudyHours'] as num? ?? 0.0).toDouble(),
-            burnoutIndex: (enrollmentData['burnoutIndex'] as num? ?? 0.0).toDouble(),
-          ),
-        );
-      }
-
-      return populatedStudentsList;
-    });
+          return populatedStudentsList;
+        });
   }
 
   /// NEW REAL-TIME STREAM: Listens to updates for a specific class document
@@ -133,10 +144,10 @@ class ClassesProvider with ChangeNotifier {
       };
       // 1. Add task to master class template
       await _db.collection('classes').doc(classId).update({
-        'initialTasks': FieldValue.arrayUnion([taskMap])
+        'initialTasks': FieldValue.arrayUnion([taskMap]),
       });
 
-// 2. Query all student records tracking this specific course subject code
+      // 2. Query all student records tracking this specific course subject code
       final QuerySnapshot enrollmentsSnap = await _db
           .collection('enrollments')
           .where('subjectCode', isEqualTo: subjectCode.toUpperCase())
@@ -146,20 +157,25 @@ class ClassesProvider with ChangeNotifier {
       final WriteBatch taskWriteBatch = _db.batch();
 
       for (var doc in enrollmentsSnap.docs) {
-        final DocumentReference enrollmentDocRef = _db.collection('enrollments').doc(doc.id);
+        final DocumentReference enrollmentDocRef = _db
+            .collection('enrollments')
+            .doc(doc.id);
         final existingData = doc.data() as Map<String, dynamic>;
 
         taskWriteBatch.update(enrollmentDocRef, {
-          'tasksList':    FieldValue.arrayUnion([taskMap]),
+          'tasksList': FieldValue.arrayUnion([taskMap]),
           'pendingTasks': FieldValue.increment(1),
           // Stamp display fields if missing so TasksProvider can render the subject group
           if (!existingData.containsKey('name') || existingData['name'] == null)
-            'name':     subjectCode,
-          if (!existingData.containsKey('classId') || existingData['classId'] == null)
-            'classId':  subjectCode,
-          if (!existingData.containsKey('colorKey') || existingData['colorKey'] == null)
+            'name': subjectCode,
+          if (!existingData.containsKey('classId') ||
+              existingData['classId'] == null)
+            'classId': subjectCode,
+          if (!existingData.containsKey('colorKey') ||
+              existingData['colorKey'] == null)
             'colorKey': 'blue',
-          if (!existingData.containsKey('semester') || existingData['semester'] == null)
+          if (!existingData.containsKey('semester') ||
+              existingData['semester'] == null)
             'semester': semester,
         });
       }
@@ -189,14 +205,19 @@ class ClassesProvider with ChangeNotifier {
 
       final classData = classSnap.data() as Map<String, dynamic>;
       final String subjectCode = classData['subjectCode'] ?? '';
-      final List<dynamic> masterTasks = List.from(classData['initialTasks'] ?? []);
+      final List<dynamic> masterTasks = List.from(
+        classData['initialTasks'] ?? [],
+      );
 
-      final masterIdx = masterTasks.indexWhere((t) => t['id']?.toString() == taskId);
+      final masterIdx = masterTasks.indexWhere(
+        (t) => t['id']?.toString() == taskId,
+      );
       if (masterIdx != -1) {
         masterTasks[masterIdx]['title'] = updatedTitle;
         masterTasks[masterIdx]['description'] = updatedDescription;
         masterTasks[masterIdx]['dueDate'] = updatedDueDate;
-        masterTasks[masterIdx]['scheduledDate'] = updatedDueDate; // Keep dashboard feed tracking aligned
+        masterTasks[masterIdx]['scheduledDate'] =
+            updatedDueDate; // Keep dashboard feed tracking aligned
 
         await classDocRef.update({'initialTasks': masterTasks});
       }
@@ -211,8 +232,12 @@ class ClassesProvider with ChangeNotifier {
       final WriteBatch updateBatch = _db.batch();
 
       for (var doc in enrollmentsSnap.docs) {
-        final List<dynamic> studentTasks = List.from(doc.data()['tasksList'] ?? []);
-        final studentTaskIdx = studentTasks.indexWhere((t) => t['id']?.toString() == taskId);
+        final List<dynamic> studentTasks = List.from(
+          doc.data()['tasksList'] ?? [],
+        );
+        final studentTaskIdx = studentTasks.indexWhere(
+          (t) => t['id']?.toString() == taskId,
+        );
 
         if (studentTaskIdx != -1) {
           studentTasks[studentTaskIdx]['title'] = updatedTitle;
@@ -281,14 +306,21 @@ class ClassesProvider with ChangeNotifier {
           .replaceAll(RegExp(r'[\s-]'), '_');
       final enrollmentId = '${studentUid}_$safeClassId';
 
-      final DocumentSnapshot duplicateCheck =
-      await _db.collection('enrollments').doc(enrollmentId).get();
+      final DocumentSnapshot duplicateCheck = await _db
+          .collection('enrollments')
+          .doc(enrollmentId)
+          .get();
 
       if (duplicateCheck.exists) return false;
 
       // CRITICAL FIX: Fetch the student's actual active academic semester ID (e.g. sem_1_yr1)
-      final studentUserDoc = await _db.collection('users').doc(studentUid).get();
-      final String actualStudentSemester = studentUserDoc.data()?['currentSemesterId']?.toString() ?? 'sem_1_yr1';
+      final studentUserDoc = await _db
+          .collection('users')
+          .doc(studentUid)
+          .get();
+      final String actualStudentSemester =
+          studentUserDoc.data()?['currentSemesterId']?.toString() ??
+          'sem_1_yr1';
 
       List initialTasks = [];
       final QuerySnapshot classSnap = await _db
@@ -298,8 +330,15 @@ class ClassesProvider with ChangeNotifier {
           .get();
 
       if (classSnap.docs.isNotEmpty) {
-        final rawTasks = (classSnap.docs.first.data() as Map<String, dynamic>)['initialTasks'] as List? ?? [];
-        final String todayString = DateTime.now().toIso8601String().split('T').first;
+        final rawTasks =
+            (classSnap.docs.first.data()
+                    as Map<String, dynamic>)['initialTasks']
+                as List? ??
+            [];
+        final String todayString = DateTime.now()
+            .toIso8601String()
+            .split('T')
+            .first;
 
         initialTasks = rawTasks.map((task) {
           final taskMap = Map<String, dynamic>.from(task as Map);
@@ -309,7 +348,8 @@ class ClassesProvider with ChangeNotifier {
           // ENSURE PARSING FLAGS ARE PRESENT:
           taskMap['status'] = 'pending';
           taskMap['isCompleted'] = false;
-          taskMap['createdAt'] = taskMap['createdAt'] ?? DateTime.now().toIso8601String();
+          taskMap['createdAt'] =
+              taskMap['createdAt'] ?? DateTime.now().toIso8601String();
           return taskMap;
         }).toList();
       }
@@ -325,7 +365,8 @@ class ClassesProvider with ChangeNotifier {
         'burnoutIndex': 0.0,
         'tasksList': initialTasks,
         'joinedAt': FieldValue.serverTimestamp(),
-        'semester': actualStudentSemester, // Passes structural requirement validation check
+        'semester':
+            actualStudentSemester, // Passes structural requirement validation check
       });
 
       notifyListeners();
@@ -380,6 +421,15 @@ class ClassesProvider with ChangeNotifier {
       debugPrint('removeStudentFromClass error: $e');
       return false;
     }
+  }
+
+  void reset() {
+    _classesSubscription?.cancel();
+    _classesSubscription = null;
+    _classes = [];
+    isLoading = false;
+    error = null;
+    notifyListeners();
   }
 
   @override

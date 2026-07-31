@@ -14,7 +14,8 @@ class ClassModel {
   int studentCount;
   double avgCompletion;
   int atRiskCount;
-  final List<dynamic> initialTasks; // ADDED: Field for tracking class blueprint tasks
+  final List<dynamic>
+  initialTasks; // ADDED: Field for tracking class blueprint tasks
 
   ClassModel({
     required this.id,
@@ -37,7 +38,10 @@ class ClassModel {
     return ClassModel(
       id: doc.id,
       name: data['name']?.toString() ?? 'Unknown Class',
-      code: data['subjectCode']?.toString() ?? data['classCode']?.toString() ?? 'COMP000',
+      code:
+          data['subjectCode']?.toString() ??
+          data['classCode']?.toString() ??
+          'COMP000',
       subjectCode: data['subjectCode']?.toString() ?? '',
       classCode: data['classCode']?.toString() ?? '',
       semester: data['semester']?.toString() ?? 'Semester 1',
@@ -47,7 +51,9 @@ class ClassModel {
       studentCount: (data['studentCount'] as num? ?? 0).toInt(),
       avgCompletion: (data['avgCompletion'] as num? ?? 0.0).toDouble(),
       atRiskCount: (data['atRiskCount'] as num? ?? 0).toInt(),
-      initialTasks: data['initialTasks'] as List<dynamic>? ?? [], // FIXED: Read task template array from Firestore
+      initialTasks:
+          data['initialTasks'] as List<dynamic>? ??
+          [], // FIXED: Read task template array from Firestore
     );
   }
 
@@ -59,7 +65,8 @@ class ClassModel {
       'semester': semester,
       'lecturerId': lecturerId,
       'join_code': joinCode,
-      'accentColor': '0x${accentColor.value.toRadixString(16).toUpperCase()}',
+      'accentColor':
+          '0x${accentColor.toARGB32().toRadixString(16).toUpperCase()}',
       'studentCount': studentCount,
       'avgCompletion': avgCompletion,
       'atRiskCount': atRiskCount,

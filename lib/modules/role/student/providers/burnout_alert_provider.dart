@@ -11,8 +11,8 @@ class BurnoutAlertProvider with ChangeNotifier {
   final FirebaseFirestore _db;
   final FirebaseAuth _auth;
   BurnoutAlertProvider({FirebaseFirestore? db, FirebaseAuth? auth})
-      : _db = db ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance;
+    : _db = db ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance;
 
   // Centralized cache link
   LocalCacheService? _cacheEngine;
@@ -34,14 +34,14 @@ class BurnoutAlertProvider with ChangeNotifier {
     if (uid == null || alert == null) return;
     try {
       final encoded = jsonEncode({
-        'type':               alert!.type.name,
-        'title':              alert!.title,
-        'description':        alert!.description,
-        'hoursStudied':       alert!.hoursStudied,
-        'workloadProgress':   alert!.workloadProgress,
-        'workloadLevel':      alert!.workloadLevel.name,
+        'type': alert!.type.name,
+        'title': alert!.title,
+        'description': alert!.description,
+        'hoursStudied': alert!.hoursStudied,
+        'workloadProgress': alert!.workloadProgress,
+        'workloadLevel': alert!.workloadLevel.name,
         'primaryActionLabel': alert!.primaryActionLabel,
-        'dismissLabel':       alert!.dismissLabel,
+        'dismissLabel': alert!.dismissLabel,
       });
       await _cacheEngine?.write(_cacheKey(uid), encoded);
     } catch (e) {
@@ -56,16 +56,24 @@ class BurnoutAlertProvider with ChangeNotifier {
       final decoded = await _cacheEngine?.read(_cacheKey(uid));
       if (decoded == null) return false;
 
-      final Map<String, dynamic> map = decoded is String ? jsonDecode(decoded) : Map<String, dynamic>.from(decoded);
+      final Map<String, dynamic> map = decoded is String
+          ? jsonDecode(decoded)
+          : Map<String, dynamic>.from(decoded);
       alert = BurnoutAlertModel(
-        type:               BurnoutAlertType.values.firstWhere((e) => e.name == map['type'], orElse: () => BurnoutAlertType.allGood),
-        title:              map['title'] ?? '',
-        description:        map['description'] ?? '',
-        hoursStudied:       (map['hoursStudied'] as num? ?? 0.0).toDouble(),
-        workloadProgress:   (map['workloadProgress'] as num? ?? 0.0).toDouble(),
-        workloadLevel:      WorkloadLevel.values.firstWhere((e) => e.name == map['workloadLevel'], orElse: () => WorkloadLevel.low),
+        type: BurnoutAlertType.values.firstWhere(
+          (e) => e.name == map['type'],
+          orElse: () => BurnoutAlertType.allGood,
+        ),
+        title: map['title'] ?? '',
+        description: map['description'] ?? '',
+        hoursStudied: (map['hoursStudied'] as num? ?? 0.0).toDouble(),
+        workloadProgress: (map['workloadProgress'] as num? ?? 0.0).toDouble(),
+        workloadLevel: WorkloadLevel.values.firstWhere(
+          (e) => e.name == map['workloadLevel'],
+          orElse: () => WorkloadLevel.low,
+        ),
         primaryActionLabel: map['primaryActionLabel'] ?? '',
-        dismissLabel:       map['dismissLabel'] ?? '',
+        dismissLabel: map['dismissLabel'] ?? '',
       );
       return true;
     } catch (e) {
@@ -99,82 +107,99 @@ class BurnoutAlertProvider with ChangeNotifier {
         .collection('enrollments')
         .where('studentId', isEqualTo: uid)
         .snapshots()
-        .listen((snapshot) {
-      double accumulatedStudyHours    = 0.0;
-      int totalPendingTasksCount      = 0;
-      double extremeBurnoutPeakIndex  = 0.0;
+        .listen(
+          (snapshot) {
+            double accumulatedStudyHours = 0.0;
+            int totalPendingTasksCount = 0;
+            double extremeBurnoutPeakIndex = 0.0;
 
-      for (var doc in snapshot.docs) {
-        final payload = doc.data();
-        accumulatedStudyHours   += (payload['weeklyStudyHours'] as num? ?? 0.0).toDouble();
-        totalPendingTasksCount  += (payload['pendingTasks']     as num? ?? 0).toInt();
+            for (var doc in snapshot.docs) {
+              final payload = doc.data();
+              accumulatedStudyHours +=
+                  (payload['weeklyStudyHours'] as num? ?? 0.0).toDouble();
+              totalPendingTasksCount += (payload['pendingTasks'] as num? ?? 0)
+                  .toInt();
 
-        final double specificIndex = (payload['burnoutIndex'] as num? ?? 0.0).toDouble();
-        if (specificIndex > extremeBurnoutPeakIndex) {
-          extremeBurnoutPeakIndex = specificIndex;
-        }
-      }
+              final double specificIndex =
+                  (payload['burnoutIndex'] as num? ?? 0.0).toDouble();
+              if (specificIndex > extremeBurnoutPeakIndex) {
+                extremeBurnoutPeakIndex = specificIndex;
+              }
+            }
 
-      BurnoutAlertType calculatedType;
-      WorkloadLevel calculatedLevel;
-      String titleText;
-      String primaryBtnLabel;
-      String staticAdviceMessage;
+            BurnoutAlertType calculatedType;
+            WorkloadLevel calculatedLevel;
+            String titleText;
+            String primaryBtnLabel;
+            String staticAdviceMessage;
 
-      final double pendingTasksRatio = (totalPendingTasksCount / _totalTasksCount.toDouble()).clamp(0.0, 1.0);
-      final double compositeScore = (extremeBurnoutPeakIndex * 0.55) +
-          (pendingTasksRatio * 0.25) +
-          ((accumulatedStudyHours / 40).clamp(0.0, 1.0) * 0.20);
+            final double pendingTasksRatio =
+                (totalPendingTasksCount / _totalTasksCount.toDouble()).clamp(
+                  0.0,
+                  1.0,
+                );
+            final double compositeScore =
+                (extremeBurnoutPeakIndex * 0.55) +
+                (pendingTasksRatio * 0.25) +
+                ((accumulatedStudyHours / 40).clamp(0.0, 1.0) * 0.20);
 
-      if (compositeScore > 0.75 || extremeBurnoutPeakIndex > 0.75) {
-        calculatedType = BurnoutAlertType.overload;
-        calculatedLevel = WorkloadLevel.critical;
-        titleText = "Critical Burnout Risk!";
-        primaryBtnLabel = "Reschedule Workload";
-        staticAdviceMessage = "Your concurrent workload across enrolled tracks has crossed into the red zone. We strongly advise pausing secondary targets, spacing pending micro-tasks, and prioritizing sleep tonight.";
-      } else if (compositeScore > 0.5 || extremeBurnoutPeakIndex > 0.45 || accumulatedStudyHours > 35) {
-        calculatedType = BurnoutAlertType.burnout;
-        calculatedLevel = WorkloadLevel.high;
-        titleText = "Burnout Alert";
-        primaryBtnLabel = "Take a Break";
-        staticAdviceMessage = "You have a heavy number of pending tasks building up. Consider breaking them into smaller sessions and clearing your backlog gradually to avoid hitting a wall.";
-      } else if (compositeScore > 0.25 || totalPendingTasksCount > 3) {
-        calculatedType = BurnoutAlertType.warning;
-        calculatedLevel = WorkloadLevel.moderate;
-        titleText = "Approaching Burnout";
-        primaryBtnLabel = "Review Study Blocks";
-        staticAdviceMessage = "Pacing indicators suggest elevated study strain on your tracking boards. Pacing your study sessions out evenly this week will keep you comfortable and on track.";
-      } else {
-        calculatedType = BurnoutAlertType.allGood;
-        calculatedLevel = WorkloadLevel.low;
-        titleText = "Looking Great!";
-        primaryBtnLabel = "View Dashboard";
-        staticAdviceMessage = "Your assignment pipeline is completely balanced and clear. You are maintaining an excellent healthy workflow—keep up this incredible momentum!";
-      }
+            if (compositeScore > 0.75 || extremeBurnoutPeakIndex > 0.75) {
+              calculatedType = BurnoutAlertType.overload;
+              calculatedLevel = WorkloadLevel.critical;
+              titleText = "Critical Burnout Risk!";
+              primaryBtnLabel = "Reschedule Workload";
+              staticAdviceMessage =
+                  "Your concurrent workload across enrolled tracks has crossed into the red zone. We strongly advise pausing secondary targets, spacing pending micro-tasks, and prioritizing sleep tonight.";
+            } else if (compositeScore > 0.5 ||
+                extremeBurnoutPeakIndex > 0.45 ||
+                accumulatedStudyHours > 35) {
+              calculatedType = BurnoutAlertType.burnout;
+              calculatedLevel = WorkloadLevel.high;
+              titleText = "Burnout Alert";
+              primaryBtnLabel = "Take a Break";
+              staticAdviceMessage =
+                  "You have a heavy number of pending tasks building up. Consider breaking them into smaller sessions and clearing your backlog gradually to avoid hitting a wall.";
+            } else if (compositeScore > 0.25 || totalPendingTasksCount > 3) {
+              calculatedType = BurnoutAlertType.warning;
+              calculatedLevel = WorkloadLevel.moderate;
+              titleText = "Approaching Burnout";
+              primaryBtnLabel = "Review Study Blocks";
+              staticAdviceMessage =
+                  "Pacing indicators suggest elevated study strain on your tracking boards. Pacing your study sessions out evenly this week will keep you comfortable and on track.";
+            } else {
+              calculatedType = BurnoutAlertType.allGood;
+              calculatedLevel = WorkloadLevel.low;
+              titleText = "Looking Great!";
+              primaryBtnLabel = "View Dashboard";
+              staticAdviceMessage =
+                  "Your assignment pipeline is completely balanced and clear. You are maintaining an excellent healthy workflow—keep up this incredible momentum!";
+            }
 
-      alert = BurnoutAlertModel(
-        type: calculatedType,
-        title: titleText,
-        description: staticAdviceMessage,
-        hoursStudied: accumulatedStudyHours,
-        workloadProgress: compositeScore.clamp(0.0, 1.0),
-        workloadLevel: calculatedLevel,
-        primaryActionLabel: primaryBtnLabel,
-        dismissLabel: 'Dismiss warning',
-      );
+            alert = BurnoutAlertModel(
+              type: calculatedType,
+              title: titleText,
+              description: staticAdviceMessage,
+              hoursStudied: accumulatedStudyHours,
+              workloadProgress: compositeScore.clamp(0.0, 1.0),
+              workloadLevel: calculatedLevel,
+              primaryActionLabel: primaryBtnLabel,
+              dismissLabel: 'Dismiss warning',
+            );
 
-      loading = false;
-      isOffline = false;
-      _saveToCache();
-      notifyListeners();
-    }, onError: (e) {
-      error = e.toString();
-      loading = false;
-      _loadFromCache().then((hasCached) {
-        isOffline = hasCached;
-        notifyListeners();
-      });
-    });
+            loading = false;
+            isOffline = false;
+            _saveToCache();
+            notifyListeners();
+          },
+          onError: (e) {
+            error = e.toString();
+            loading = false;
+            _loadFromCache().then((hasCached) {
+              isOffline = hasCached;
+              notifyListeners();
+            });
+          },
+        );
   }
 
   void evaluateSession({required double hoursStudied}) {}
@@ -188,6 +213,16 @@ class BurnoutAlertProvider with ChangeNotifier {
     alert = null;
     error = null;
     loading = false;
+    notifyListeners();
+  }
+
+  void reset() {
+    _burnoutSubscription?.cancel();
+    _burnoutSubscription = null;
+    alert = null;
+    error = null;
+    loading = false;
+    isOffline = false;
     notifyListeners();
   }
 

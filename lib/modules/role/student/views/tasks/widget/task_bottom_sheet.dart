@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../../../shared/styles/app_colors.dart';
-import '../../../../../../shared/styles/font_styles.dart';
 import '../../../controllers/tasks_controller.dart';
 import '../../../models/app_enums.dart';
 import '../../../models/tasks_model.dart';
@@ -25,12 +23,12 @@ class TaskBottomSheet extends StatefulWidget {
   });
 
   static Future<void> show(
-      BuildContext context, {
-        required TaskController controller,
-        required List<SubjectGroup> groups,
-        SubjectGroup? group,
-        Task? existing,
-      }) {
+    BuildContext context, {
+    required TaskController controller,
+    required List<SubjectGroup> groups,
+    SubjectGroup? group,
+    Task? existing,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -61,13 +59,18 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
   bool get isEditing => widget.existing != null;
 
   TaskStatus _computeLiveStatus(Task task) {
-    if (task.status == TaskStatus.completed || task.status == TaskStatus.inProgress) {
+    if (task.status == TaskStatus.completed ||
+        task.status == TaskStatus.inProgress) {
       return task.status;
     }
     if (task.dueDate == null) return task.status;
     final now = DateTime.now();
     final todayDate = DateTime(now.year, now.month, now.day);
-    final taskDate = DateTime(task.dueDate!.year, task.dueDate!.month, task.dueDate!.day);
+    final taskDate = DateTime(
+      task.dueDate!.year,
+      task.dueDate!.month,
+      task.dueDate!.day,
+    );
     if (taskDate.isBefore(todayDate)) return TaskStatus.overdue;
     if (taskDate.isAtSameMomentAs(todayDate)) return TaskStatus.dueToday;
     final diff = taskDate.difference(todayDate).inDays;
@@ -78,9 +81,13 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.existing?.title ?? '');
+    _titleController = TextEditingController(
+      text: widget.existing?.title ?? '',
+    );
     _hoursController = TextEditingController(
-      text: widget.existing != null ? widget.existing!.estimatedHours.toString() : '',
+      text: widget.existing != null
+          ? widget.existing!.estimatedHours.toString()
+          : '',
     );
     _status = widget.existing != null
         ? _computeLiveStatus(widget.existing!)
@@ -88,9 +95,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     _selectedGroup = widget.groups.isEmpty
         ? null
         : widget.groups.firstWhere(
-          (g) => g.id == (widget.group?.id ?? widget.groups.first.id),
-      orElse: () => widget.groups.first,
-    );
+            (g) => g.id == (widget.group?.id ?? widget.groups.first.id),
+            orElse: () => widget.groups.first,
+          );
     _selectedDueDate = widget.existing?.dueDate;
   }
 
@@ -116,7 +123,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
               surface: Color(0xFF1E2330),
               onSurface: AppColors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF1E2330),
+            dialogTheme: DialogThemeData(
+              backgroundColor: const Color(0xFF1E2330),
+            ),
           ),
           child: child!,
         );
@@ -126,7 +135,8 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     if (picked != null && picked != _selectedDueDate) {
       setState(() {
         _selectedDueDate = picked;
-        if (_status != TaskStatus.completed && _status != TaskStatus.inProgress) {
+        if (_status != TaskStatus.completed &&
+            _status != TaskStatus.inProgress) {
           final now = DateTime.now();
           final todayDate = DateTime(now.year, now.month, now.day);
           final taskDate = DateTime(picked.year, picked.month, picked.day);
@@ -172,7 +182,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
       );
     } else {
       try {
-        final docRef = FirebaseFirestore.instance.collection('enrollments').doc(_selectedGroup!.id);
+        final docRef = FirebaseFirestore.instance
+            .collection('enrollments')
+            .doc(_selectedGroup!.id);
         final newTaskMap = {
           'id': DateTime.now().millisecondsSinceEpoch.toString(),
           'title': title,
@@ -183,11 +195,14 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
 
         await docRef.update({
           'tasksList': FieldValue.arrayUnion([newTaskMap]),
-          'pendingTasks': FieldValue.increment(_status != TaskStatus.completed ? 1 : 0),
-          'completedTasks': FieldValue.increment(_status == TaskStatus.completed ? 1 : 0),
+          'pendingTasks': FieldValue.increment(
+            _status != TaskStatus.completed ? 1 : 0,
+          ),
+          'completedTasks': FieldValue.increment(
+            _status == TaskStatus.completed ? 1 : 0,
+          ),
         });
         widget.controller.refreshCache();
-
       } catch (e) {
         debugPrint('Failed to save task: $e');
       }
@@ -200,7 +215,8 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
     if (mounted) Navigator.pop(context);
   }
 
-  void _confirmDelete() => ConfirmDeleteWidget.show(context, onConfirm: _delete);
+  void _confirmDelete() =>
+      ConfirmDeleteWidget.show(context, onConfirm: _delete);
 
   @override
   Widget build(BuildContext context) {
@@ -211,7 +227,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
       if (!matches) {
         _selectedGroup = widget.groups.first;
       } else {
-        _selectedGroup = widget.groups.firstWhere((g) => g.id == _selectedGroup!.id);
+        _selectedGroup = widget.groups.firstWhere(
+          (g) => g.id == _selectedGroup!.id,
+        );
       }
     }
 
@@ -241,7 +259,11 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
             children: [
               Text(
                 isEditing ? 'Edit Task' : 'Add Task',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
               ),
               Row(
                 children: [
@@ -253,10 +275,14 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
                         height: 32,
                         margin: const EdgeInsets.only(right: 8),
                         decoration: BoxDecoration(
-                          color: AppColors.red.withOpacity(0.15),
+                          color: AppColors.red.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.red),
+                        child: Icon(
+                          Icons.delete_outline_rounded,
+                          size: 16,
+                          color: AppColors.red,
+                        ),
                       ),
                     ),
                   IconButton(
@@ -273,7 +299,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            isEditing ? 'Update the details below.' : 'Fill in the details to add a new task.',
+            isEditing
+                ? 'Update the details below.'
+                : 'Fill in the details to add a new task.',
             style: const TextStyle(fontSize: 12, color: Colors.white54),
           ),
           const SizedBox(height: 20),
@@ -288,7 +316,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
                   value: _selectedGroup,
                   items: widget.groups,
                   labelOf: (g) => g.name,
-                  onChanged: isEditing ? null : (g) => setState(() => _selectedGroup = g),
+                  onChanged: isEditing
+                      ? null
+                      : (g) => setState(() => _selectedGroup = g),
                   hintText: 'No subjects loaded',
                 ),
               ),
@@ -316,7 +346,9 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
               }),
             ],
             errorText: _hoursError,
-            onChanged: (_) { if (_hoursError != null) setState(() => _hoursError = null); },
+            onChanged: (_) {
+              if (_hoursError != null) setState(() => _hoursError = null);
+            },
           ),
 
           const SizedBox(height: 12),
@@ -337,13 +369,21 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
                   Text(
                     _selectedDueDate == null
                         ? 'Select deadline date...'
-                        : DateFormat('yyyy-MM-dd (EEEE)').format(_selectedDueDate!),
+                        : DateFormat(
+                            'yyyy-MM-dd (EEEE)',
+                          ).format(_selectedDueDate!),
                     style: TextStyle(
                       fontSize: 13,
-                      color: _selectedDueDate == null ? Colors.white38 : AppColors.white,
+                      color: _selectedDueDate == null
+                          ? Colors.white38
+                          : AppColors.white,
                     ),
                   ),
-                  const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.white54),
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: Colors.white54,
+                  ),
                 ],
               ),
             ),
@@ -366,19 +406,24 @@ class _TaskBottomSheetState extends State<TaskBottomSheet> {
                 backgroundColor: AppColors.black,
                 foregroundColor: AppColors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
               onPressed: _saving ? null : _save,
               child: _saving
                   ? const SizedBox(
-                height: 16,
-                width: 16,
-                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-              )
+                      height: 16,
+                      width: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    )
                   : Text(
-                isEditing ? 'Save Changes' : 'Add Task',
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
+                      isEditing ? 'Save Changes' : 'Add Task',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
             ),
           ),
         ],
@@ -395,7 +440,11 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white),
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.white,
+      ),
     );
   }
 }
@@ -453,7 +502,10 @@ class _Field extends StatelessWidget {
         ),
         errorText: errorText,
         errorStyle: const TextStyle(color: Colors.redAccent, fontSize: 11),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 11,
+        ),
       ),
     );
   }
@@ -487,19 +539,29 @@ class _Dropdown<T> extends StatelessWidget {
           value: value,
           isExpanded: true,
           hint: hintText.isNotEmpty
-              ? Text(hintText, style: const TextStyle(fontSize: 13, color: Colors.white38))
+              ? Text(
+                  hintText,
+                  style: const TextStyle(fontSize: 13, color: Colors.white38),
+                )
               : null,
           dropdownColor: const Color(0xFF1E2330),
           iconEnabledColor: Colors.white54,
           iconDisabledColor: Colors.white24,
           onChanged: onChanged,
-          items: items.map((item) => DropdownMenuItem(
-            value: item,
-            child: Text(
-              labelOf(item),
-              style: const TextStyle(fontSize: 13, color: AppColors.white),
-            ),
-          )).toList(),
+          items: items
+              .map(
+                (item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(
+                    labelOf(item),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
         ),
       ),
     );

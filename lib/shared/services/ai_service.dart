@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 
 class AiService {
-  // Put your actual Google AI Studio key here
-  static const String _apiKey = 'AIzaSyDde40Mgc-MTNBp1OwIXY0EhcTxLLLgk1Q';
+  /// Provide via: flutter run --dart-define=GEMINI_API_KEY=...
+  static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY');
 
   /// Generates a structured personalized weekly study plan from the student's metrics
   static Future<Map<String, dynamic>> generateStudyPlan({
@@ -15,7 +15,6 @@ class AiService {
     required String burnoutLevel,
     required String startDateIso,
   }) async {
-
     // 1. Initialize the target generation model
     final model = GenerativeModel(
       model: 'gemini-2.0-flash',
@@ -23,7 +22,8 @@ class AiService {
       // Force the engine to output strict JSON compliance structure layouts
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
-        temperature: 0.3, // Lower temperature keeps scheduling rules highly consistent
+        temperature:
+            0.3, // Lower temperature keeps scheduling rules highly consistent
       ),
     );
 
@@ -121,20 +121,19 @@ RESPONSE SCHEMA (return this exact structure, nothing else):
 
     // 3. Format incoming workspace metrics to the structured user payload schema
     final Map<String, dynamic> userRequestMap = {
-      'tasks':             tasks,
+      'tasks': tasks,
       'enrolled_subjects': enrolledSubjects,
-      'study_window': {
-        'start': studyStart,
-        'end':   studyEnd,
-      },
+      'study_window': {'start': studyStart, 'end': studyEnd},
       'blocked_slots': blockedSlots,
       'burnout_level': burnoutLevel,
-      'start_date':    startDateIso,
+      'start_date': startDateIso,
     };
 
     // Construct the explicit multi-part context prompt array
     final prompt = [
-      Content.text('$systemInstruction\n\nUser Input data:\n${jsonEncode(userRequestMap)}')
+      Content.text(
+        '$systemInstruction\n\nUser Input data:\n${jsonEncode(userRequestMap)}',
+      ),
     ];
 
     try {
@@ -145,7 +144,9 @@ RESPONSE SCHEMA (return this exact structure, nothing else):
         // Parse the raw response directly to a clean Dart map layout structure
         return jsonDecode(rawJsonString) as Map<String, dynamic>;
       } else {
-        throw Exception('The AI generation service returned an empty schedule response.');
+        throw Exception(
+          'The AI generation service returned an empty schedule response.',
+        );
       }
     } catch (e) {
       throw Exception('Failed to finalize AI study plan optimization: $e');

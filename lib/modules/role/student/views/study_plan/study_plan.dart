@@ -4,7 +4,6 @@ import '../../../../../shared/styles/font_styles.dart';
 import '../../controllers/study_plan_controller.dart';
 import '../study_plan/widget/study_schedule.dart';
 import '../../../../../shared/styles/app_colors.dart';
-import '../../models/study_plan_model.dart';
 
 class StudyPlanPage extends StatefulWidget {
   final StudyPlanController controller;
@@ -76,19 +75,25 @@ class StudyPlanPageState extends State<StudyPlanPage> {
               ),
               const SizedBox(height: 14),
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border:
-                  Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.auto_awesome_rounded,
-                        color: Colors.white, size: 14),
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      color: Colors.white,
+                      size: 14,
+                    ),
                     SizedBox(width: 6),
                     Text(
                       'AI-generated · Last updated today',
@@ -137,14 +142,21 @@ class StudyPlanPageState extends State<StudyPlanPage> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
                     color: AppColors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(AppColors.glassBorderRadius),
-                    border: Border.all(color: AppColors.white.withValues(alpha: 0.4)),
+                    borderRadius: BorderRadius.circular(
+                      AppColors.glassBorderRadius,
+                    ),
+                    border: Border.all(
+                      color: AppColors.white.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.refresh_rounded,
-                          color: AppColors.black, size: 18),
+                      Icon(
+                        Icons.refresh_rounded,
+                        color: AppColors.black,
+                        size: 18,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         "Regenerate this week's plan",

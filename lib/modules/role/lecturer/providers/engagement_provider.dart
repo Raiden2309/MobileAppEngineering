@@ -13,7 +13,7 @@ class EngagementProvider extends ChangeNotifier {
   String get selectedFilter => _selectedFilter;
 
   List<Map<String, String>> _filters = [
-    {'key': 'all', 'label': 'All Classes'}
+    {'key': 'all', 'label': 'All Classes'},
   ];
   List<Map<String, String>> get filters => _filters;
 
@@ -32,8 +32,8 @@ class EngagementProvider extends ChangeNotifier {
   StreamSubscription? _enrollmentsSubscription;
 
   EngagementProvider({FirebaseFirestore? db, FirebaseAuth? auth})
-      : _db = db ?? FirebaseFirestore.instance,
-        _auth = auth ?? FirebaseAuth.instance {
+    : _db = db ?? FirebaseFirestore.instance,
+      _auth = auth ?? FirebaseAuth.instance {
     initLiveEngagementStream();
   }
 
@@ -44,16 +44,16 @@ class EngagementProvider extends ChangeNotifier {
     int low = 0;
 
     for (var student in filteredStudents) {
-      if (student.workload == 'High') high++;
-      else if (student.workload == 'Medium') medium++;
-      else if (student.workload == 'Low') low++;
+      if (student.workload == 'High') {
+        high++;
+      } else if (student.workload == 'Medium') {
+        medium++;
+      } else if (student.workload == 'Low') {
+        low++;
+      }
     }
 
-    return {
-      'High': high,
-      'Medium': medium,
-      'Low': low,
-    };
+    return {'High': high, 'Medium': medium, 'Low': low};
   }
 
   /// DYNAMIC GETTER: Calculates completion rates for progress bars indexed by unique subject codes
@@ -66,10 +66,13 @@ class EngagementProvider extends ChangeNotifier {
         final Match? match = regExp.firstMatch(doc.meta);
 
         if (match != null) {
-          final double burnoutValue = double.tryParse(match.group(1) ?? '0') ?? 0.0;
+          final double burnoutValue =
+              double.tryParse(match.group(1) ?? '0') ?? 0.0;
           final double simulatedProgress = (100.0 - burnoutValue) / 100.0;
 
-          completionGroups.putIfAbsent(classCode, () => []).add(simulatedProgress);
+          completionGroups
+              .putIfAbsent(classCode, () => [])
+              .add(simulatedProgress);
         }
       }
     }
@@ -77,7 +80,9 @@ class EngagementProvider extends ChangeNotifier {
     final Map<String, double> targetAverages = {};
     completionGroups.forEach((subjectKey, numericList) {
       if (numericList.isNotEmpty) {
-        targetAverages[subjectKey] = numericList.reduce((valA, valB) => valA + valB) / numericList.length;
+        targetAverages[subjectKey] =
+            numericList.reduce((valA, valB) => valA + valB) /
+            numericList.length;
       }
     });
 
@@ -97,91 +102,98 @@ class EngagementProvider extends ChangeNotifier {
         .where('lecturerId', isEqualTo: user.uid)
         .snapshots()
         .listen((classesSnapshot) {
+          final List<Map<String, String>> activeFilters = [
+            {'key': 'all', 'label': 'All Classes'},
+          ];
+          final List<String> managedClassNames = [];
 
-      final List<Map<String, String>> activeFilters = [
-        {'key': 'all', 'label': 'All Classes'}
-      ];
-      final List<String> managedClassNames = [];
+          for (var doc in classesSnapshot.docs) {
+            final data = doc.data();
+            final String name = data['name']?.toString() ?? '';
+            final String code = (data['subjectCode'] ?? data['classCode'] ?? '')
+                .toString()
+                .toLowerCase();
 
-      for (var doc in classesSnapshot.docs) {
-        final data = doc.data();
-        final String name = data['name']?.toString() ?? '';
-        final String code = (data['subjectCode'] ?? data['classCode'] ?? '').toString().toLowerCase();
-
-        if (name.isNotEmpty && code.isNotEmpty) {
-          managedClassNames.add(name);
-          activeFilters.add({
-            'key': code,
-            'label': name,
-          });
-        }
-      }
-
-      _filters = activeFilters;
-
-      if (managedClassNames.isEmpty) {
-        _students = [];
-        _avgCompletion = 0.0;
-        _totalStudents = 0;
-        isLoading = false;
-        notifyListeners();
-        return;
-      }
-
-      _enrollmentsSubscription?.cancel();
-      _enrollmentsSubscription = _db
-          .collection('enrollments')
-          .where('classId', whereIn: managedClassNames)
-          .snapshots()
-          .listen((enrollmentSnapshot) {
-
-        double totalProgressSum = 0.0;
-        int dynamicStudentCount = 0;
-
-        _students = enrollmentSnapshot.docs.map((doc) {
-          final data = doc.data();
-          final String sName = data['studentName']?.toString() ?? 'Student';
-          final String classId = data['classId']?.toString() ?? 'General';
-          final String subCode = (data['subjectCode'] ?? '').toString().toLowerCase();
-
-          final double burnout = (data['burnoutIndex'] as num? ?? 0.0).toDouble();
-          final int completed = (data['completedTasks'] as num? ?? 0).toInt();
-          final int pending = (data['pendingTasks'] as num? ?? 0).toInt();
-
-          final int combinedTasks = completed + pending;
-          if (combinedTasks > 0) {
-            totalProgressSum += (completed / combinedTasks);
-            dynamicStudentCount++;
+            if (name.isNotEmpty && code.isNotEmpty) {
+              managedClassNames.add(name);
+              activeFilters.add({'key': code, 'label': name});
+            }
           }
 
-          String workloadLabel = 'Low';
-          Color workloadColor = AppColors.greenSheen;
+          _filters = activeFilters;
 
-          if (burnout >= 0.70 || pending > 3) {
-            workloadLabel = 'High';
-            workloadColor = AppColors.red;
-          } else if (burnout >= 0.40 || pending > 1) {
-            workloadLabel = 'Medium';
-            workloadColor = AppColors.mikadoYellow;
+          if (managedClassNames.isEmpty) {
+            _students = [];
+            _avgCompletion = 0.0;
+            _totalStudents = 0;
+            isLoading = false;
+            notifyListeners();
+            return;
           }
 
-          return EngagementStudentModel(
-            initials: sName.isNotEmpty ? sName[0].toUpperCase() : 'S',
-            name: sName,
-            meta: '$classId · Burnout Index: ${(burnout * 100).toStringAsFixed(0)}%',
-            workload: workloadLabel,
-            workloadColor: workloadColor,
-            classes: [subCode],
-          );
-        }).toList();
+          _enrollmentsSubscription?.cancel();
+          _enrollmentsSubscription = _db
+              .collection('enrollments')
+              .where('classId', whereIn: managedClassNames)
+              .snapshots()
+              .listen((enrollmentSnapshot) {
+                double totalProgressSum = 0.0;
+                int dynamicStudentCount = 0;
 
-        _totalStudents = enrollmentSnapshot.docs.length;
-        _avgCompletion = dynamicStudentCount > 0 ? (totalProgressSum / dynamicStudentCount) : 0.0;
+                _students = enrollmentSnapshot.docs.map((doc) {
+                  final data = doc.data();
+                  final String sName =
+                      data['studentName']?.toString() ?? 'Student';
+                  final String classId =
+                      data['classId']?.toString() ?? 'General';
+                  final String subCode = (data['subjectCode'] ?? '')
+                      .toString()
+                      .toLowerCase();
 
-        isLoading = false;
-        notifyListeners();
-      });
-    });
+                  final double burnout = (data['burnoutIndex'] as num? ?? 0.0)
+                      .toDouble();
+                  final int completed = (data['completedTasks'] as num? ?? 0)
+                      .toInt();
+                  final int pending = (data['pendingTasks'] as num? ?? 0)
+                      .toInt();
+
+                  final int combinedTasks = completed + pending;
+                  if (combinedTasks > 0) {
+                    totalProgressSum += (completed / combinedTasks);
+                    dynamicStudentCount++;
+                  }
+
+                  String workloadLabel = 'Low';
+                  Color workloadColor = AppColors.greenSheen;
+
+                  if (burnout >= 0.70 || pending > 3) {
+                    workloadLabel = 'High';
+                    workloadColor = AppColors.red;
+                  } else if (burnout >= 0.40 || pending > 1) {
+                    workloadLabel = 'Medium';
+                    workloadColor = AppColors.mikadoYellow;
+                  }
+
+                  return EngagementStudentModel(
+                    initials: sName.isNotEmpty ? sName[0].toUpperCase() : 'S',
+                    name: sName,
+                    meta:
+                        '$classId · Burnout Index: ${(burnout * 100).toStringAsFixed(0)}%',
+                    workload: workloadLabel,
+                    workloadColor: workloadColor,
+                    classes: [subCode],
+                  );
+                }).toList();
+
+                _totalStudents = enrollmentSnapshot.docs.length;
+                _avgCompletion = dynamicStudentCount > 0
+                    ? (totalProgressSum / dynamicStudentCount)
+                    : 0.0;
+
+                isLoading = false;
+                notifyListeners();
+              });
+        });
   }
 
   List<EngagementStudentModel> get filteredStudents {
@@ -191,6 +203,19 @@ class EngagementProvider extends ChangeNotifier {
 
   void setFilter(String filter) {
     _selectedFilter = filter;
+    notifyListeners();
+  }
+
+  void reset() {
+    _classesSubscription?.cancel();
+    _classesSubscription = null;
+    _enrollmentsSubscription?.cancel();
+    _enrollmentsSubscription = null;
+    _selectedFilter = 'all';
+    _students = [];
+    isLoading = false;
+    _avgCompletion = 0.0;
+    _totalStudents = 0;
     notifyListeners();
   }
 

@@ -15,7 +15,11 @@ class SubjectTasksSheet extends StatelessWidget {
     required this.subjectName,
   });
 
-  static void show(BuildContext context, {required String enrollmentDocId, required String subjectName}) {
+  static void show(
+    BuildContext context, {
+    required String enrollmentDocId,
+    required String subjectName,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -57,7 +61,11 @@ class SubjectTasksSheet extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             subjectName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.white),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.white,
+            ),
           ),
           const SizedBox(height: 4),
           const Text(
@@ -73,25 +81,38 @@ class SubjectTasksSheet extends StatelessWidget {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AppColors.californiaBlue));
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.californiaBlue,
+                    ),
+                  );
                 }
 
                 if (!snapshot.hasData || !snapshot.data!.exists) {
                   return const Center(
-                    child: Text('No subject tracking found.', style: TextStyle(color: Colors.white54)),
+                    child: Text(
+                      'No subject tracking found.',
+                      style: TextStyle(color: Colors.white54),
+                    ),
                   );
                 }
 
-                final dataMap = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+                final dataMap =
+                    snapshot.data!.data() as Map<String, dynamic>? ?? {};
                 final List<dynamic> rawTasks = dataMap['tasksList'] ?? [];
 
                 if (rawTasks.isEmpty) {
                   return const Center(
-                    child: Text('No tasks added to this subject yet.', style: TextStyle(color: Colors.white54)),
+                    child: Text(
+                      'No tasks added to this subject yet.',
+                      style: TextStyle(color: Colors.white54),
+                    ),
                   );
                 }
 
-                final tasks = rawTasks.map((t) => Task.fromJson(t as Map<String, dynamic>)).toList();
+                final tasks = rawTasks
+                    .map((t) => Task.fromJson(t as Map<String, dynamic>))
+                    .toList();
 
                 return ListView.builder(
                   shrinkWrap: true,
@@ -100,9 +121,12 @@ class SubjectTasksSheet extends StatelessWidget {
                     final task = tasks[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
-                        color: AppColors.black.withOpacity(0.4),
+                        color: AppColors.black.withValues(alpha: 0.4),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: Colors.white10),
                       ),
@@ -115,7 +139,11 @@ class SubjectTasksSheet extends StatelessWidget {
                               children: [
                                 Text(
                                   task.title,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                                 const SizedBox(height: 4),
 
@@ -125,14 +153,23 @@ class SubjectTasksSheet extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: _getStatusColor(task.status).withOpacity(0.15),
+                              color: _getStatusColor(
+                                task.status,
+                              ).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               task.statusLabel,
-                              style: TextStyle(color: _getStatusColor(task.status), fontSize: 11, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: _getStatusColor(task.status),
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -150,10 +187,14 @@ class SubjectTasksSheet extends StatelessWidget {
 
   Color _getStatusColor(TaskStatus status) {
     switch (status) {
-      case TaskStatus.completed: return AppColors.lime;
-      case TaskStatus.inProgress: return AppColors.californiaBlue;
-      case TaskStatus.dueSoon: return AppColors.nectarine;
-      default: return Colors.white54;
+      case TaskStatus.completed:
+        return AppColors.lime;
+      case TaskStatus.inProgress:
+        return AppColors.californiaBlue;
+      case TaskStatus.dueSoon:
+        return AppColors.nectarine;
+      default:
+        return Colors.white54;
     }
   }
 }
@@ -176,7 +217,8 @@ class _TaskCountdownTextState extends State<TaskCountdownText> {
     _calculateRemainingTime();
 
     // If the task is in progress and has a valid start point, run a 1-second interval loop
-    if (widget.task.status == TaskStatus.inProgress && widget.task.startedAt != null) {
+    if (widget.task.status == TaskStatus.inProgress &&
+        widget.task.startedAt != null) {
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         _calculateRemainingTime();
       });
@@ -184,13 +226,16 @@ class _TaskCountdownTextState extends State<TaskCountdownText> {
   }
 
   void _calculateRemainingTime() {
-    if (widget.task.status != TaskStatus.inProgress || widget.task.startedAt == null) {
+    if (widget.task.status != TaskStatus.inProgress ||
+        widget.task.startedAt == null) {
       _displayString = widget.task.estimatedTime;
       return;
     }
 
     final totalAllowedMinutes = (widget.task.estimatedHours * 60).round();
-    final minutesPassed = DateTime.now().difference(widget.task.startedAt!).inMinutes;
+    final minutesPassed = DateTime.now()
+        .difference(widget.task.startedAt!)
+        .inMinutes;
     final minutesRemaining = totalAllowedMinutes - minutesPassed;
 
     if (minutesRemaining <= 0) {
@@ -227,9 +272,13 @@ class _TaskCountdownTextState extends State<TaskCountdownText> {
     return Text(
       _displayString,
       style: TextStyle(
-        color: widget.task.status == TaskStatus.inProgress ? AppColors.californiaBlue : Colors.white38,
+        color: widget.task.status == TaskStatus.inProgress
+            ? AppColors.californiaBlue
+            : Colors.white38,
         fontSize: 11,
-        fontWeight: widget.task.status == TaskStatus.inProgress ? FontWeight.bold : FontWeight.normal,
+        fontWeight: widget.task.status == TaskStatus.inProgress
+            ? FontWeight.bold
+            : FontWeight.normal,
       ),
     );
   }

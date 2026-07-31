@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:image_picker/image_picker.dart';
@@ -84,7 +83,16 @@ class StudentSettingsProvider with ChangeNotifier {
   bool loading = false;
   String? error;
 
-  VoidCallback? onSubjectsUpdated;
+  // Stable subject-refresh listeners (registered once by providers in
+  // main.dart). Keeping stable callback instances prevents unbounded
+  // re-wrapping when proxy providers re-run their update() hooks.
+  final List<VoidCallback> _subjectUpdatedListeners = [];
+
+  void addSubjectUpdatedListener(VoidCallback listener) {
+    if (!_subjectUpdatedListeners.contains(listener)) {
+      _subjectUpdatedListeners.add(listener);
+    }
+  }
 
   // Real-time listener subscriptions
   StreamSubscription? _userSubscription;
@@ -136,12 +144,15 @@ class StudentSettingsProvider with ChangeNotifier {
           currentLiveYear = (d['year'] as num?)?.toInt() ?? currentLiveYear;
           final newSemId = d['currentSemesterId']?.toString();
 
-          if (d['study_hours_start'] != null)
+          if (d['study_hours_start'] != null) {
             studyStart = _parseTimeString(d['study_hours_start'].toString());
-          if (d['study_hours_end'] != null)
+          }
+          if (d['study_hours_end'] != null) {
             studyEnd = _parseTimeString(d['study_hours_end'].toString());
-          if (d['blocked_slots'] != null)
+          }
+          if (d['blocked_slots'] != null) {
             blockedSlots = Set<String>.from(d['blocked_slots'] as List);
+          }
           if (d['joined_classes'] != null) {
             joinedClasses = (d['joined_classes'] as List)
                 .map(
@@ -324,7 +335,9 @@ class StudentSettingsProvider with ChangeNotifier {
     subjects = updated;
     _rebuildDataModel();
     await _saveToCache();
-    onSubjectsUpdated?.call();
+    for (final listener in List.of(_subjectUpdatedListeners)) {
+      listener();
+    }
     // 1. Write the subjects directly to the shared local storage keys so other providers see it instantly
     if (_cacheEngine != null) {
       await _cacheEngine!.write('settings_subjects', updated);
@@ -445,12 +458,12 @@ class StudentSettingsProvider with ChangeNotifier {
             .collection('semesters')
             .doc(semId)
             .update({
-          'semester': semNum,
-          'year': semYear,
-          'semStart': updated['start'] ?? '',
-          'semEnd': updated['end'] ?? '',
-          'examDate': updated['examDate'] ?? '',
-        });
+              'semester': semNum,
+              'year': semYear,
+              'semStart': updated['start'] ?? '',
+              'semEnd': updated['end'] ?? '',
+              'examDate': updated['examDate'] ?? '',
+            });
         await _loadAllSemesters(_uid!);
       } catch (e) {
         debugPrint('editSemester error: $e');
@@ -683,7 +696,10 @@ class StudentSettingsProvider with ChangeNotifier {
   }
 
   Future<void> updateAvatar(XFile file) async {
-    if (_uid == null) { debugPrint('updateAvatar: uid is null'); return; }
+    if (_uid == null) {
+      debugPrint('updateAvatar: uid is null');
+      return;
+    }
     try {
       final storage = _fbStorage ?? FirebaseStorage.instance;
       final ref = storage.ref().child('avatars/students/$_uid.jpg');
@@ -733,7 +749,7 @@ class StudentSettingsProvider with ChangeNotifier {
           subjectCount: count,
           studyHoursStart: _formatTime(studyStart),
           studyHoursEnd: _formatTime(studyEnd),
-          examDate:        s['examDate'] ?? '',
+          examDate: s['examDate'] ?? '',
         );
       }).toList(),
       avatarUrl: avatarUrl,
@@ -779,8 +795,9 @@ class StudentSettingsProvider with ChangeNotifier {
     if (avatarRaw != null) avatarUrl = avatarRaw;
     if (start != null) studyStart = _parseTimeString(start);
     if (end != null) studyEnd = _parseTimeString(end);
-    if (slots != null)
+    if (slots != null) {
       blockedSlots = Set<String>.from(jsonDecode(slots) as List);
+    }
     if (trRaw != null) taskReminders = trRaw == 'true';
     if (sepRaw != null) slotEndPrompts = sepRaw == 'true';
     if (bwRaw != null) burnoutWarnings = bwRaw == 'true';
@@ -791,18 +808,21 @@ class StudentSettingsProvider with ChangeNotifier {
     currentLiveSemester = semesterRaw ?? currentLiveSemester;
     currentLiveYear = int.tryParse(yearRaw ?? '') ?? currentLiveYear;
 
-    if (subjRaw != null)
+    if (subjRaw != null) {
       subjects = (jsonDecode(subjRaw) as List)
           .map((e) => Map<String, String>.from(e as Map))
           .toList();
-    if (semRaw != null)
+    }
+    if (semRaw != null) {
       semesters = (jsonDecode(semRaw) as List)
           .map((e) => Map<String, String>.from(e as Map))
           .toList();
-    if (classesRaw != null)
+    }
+    if (classesRaw != null) {
       joinedClasses = (jsonDecode(classesRaw) as List)
           .map((e) => JoinedClassModel.fromJson(e as Map<String, dynamic>))
           .toList();
+    }
 
     if (userIdRaw != null || semesters.isNotEmpty) {
       data = StudentSettingsModel(
@@ -831,7 +851,7 @@ class StudentSettingsProvider with ChangeNotifier {
                 subjectCount: int.tryParse(s['subjectCount'] ?? '0') ?? 0,
                 studyHoursStart: _formatTime(studyStart),
                 studyHoursEnd: _formatTime(studyEnd),
-                examDate:        s['examDate'] ?? '',
+                examDate: s['examDate'] ?? '',
               ),
             )
             .toList(),
@@ -899,8 +919,9 @@ class StudentSettingsProvider with ChangeNotifier {
         value: blockedSlotsCount.toString(),
       );
       await _storage.write(key: _keyAppVersion, value: data!.appVersion);
-      if (avatarUrl != null)
+      if (avatarUrl != null) {
         await _storage.write(key: _keyAvatarUrl, value: avatarUrl!);
+      }
     }
   }
 
@@ -1041,6 +1062,32 @@ class StudentSettingsProvider with ChangeNotifier {
 
           return result;
         });
+  }
+
+  void reset() {
+    _userSubscription?.cancel();
+    _userSubscription = null;
+    _enrollmentSubscription?.cancel();
+    _enrollmentSubscription = null;
+    data = null;
+    currentLiveName = '';
+    currentLiveSemester = '1';
+    currentLiveYear = 1;
+    avatarUrl = null;
+    studyStart = const TimeOfDay(hour: 8, minute: 0);
+    studyEnd = const TimeOfDay(hour: 22, minute: 0);
+    blockedSlots = {};
+    subjects = [];
+    semesters = [];
+    joinedClasses = [];
+    currentSemesterId = null;
+    taskReminders = false;
+    slotEndPrompts = false;
+    burnoutWarnings = false;
+    weeklyResetSummary = false;
+    loading = false;
+    error = null;
+    notifyListeners();
   }
 
   @override

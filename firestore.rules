@@ -1,0 +1,71 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isStudent() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 1;
+    }
+
+    function isLecturer() {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 2;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ── users ────────────────────────────────────────────────────────────────
+    // Any authenticated user may read profiles (lecturers resolve student names,
+    // students display lecturer info). Only the owner may write their own record.
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+
+      // Semester records live as a subcollection under the owning user.
+      match /semesters/{semesterId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ── lecturers ────────────────────────────────────────────────────────────
+    // Each lecturer owns exactly one document keyed by their UID.
+    match /lecturers/{lecturerId} {
+      allow read, write: if isOwner(lecturerId);
+    }
+
+    // ── join_codes ───────────────────────────────────────────────────────────
+    // Lecturers mint 6-character join codes; codes are read-only afterwards.
+    match /join_codes/{code} {
+      allow read: if isAuthenticated();
+      allow create, update: if isLecturer() && request.resource.data.lecturerUid == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // ── classes ──────────────────────────────────────────────────────────────
+    // Authenticated users may browse classes (students join by class code).
+    // Only the owning lecturer may create/update/delete a class.
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create: if isLecturer() && request.resource.data.lecturerId == request.auth.uid;
+      allow update, delete: if isLecturer() && resource.data.lecturerId == request.auth.uid;
+    }
+
+    // ── enrollments ──────────────────────────────────────────────────────────
+    // Students read/write only their own enrollment. Lecturers read all
+    // enrollments and push class-wide task assignments via batch writes.
+    // NOTE: per-class scoping of lecturer writes is not expressible with the
+    // current data model (enrollment.classId stores the class NAME, not the
+    // classes doc id), so any lecturer may manage any enrollment.
+    match /enrollments/{enrollmentId} {
+      allow read: if isLecturer() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+      allow create: if isLecturer() || (isAuthenticated() && request.resource.data.studentId == request.auth.uid);
+      allow update, delete: if isLecturer() || (isAuthenticated() && resource.data.studentId == request.auth.uid);
+    }
+  }
+}

@@ -24,7 +24,7 @@ class DateSelection extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: 7,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final day = weekPlan.days[i];
           final isSelected = i == selectedDayIndex;
@@ -38,12 +38,18 @@ class DateSelection extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? Colors.white
-                    : Colors.white.withValues(alpha: AppColors.glassTileOpacity),
-                borderRadius: BorderRadius.circular(AppColors.glassTileBorderRadius),
+                    : Colors.white.withValues(
+                        alpha: AppColors.glassTileOpacity,
+                      ),
+                borderRadius: BorderRadius.circular(
+                  AppColors.glassTileBorderRadius,
+                ),
                 border: Border.all(
                   color: isSelected
                       ? AppColors.black
-                      : Colors.white.withValues(alpha: AppColors.glassBorderOpacity),
+                      : Colors.white.withValues(
+                          alpha: AppColors.glassBorderOpacity,
+                        ),
                   width: isSelected ? 1.5 : 1,
                 ),
               ),
@@ -76,8 +82,8 @@ class DateSelection extends StatelessWidget {
                       shape: BoxShape.circle,
                       color: hasBlocks
                           ? (isSelected
-                          ? AppColors.californiaBlue
-                          : Colors.white.withValues(alpha: 0.55))
+                                ? AppColors.californiaBlue
+                                : Colors.white.withValues(alpha: 0.55))
                           : AppColors.transparent,
                     ),
                   ),

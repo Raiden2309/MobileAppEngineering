@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:mae_assignment_frontend/shared/styles/app_colors.dart';
-import 'package:mae_assignment_frontend/shared/styles/font_styles.dart';
 import 'package:mae_assignment_frontend/modules/role/lecturer/providers/classes_provider.dart';
 
 class AssignTaskSheet extends StatefulWidget {
@@ -17,12 +16,21 @@ class AssignTaskSheet extends StatefulWidget {
     required this.semester,
   });
 
-  static void show(BuildContext context, String classId, String subjectCode, String semester) {
+  static void show(
+    BuildContext context,
+    String classId,
+    String subjectCode,
+    String semester,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AssignTaskSheet(classId: classId, subjectCode: subjectCode, semester: semester),
+      builder: (context) => AssignTaskSheet(
+        classId: classId,
+        subjectCode: subjectCode,
+        semester: semester,
+      ),
     );
   }
 
@@ -65,7 +73,9 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
               surface: Color(0xFF1E2330),
               onSurface: AppColors.white,
             ),
-            dialogBackgroundColor: const Color(0xFF1E2330),
+            dialogTheme: DialogThemeData(
+              backgroundColor: const Color(0xFF1E2330),
+            ),
           ),
           child: child!,
         );
@@ -86,7 +96,9 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
     return Container(
       padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottom),
       decoration: const BoxDecoration(
-        color: Color(0xFF1E2330), // Match student dark container theme blueprint verbatim
+        color: Color(
+          0xFF1E2330,
+        ), // Match student dark container theme blueprint verbatim
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -109,7 +121,11 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
             children: [
               const Text(
                 'Assign Class Task',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.white),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.white,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.close, color: AppColors.white),
@@ -130,12 +146,19 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
 
           _Label('Task Title'),
           const SizedBox(height: 6),
-          _Field(controller: _titleController, hint: 'e.g. Complete Lab Worksheet 4'),
+          _Field(
+            controller: _titleController,
+            hint: 'e.g. Complete Lab Worksheet 4',
+          ),
           const SizedBox(height: 12),
 
           _Label('Task Description / Instructions'),
           const SizedBox(height: 6),
-          _Field(controller: _descController, hint: 'Add description lines...', maxLines: 3),
+          _Field(
+            controller: _descController,
+            hint: 'Add description lines...',
+            maxLines: 3,
+          ),
           const SizedBox(height: 12),
 
           _Label('Due Date Deadline'),
@@ -155,13 +178,21 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                   Text(
                     _selectedDueDate == null
                         ? 'Select deadline date...'
-                        : DateFormat('yyyy-MM-dd (EEEE)').format(_selectedDueDate!),
+                        : DateFormat(
+                            'yyyy-MM-dd (EEEE)',
+                          ).format(_selectedDueDate!),
                     style: TextStyle(
                       fontSize: 13,
-                      color: _selectedDueDate == null ? Colors.white38 : AppColors.white,
+                      color: _selectedDueDate == null
+                          ? Colors.white38
+                          : AppColors.white,
                     ),
                   ),
-                  const Icon(Icons.calendar_today_rounded, size: 16, color: Colors.white54),
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 16,
+                    color: Colors.white54,
+                  ),
                 ],
               ),
             ),
@@ -175,17 +206,15 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                 backgroundColor: AppColors.black,
                 foregroundColor: AppColors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 side: const BorderSide(color: Colors.white12, width: 1),
               ),
               // FIXED: Added async modifier to the button closure signature
               onPressed: () async {
                 final title = _titleController.text.trim();
                 if (title.isEmpty) return;
-
-                final String targetDateString = _selectedDueDate != null
-                    ? DateFormat('yyyy-MM-dd').format(_selectedDueDate!)
-                    : DateTime.now().toIso8601String().split('T').first;
 
                 // while the async write transactions process efficiently in the background
                 await context.read<ClassesProvider>().assignTaskToClass(
@@ -194,7 +223,9 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
                   semester: widget.semester,
                   taskTitle: title,
                   description: _descController.text.trim(),
-                  dueDate: _selectedDueDate ?? DateTime.now().add(const Duration(days: 7)),
+                  dueDate:
+                      _selectedDueDate ??
+                      DateTime.now().add(const Duration(days: 7)),
                 );
 
                 if (context.mounted) {
@@ -203,7 +234,10 @@ class _AssignTaskSheetState extends State<AssignTaskSheet> {
               },
               child: const Text(
                 'Publish Task to Students',
-                style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.californiaBlue),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.californiaBlue,
+                ),
               ),
             ),
           ),
@@ -221,7 +255,11 @@ class _Label extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.white),
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.white,
+      ),
     );
   }
 }
@@ -253,7 +291,10 @@ class _Field extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 11,
+        ),
       ),
     );
   }

@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/lecturer_dashboard_provider.dart';
+import '../views/alerts/lecturer_alerts.dart';
 
 class LecturerDashboardController {
   static void onViewAlerts(BuildContext context) {
-    // TODO: navigate to alerts screen
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            foregroundColor: Colors.black,
+          ),
+          body: const LecturerAlertsPage(),
+        ),
+      ),
+    );
   }
 
   static void onSeeAllClasses(BuildContext context, VoidCallback? onNavigate) {

@@ -8,8 +8,11 @@ class LecturerProfile extends StatelessWidget {
   final LecturerSetupController controller;
   final VoidCallback onNext;
 
-  const LecturerProfile(
-      {super.key, required this.controller, required this.onNext});
+  const LecturerProfile({
+    super.key,
+    required this.controller,
+    required this.onNext,
+  });
 
   void handleNext(BuildContext context) {
     if (!controller.validateAll()) return;
@@ -31,9 +34,11 @@ class LecturerProfile extends StatelessWidget {
         children: [
           const Text(
             'Welcome to Unplug',
-            style: TextStyle(fontSize: 26,
-                fontWeight: FontWeight.w800,
-                color: AppColors.black),
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+              color: AppColors.black,
+            ),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -43,30 +48,29 @@ class LecturerProfile extends StatelessWidget {
           const SizedBox(height: 32),
           ListenableBuilder(
             listenable: controller,
-            builder: (context, _) =>
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SetupLabel('Your Name'),
-                    SetupInput(
-                      controller: controller.nameController,
-                      placeholder: 'e.g. Dr. Lim Mei Yee',
-                      errorText: controller.getError('name'),
-                    ),
-                    const SizedBox(height: 16),
-                    const SetupLabel('Subject Name'),
-                    SetupInput(
-                      controller: controller.subjectNameController,
-                      placeholder: 'e.g. CT124 System Proposal',
-                      errorText: controller.getError('subjectName'),
-                    ),
-                    const SizedBox(height: 16),
-                    if (controller.generatedJoinCode == null)
-                      GenerateButton(controller: controller)
-                    else
-                      JoinCodeReveal(joinCode: controller.generatedJoinCode!),
-                  ],
+            builder: (context, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SetupLabel('Your Name'),
+                SetupInput(
+                  controller: controller.nameController,
+                  placeholder: 'e.g. Dr. Lim Mei Yee',
+                  errorText: controller.getError('name'),
                 ),
+                const SizedBox(height: 16),
+                const SetupLabel('Subject Name'),
+                SetupInput(
+                  controller: controller.subjectNameController,
+                  placeholder: 'e.g. CT124 System Proposal',
+                  errorText: controller.getError('subjectName'),
+                ),
+                const SizedBox(height: 16),
+                if (controller.generatedJoinCode == null)
+                  GenerateButton(controller: controller)
+                else
+                  JoinCodeReveal(joinCode: controller.generatedJoinCode!),
+              ],
+            ),
           ),
           const SizedBox(height: 32),
           GestureDetector(
@@ -81,9 +85,11 @@ class LecturerProfile extends StatelessWidget {
               child: const Center(
                 child: Text(
                   'Go to Dashboard →',
-                  style: TextStyle(color: AppColors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15),
+                  style: TextStyle(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
                 ),
               ),
             ),
@@ -100,16 +106,11 @@ class GenerateButton extends StatelessWidget {
   const GenerateButton({super.key, required this.controller});
 
   Future<void> handleGenerate() async {
-    if (controller.subjectNameController.text
-        .trim()
-        .isEmpty) return;
+    if (controller.subjectNameController.text.trim().isEmpty) {
+      return;
+    }
     controller.setGenerating(true);
     await Future.delayed(const Duration(milliseconds: 900));
-    final code = controller.subjectNameController.text
-        .trim()
-        .split(' ')
-        .first
-        .toUpperCase();
     controller.generateRandomClassCode();
   }
 
@@ -128,19 +129,21 @@ class GenerateButton extends StatelessWidget {
         child: Center(
           child: controller.generating
               ? const SizedBox(
-            width: 16,
-            height: 16,
-            child: CircularProgressIndicator(
-                strokeWidth: 2, color: AppColors.black),
-          )
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.black,
+                  ),
+                )
               : const Text(
-            'Generate Join Code',
-            style: TextStyle(
-              color: AppColors.black,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
-          ),
+                  'Generate Join Code',
+                  style: TextStyle(
+                    color: AppColors.black,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
         ),
       ),
     );
@@ -190,10 +193,7 @@ class JoinCodeReveal extends StatelessWidget {
               const SizedBox(height: 4),
               const Text(
                 'Valid for the entire semester',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.black,
-                ),
+                style: TextStyle(fontSize: 11, color: AppColors.black),
               ),
             ],
           ),
@@ -208,20 +208,16 @@ class JoinCodeReveal extends StatelessWidget {
           ),
           child: const Text(
             'Students open their Unplug app, go to Join Class, and enter this code.',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.black,
-              height: 1.6,
-            ),
+            style: TextStyle(fontSize: 12, color: AppColors.black, height: 1.6),
           ),
         ),
         const SizedBox(height: 10),
         GestureDetector(
           onTap: () {
             Clipboard.setData(ClipboardData(text: joinCode));
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Join code copied!')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Join code copied!')));
           },
           child: Container(
             width: double.infinity,

@@ -7,28 +7,36 @@ import '../services/validation_service.dart';
 import 'otp_provider.dart';
 
 class ChangePasswordProvider extends ChangeNotifier {
-  final FirebaseAuth             _auth        = FirebaseAuth.instance;
-  final OtpProvider              _otpProvider = OtpProvider();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final OtpProvider _otpProvider = OtpProvider();
 
   // ── EmailJS credentials ──
-  static const _serviceId  = 'service_50epfyk';
+  static const _serviceId = 'service_50epfyk';
   static const _templateId = 'template_havuzqk';
-  static const _publicKey  = 'xfa3Hu7FTxgXDjoy7';
+  static const _publicKey = 'xfa3Hu7FTxgXDjoy7';
   static const _privateKey = 'mEY96UCMdyUyABePWYJw0';
 
-
-  bool    _isLoading    = false;
+  bool _isLoading = false;
   String? _errorMessage;
 
-  bool    get isLoading     => _isLoading;
-  String? get errorMessage  => _errorMessage;
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
-  void _setLoading(bool value) { _isLoading = value; notifyListeners(); }
-  void _setError(String? msg)  { _errorMessage = msg; notifyListeners(); }
+  void _setLoading(bool value) {
+    _isLoading = value;
+    notifyListeners();
+  }
 
-  String? validateEmail(String email)                              => ValidationService.validateEmail(email);
-  String? validatePassword(String password)                        => ValidationService.validatePassword(password);
-  String? validateConfirmPassword(String password, String confirm) => ValidationService.validateConfirmPassword(password, confirm);
+  void _setError(String? msg) {
+    _errorMessage = msg;
+    notifyListeners();
+  }
+
+  String? validateEmail(String email) => ValidationService.validateEmail(email);
+  String? validatePassword(String password) =>
+      ValidationService.validatePassword(password);
+  String? validateConfirmPassword(String password, String confirm) =>
+      ValidationService.validateConfirmPassword(password, confirm);
 
   Future<String?> sendOtp(String email) async {
     final error = ValidationService.validateEmail(email);
@@ -43,14 +51,11 @@ class ChangePasswordProvider extends ChangeNotifier {
         Uri.parse('https://api.emailjs.com/api/v1.0/email/send'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'service_id':  _serviceId,
+          'service_id': _serviceId,
           'template_id': _templateId,
-          'user_id':     _publicKey,
+          'user_id': _publicKey,
           'accessToken': _privateKey,
-          'template_params': {
-            'to_email': email.trim(),
-            'otp':      otp,
-          },
+          'template_params': {'to_email': email.trim(), 'otp': otp},
         }),
       );
 
@@ -61,7 +66,7 @@ class ChangePasswordProvider extends ChangeNotifier {
       _setError(null);
       return null;
     } catch (e) {
-      print('EmailJS error: $e'); // add this
+      debugPrint('EmailJS error: $e');
       _setError(e.toString());
       _setError('Failed to send code. Please try again.');
       return _errorMessage;
@@ -85,7 +90,10 @@ class ChangePasswordProvider extends ChangeNotifier {
     final passError = ValidationService.validatePassword(password);
     if (passError != null) return passError;
 
-    final confirmError = ValidationService.validateConfirmPassword(password, confirm);
+    final confirmError = ValidationService.validateConfirmPassword(
+      password,
+      confirm,
+    );
     if (confirmError != null) return confirmError;
 
     _setLoading(true);

@@ -39,14 +39,15 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
 
     _hours = [];
     for (int h = dayStart.hour; h < dayEnd.hour; h++) {
-      if (h == 0)
+      if (h == 0) {
         _hours.add('12am');
-      else if (h < 12)
+      } else if (h < 12) {
         _hours.add('${h}am');
-      else if (h == 12)
+      } else if (h == 12) {
         _hours.add('12pm');
-      else
+      } else {
         _hours.add('${h - 12}pm');
+      }
     }
   }
 
@@ -164,7 +165,9 @@ class _BlockedTimesSheetState extends State<BlockedTimesSheet> {
                                       border: Border.all(
                                         color: blocked
                                             ? AppColors.blockedBorder
-                                            : AppColors.white.withOpacity(0.07),
+                                            : AppColors.white.withValues(
+                                                alpha: 0.07,
+                                              ),
                                       ),
                                       borderRadius: BorderRadius.circular(4),
                                     ),
